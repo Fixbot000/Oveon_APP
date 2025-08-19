@@ -63,6 +63,15 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				}
 			},
+			backgroundImage: {
+				'gradient-primary': 'linear-gradient(135deg, hsl(240 60% 30%), hsl(230 80% 50%))',
+				'gradient-header': 'linear-gradient(180deg, hsl(240 60% 30%), hsl(230 80% 50%))',
+				'gradient-card': 'linear-gradient(135deg, hsl(0 0% 100%), hsl(220 20% 98%))',
+			},
+			boxShadow: {
+				'card': '0 4px 20px -2px hsl(230 80% 50% / 0.1)',
+				'elevated': '0 8px 30px -4px hsl(230 80% 50% / 0.15)',
+			},
 			borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',

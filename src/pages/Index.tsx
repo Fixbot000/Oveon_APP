@@ -1,69 +1,35 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
-import { Wrench, Zap, Camera, Brain, LogOut, User } from 'lucide-react';
+import { Camera, History, Clock, Wrench } from 'lucide-react';
+import MobileHeader from '@/components/MobileHeader';
+import BottomNavigation from '@/components/BottomNavigation';
+import ActionCard from '@/components/ActionCard';
 
 const Index = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
-  const handleSignOut = async () => {
-    await signOut();
-  };
-
   if (!user) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="text-center max-w-4xl mx-auto">
+      <div className="min-h-screen bg-gradient-header flex items-center justify-center p-4">
+        <div className="text-center max-w-md mx-auto">
           <div className="flex items-center justify-center mb-8">
-            <div className="p-4 bg-primary rounded-full mr-4">
-              <Wrench className="h-12 w-12 text-primary-foreground" />
-            </div>
-            <div className="p-4 bg-accent rounded-full">
-              <Zap className="h-12 w-12 text-accent-foreground" />
+            <div className="p-6 bg-white/20 rounded-full">
+              <Wrench className="h-16 w-16 text-white" />
             </div>
           </div>
           
-          <h1 className="text-5xl font-bold text-foreground mb-4">FixBot</h1>
-          <p className="text-xl text-muted-foreground mb-8">
+          <h1 className="text-4xl font-bold text-white mb-4">FixBot</h1>
+          <p className="text-xl text-white/80 mb-8">
             AI-powered electronics diagnosis and repair assistant
           </p>
-          
-          <div className="grid md:grid-cols-2 gap-6 mb-8">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Camera className="h-5 w-5 mr-2 text-primary" />
-                  Scan & Analyze
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Upload photos of devices, PCBs, and components. Our AI analyzes images and generates diagnostic questions.
-                </CardDescription>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Brain className="h-5 w-5 mr-2 text-primary" />
-                  Smart Diagnosis
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Get structured repair guidance with problem diagnosis, fix steps, tools needed, and safety tips.
-                </CardDescription>
-              </CardContent>
-            </Card>
-          </div>
           
           <Button 
             onClick={() => navigate('/auth')} 
             size="lg"
-            className="text-lg px-8 py-6"
+            className="bg-white text-primary hover:bg-white/90 text-lg px-8 py-6 rounded-full"
           >
             Get Started - Sign In
           </Button>
@@ -73,83 +39,84 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center">
-            <div className="p-2 bg-primary rounded-full mr-3">
-              <Wrench className="h-6 w-6 text-primary-foreground" />
+    <div className="min-h-screen bg-background pb-20">
+      <MobileHeader />
+      
+      <main className="px-4 py-6 space-y-6">
+        {/* Promotional Banner */}
+        <Card className="bg-gradient-card shadow-card border-0">
+          <CardContent className="p-6 text-center">
+            <h2 className="text-xl font-bold mb-2">Effortlessly fix your devices!</h2>
+            <p className="text-muted-foreground mb-4">
+              Get AI-powered repair guidance in seconds
+            </p>
+            <Button className="bg-gradient-primary text-white rounded-full px-6">
+              Learn more
+            </Button>
+            <div className="absolute top-2 right-2 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+              Ad
             </div>
-            <h1 className="text-2xl font-bold text-foreground">FixBot</h1>
+          </CardContent>
+        </Card>
+
+        {/* Main Action Cards */}
+        <div className="grid grid-cols-3 gap-4">
+          <ActionCard
+            icon={Camera}
+            title="Scan"
+            description="Capture device photos"
+            onClick={() => navigate('/scan')}
+          />
+          <ActionCard
+            icon={History}
+            title="History"
+            description="View past repairs"
+            onClick={() => navigate('/history')}
+          />
+          <ActionCard
+            icon={Wrench}
+            title="Repair Bot"
+            description="Chat with AI assistant"
+            onClick={() => navigate('/chat')}
+          />
+        </div>
+
+        {/* Tips & Tricks */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-bold">Tips & Tricks</h3>
+            <Button variant="ghost" className="text-primary">View all</Button>
           </div>
           
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center text-sm text-muted-foreground">
-              <User className="h-4 w-4 mr-2" />
-              {user.email}
-            </div>
-            <Button variant="outline" size="sm" onClick={handleSignOut}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
-            </Button>
+          <div className="grid gap-4">
+            <Card className="bg-card shadow-card">
+              <CardContent className="p-4">
+                <div className="flex gap-4">
+                  <div className="w-16 h-16 bg-muted rounded-lg flex-shrink-0"></div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold mb-1">Capturing Circuit Photos for AI Analysis</h4>
+                    <p className="text-xs text-muted-foreground mb-2">Today's tip</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-card shadow-card">
+              <CardContent className="p-4">
+                <div className="flex gap-4">
+                  <div className="w-16 h-16 bg-muted rounded-lg flex-shrink-0"></div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold mb-1">Using a multimeter to check circuits</h4>
+                    <p className="text-xs text-muted-foreground mb-2">Popular</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-foreground mb-4">
-            Welcome back! Ready to diagnose electronics?
-          </h2>
-          <p className="text-lg text-muted-foreground">
-            Upload photos of your devices and get AI-powered repair guidance.
-          </p>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-6">
-          <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Camera className="h-5 w-5 mr-2 text-primary" />
-                New Diagnosis
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>
-                Start a new repair session by uploading device photos
-              </CardDescription>
-            </CardContent>
-          </Card>
-
-          <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Brain className="h-5 w-5 mr-2 text-primary" />
-                Repair History
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>
-                View your previous diagnoses and repair sessions
-              </CardDescription>
-            </CardContent>
-          </Card>
-
-          <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <User className="h-5 w-5 mr-2 text-primary" />
-                Profile Settings
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>
-                Manage your profile and expertise preferences
-              </CardDescription>
-            </CardContent>
-          </Card>
-        </div>
       </main>
+
+      <BottomNavigation />
     </div>
   );
 };
