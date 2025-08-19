@@ -188,6 +188,48 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          display_name: string | null
+          expertise_level: string | null
+          id: string
+          location: string | null
+          phone: string | null
+          specialization: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          expertise_level?: string | null
+          id?: string
+          location?: string | null
+          phone?: string | null
+          specialization?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          expertise_level?: string | null
+          id?: string
+          location?: string | null
+          phone?: string | null
+          specialization?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
