@@ -35,8 +35,7 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      // Pass CAPTCHA token to Supabase
-      const { error } = await signIn(email, password, signInCaptchaToken);
+      const { error } = await signIn(email, password);
       
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
@@ -93,8 +92,7 @@ const Auth = () => {
         return;
       }
 
-      // Pass CAPTCHA token to Supabase
-      const { error } = await signUp(email, password, displayName, signUpCaptchaToken);
+      const { error } = await signUp(email, password, displayName);
       
       if (error) {
         if (error.message.includes('User already registered')) {
@@ -196,14 +194,6 @@ const Auth = () => {
                     />
                   </div>
                   
-                  <div className="space-y-2">
-                    <Label>Security Verification</Label>
-                    <Turnstile
-                      sitekey="1x00000000000000000000AA"
-                      onVerify={(token) => setSignInCaptchaToken(token)}
-                      onExpire={() => setSignInCaptchaToken('')}
-                    />
-                  </div>
                 </CardContent>
                 
                 <CardFooter>
@@ -265,14 +255,6 @@ const Auth = () => {
                     />
                   </div>
                   
-                  <div className="space-y-2">
-                    <Label>Security Verification</Label>
-                    <Turnstile
-                      sitekey="1x00000000000000000000AA"
-                      onVerify={(token) => setSignUpCaptchaToken(token)}
-                      onExpire={() => setSignUpCaptchaToken('')}
-                    />
-                  </div>
                 </CardContent>
                 
                 <CardFooter>
