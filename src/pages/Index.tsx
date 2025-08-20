@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import { Camera, History, Clock, Wrench, Star, TrendingUp, Users } from 'lucide-react';
 import MobileHeader from '@/components/MobileHeader';
 import BottomNavigation from '@/components/BottomNavigation';
@@ -14,12 +15,21 @@ import antistaticImage from '@/assets/antistatic-tip.jpg';
 
 const Index = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   return (
     <div className="min-h-screen bg-background pb-20">
       <MobileHeader />
       
       <main className="px-4 py-6 space-y-8">
+        {/* Auth Section */}
+        {!user && (
+          <div className="text-center">
+            <Button onClick={() => navigate('/auth')} className="bg-primary text-primary-foreground">
+              Sign In / Sign Up
+            </Button>
+          </div>
+        )}
         {/* Promotional Banner */}
         <Card className="bg-gradient-card shadow-card border-0 relative overflow-hidden">
           <CardContent className="p-6 text-center">

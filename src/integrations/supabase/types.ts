@@ -301,13 +301,6 @@ export type Database = {
             referencedRelation: "post_comments"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "post_comments_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "posts"
-            referencedColumns: ["id"]
-          },
         ]
       }
       post_likes: {
@@ -332,85 +325,50 @@ export type Database = {
           post_id?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "post_likes_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "posts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       posts: {
         Row: {
-          content: string | null
+          content: string
           created_at: string
           id: string
-          image_urls: string[] | null
-          post_type: string
-          title: string | null
-          updated_at: string
+          image_url: string | null
           user_id: string
         }
         Insert: {
-          content?: string | null
+          content: string
           created_at?: string
           id?: string
-          image_urls?: string[] | null
-          post_type?: string
-          title?: string | null
-          updated_at?: string
+          image_url?: string | null
           user_id: string
         }
         Update: {
-          content?: string | null
+          content?: string
           created_at?: string
           id?: string
-          image_urls?: string[] | null
-          post_type?: string
-          title?: string | null
-          updated_at?: string
+          image_url?: string | null
           user_id?: string
         }
         Relationships: []
       }
       profiles: {
         Row: {
-          avatar_url: string | null
-          bio: string | null
           created_at: string
-          display_name: string | null
-          expertise_level: string | null
           id: string
-          location: string | null
-          specialization: string[] | null
-          updated_at: string
           user_id: string
+          username: string
         }
         Insert: {
-          avatar_url?: string | null
-          bio?: string | null
           created_at?: string
-          display_name?: string | null
-          expertise_level?: string | null
           id?: string
-          location?: string | null
-          specialization?: string[] | null
-          updated_at?: string
           user_id: string
+          username: string
         }
         Update: {
-          avatar_url?: string | null
-          bio?: string | null
           created_at?: string
-          display_name?: string | null
-          expertise_level?: string | null
           id?: string
-          location?: string | null
-          specialization?: string[] | null
-          updated_at?: string
           user_id?: string
+          username?: string
         }
         Relationships: []
       }

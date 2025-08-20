@@ -1,33 +1,20 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { History as HistoryIcon, FileText, MessageCircle, Heart, Wrench, Calendar, User } from 'lucide-react';
+import { History as HistoryIcon, FileText, Wrench, Calendar, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 import MobileHeader from '@/components/MobileHeader';
 import BottomNavigation from '@/components/BottomNavigation';
 
 interface UserPost {
   id: string;
-  title?: string;
-  content?: string;
-  post_type: string;
-  created_at: string;
-  like_count: number;
-  comment_count: number;
-}
-
-interface UserComment {
-  id: string;
   content: string;
   created_at: string;
-  posts: {
-    title?: string;
-    content?: string;
-  };
 }
 
 interface DiagnosticSession {
@@ -40,30 +27,24 @@ interface DiagnosticSession {
 }
 
 const History = () => {
-  const [user, setUser] = useState<any>(null);
+  const { user, signOut } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [userPosts, setUserPosts] = useState<UserPost[]>([]);
-  const [userComments, setUserComments] = useState<UserComment[]>([]);
   const [diagnosticSessions, setDiagnosticSessions] = useState<DiagnosticSession[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    checkUser();
-  }, []);
+    if (user) {
+      checkUser();
+    }
+  }, [user]);
 
   const checkUser = async () => {
+    if (!user) return;
+    
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-
-      setUser(user);
-
-      // Load user profile
+      // Fetch user profile
       const { data: profileData } = await supabase
         .from('profiles')
         .select('*')
@@ -72,38 +53,16 @@ const History = () => {
 
       setProfile(profileData);
 
-      // Load user's posts with engagement counts
+      // Fetch user's posts
       const { data: postsData } = await supabase
         .from('posts')
-        .select(`
-          *,
-          post_likes (like_type),
-          post_comments (id)
-        `)
+        .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      const processedPosts = postsData?.map(post => ({
-        ...post,
-        like_count: post.post_likes?.filter((like: any) => like.like_type === 'like').length || 0,
-        comment_count: post.post_comments?.length || 0,
-      })) || [];
+      setUserPosts(postsData || []);
 
-      setUserPosts(processedPosts);
-
-      // Load user's comments
-      const { data: commentsData } = await supabase
-        .from('post_comments')
-        .select(`
-          *,
-          posts (title, content)
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      setUserComments(commentsData || []);
-
-      // Load diagnostic sessions (repair history)
+      // Fetch diagnostic sessions
       const { data: sessionsData } = await supabase
         .from('diagnostic_sessions')
         .select('*')
@@ -112,9 +71,9 @@ const History = () => {
 
       setDiagnosticSessions(sessionsData || []);
 
-    } catch (error) {
-      console.error('Error loading user data:', error);
-      toast.error('Failed to load user history');
+    } catch (error: any) {
+      console.error('Error fetching user data:', error);
+      toast.error('Failed to load user data');
     } finally {
       setLoading(false);
     }
@@ -140,14 +99,14 @@ const History = () => {
       <div className="min-h-screen bg-background pb-20">
         <MobileHeader />
         <main className="px-4 py-6">
-          <Card className="bg-gradient-card text-center py-8">
+          <Card className="text-center py-8">
             <CardContent>
               <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">Sign In Required</h3>
               <p className="text-muted-foreground mb-4">
                 Please sign in to view your activity history and manage your profile.
               </p>
-              <Button onClick={() => window.location.href = '/auth'} className="bg-gradient-primary">
+              <Button onClick={() => window.location.href = '/auth'} className="bg-primary">
                 Sign In
               </Button>
             </CardContent>
@@ -163,202 +122,157 @@ const History = () => {
       <MobileHeader />
       
       <main className="px-4 py-6 space-y-6">
-        {/* Profile Header */}
-        <Card className="bg-gradient-card shadow-card">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16">
-                <AvatarFallback className="text-lg font-semibold">
-                  {profile?.display_name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <h2 className="text-xl font-bold">
-                  {profile?.display_name || 'User Profile'}
-                </h2>
-                <p className="text-muted-foreground">{user.email}</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Member since {new Date(user.created_at).toLocaleDateString()}
-                </p>
-              </div>
-            </div>
-            
-            {/* Quick Stats */}
-            <div className="grid grid-cols-3 gap-4 mt-6 pt-4 border-t border-border">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-primary">{userPosts.length}</p>
-                <p className="text-xs text-muted-foreground">Posts</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-primary">{userComments.length}</p>
-                <p className="text-xs text-muted-foreground">Comments</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-primary">{diagnosticSessions.length}</p>
-                <p className="text-xs text-muted-foreground">Repairs</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between mb-8">
+            <h1 className="text-3xl font-bold">History</h1>
+            {user && (
+              <Button onClick={signOut} variant="outline" size="sm">
+                Sign Out
+              </Button>
+            )}
+          </div>
 
-        {/* Activity Tabs */}
-        <Tabs defaultValue="posts" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-muted/50">
-            <TabsTrigger value="posts" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Posts
-            </TabsTrigger>
-            <TabsTrigger value="comments" className="flex items-center gap-2">
-              <MessageCircle className="h-4 w-4" />
-              Comments
-            </TabsTrigger>
-            <TabsTrigger value="repairs" className="flex items-center gap-2">
-              <Wrench className="h-4 w-4" />
-              Repairs
-            </TabsTrigger>
-          </TabsList>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex flex-col items-center space-y-4">
+                <Avatar className="h-20 w-20">
+                  <AvatarFallback className="bg-primary/10 text-primary text-2xl">
+                    {profile?.username?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold text-foreground">
+                    {profile?.username || 'Anonymous User'}
+                  </h2>
+                  <p className="text-muted-foreground">{user?.email}</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Member since {new Date(profile?.created_at || Date.now()).toLocaleDateString('en-US', {
+                      month: 'long',
+                      year: 'numeric'
+                    })}
+                  </p>
+                </div>
 
-          {/* User Posts */}
-          <TabsContent value="posts" className="space-y-4">
-            {userPosts.length === 0 ? (
-              <Card className="bg-gradient-card text-center py-8">
-                <CardContent>
-                  <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No posts yet</h3>
-                  <p className="text-muted-foreground">Start sharing with the community!</p>
-                </CardContent>
-              </Card>
-            ) : (
-              userPosts.map((post) => (
-                <Card key={post.id} className="bg-gradient-card shadow-card">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <Badge variant="outline" className="text-xs">
-                        {post.post_type}
-                      </Badge>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(post.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    
-                    {post.title && (
-                      <h4 className="font-semibold mb-2">{post.title}</h4>
-                    )}
-                    {post.content && (
-                      <p className="text-sm text-muted-foreground mb-3 line-clamp-3">
-                        {post.content}
-                      </p>
-                    )}
-                    
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Heart className="h-3 w-3" />
-                        {post.like_count} likes
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <MessageCircle className="h-3 w-3" />
-                        {post.comment_count} comments
-                      </span>
+                <div className="flex space-x-6 text-center">
+                  <div>
+                    <p className="text-2xl font-bold text-primary">{userPosts.length}</p>
+                    <p className="text-sm text-muted-foreground">Posts</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-primary">{diagnosticSessions.length}</p>
+                    <p className="text-sm text-muted-foreground">Repairs</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Tabs defaultValue="posts" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="posts" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Posts
+              </TabsTrigger>
+              <TabsTrigger value="repairs" className="flex items-center gap-2">
+                <Wrench className="h-4 w-4" />
+                Repairs
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="posts" className="space-y-4">
+              {userPosts.length === 0 ? (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center py-8">
+                      <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-muted-foreground">No Posts Yet</h3>
+                      <p className="text-muted-foreground">Your posts will appear here.</p>
                     </div>
                   </CardContent>
                 </Card>
-              ))
-            )}
-          </TabsContent>
-
-          {/* User Comments */}
-          <TabsContent value="comments" className="space-y-4">
-            {userComments.length === 0 ? (
-              <Card className="bg-gradient-card text-center py-8">
-                <CardContent>
-                  <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No comments yet</h3>
-                  <p className="text-muted-foreground">Join the conversation!</p>
-                </CardContent>
-              </Card>
-            ) : (
-              userComments.map((comment) => (
-                <Card key={comment.id} className="bg-gradient-card shadow-card">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <Badge variant="secondary" className="text-xs">
-                        Comment
-                      </Badge>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(comment.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    
-                    <p className="text-sm mb-3">{comment.content}</p>
-                    
-                    <div className="text-xs text-muted-foreground bg-muted/30 rounded p-2">
-                      <p className="font-medium mb-1">On post:</p>
-                      <p className="line-clamp-2">
-                        {comment.posts?.title || comment.posts?.content || 'Untitled post'}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </TabsContent>
-
-          {/* Repair History */}
-          <TabsContent value="repairs" className="space-y-4">
-            {diagnosticSessions.length === 0 ? (
-              <Card className="bg-gradient-card text-center py-8">
-                <CardContent>
-                  <Wrench className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No repair history</h3>
-                  <p className="text-muted-foreground">Start using our repair tools!</p>
-                </CardContent>
-              </Card>
-            ) : (
-              diagnosticSessions.map((session) => (
-                <Card key={session.id} className="bg-gradient-card shadow-card">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <Badge 
-                        variant={session.status === 'completed' ? 'default' : 'secondary'}
-                        className="text-xs"
-                      >
-                        {session.status}
-                      </Badge>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {new Date(session.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    
-                    {session.device_category && (
-                      <h4 className="font-semibold mb-2 capitalize">
-                        {session.device_category} Repair
-                      </h4>
-                    )}
-                    
-                    {session.symptoms_text && (
-                      <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                        Symptoms: {session.symptoms_text}
-                      </p>
-                    )}
-                    
-                    {session.ai_analysis && (
-                      <div className="text-xs text-muted-foreground bg-muted/30 rounded p-2">
-                        <p className="font-medium mb-1">AI Analysis:</p>
-                        <p className="line-clamp-2">
-                          {typeof session.ai_analysis === 'string' 
-                            ? session.ai_analysis 
-                            : JSON.stringify(session.ai_analysis)
-                          }
-                        </p>
+              ) : (
+                userPosts.map((post) => (
+                  <Card key={post.id}>
+                    <CardContent className="pt-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Badge variant="outline">Post</Badge>
+                          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                            <Calendar className="h-4 w-4" />
+                            <span>{new Date(post.created_at).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <p className="text-foreground line-clamp-3">
+                            {post.content}
+                          </p>
+                        </div>
                       </div>
-                    )}
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </TabsContent>
+
+            <TabsContent value="repairs" className="space-y-4">
+              {diagnosticSessions.length === 0 ? (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center py-8">
+                      <Wrench className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-muted-foreground">No Repairs Yet</h3>
+                      <p className="text-muted-foreground">Your diagnostic sessions will appear here.</p>
+                    </div>
                   </CardContent>
                 </Card>
-              ))
-            )}
-          </TabsContent>
-        </Tabs>
+              ) : (
+                diagnosticSessions.map((session) => (
+                  <Card key={session.id}>
+                    <CardContent className="pt-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Badge variant={session.status === 'completed' ? 'default' : 'secondary'}>
+                            {session.status}
+                          </Badge>
+                          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                            <Calendar className="h-4 w-4" />
+                            <span>{new Date(session.created_at).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                        
+                        {session.device_category && (
+                          <h4 className="font-semibold capitalize">
+                            {session.device_category} Repair
+                          </h4>
+                        )}
+                        
+                        {session.symptoms_text && (
+                          <p className="text-muted-foreground text-sm">
+                            Symptoms: {session.symptoms_text}
+                          </p>
+                        )}
+                        
+                        {session.ai_analysis && (
+                          <div className="bg-muted/30 p-3 rounded">
+                            <p className="text-xs font-medium text-muted-foreground mb-1">AI Analysis:</p>
+                            <p className="text-sm line-clamp-2">
+                              {typeof session.ai_analysis === 'string' 
+                                ? session.ai_analysis 
+                                : JSON.stringify(session.ai_analysis)
+                              }
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </TabsContent>
+          </Tabs>
+        </div>
       </main>
 
       <BottomNavigation />
