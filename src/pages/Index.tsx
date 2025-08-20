@@ -1,4 +1,3 @@
-import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
@@ -8,35 +7,7 @@ import BottomNavigation from '@/components/BottomNavigation';
 import ActionCard from '@/components/ActionCard';
 
 const Index = () => {
-  const { user, signOut } = useAuth();
   const navigate = useNavigate();
-
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gradient-header flex items-center justify-center p-4">
-        <div className="text-center max-w-md mx-auto">
-          <div className="flex items-center justify-center mb-8">
-            <div className="p-6 bg-white/20 rounded-full">
-              <Wrench className="h-16 w-16 text-white" />
-            </div>
-          </div>
-          
-          <h1 className="text-4xl font-bold text-white mb-4">FixBot</h1>
-          <p className="text-xl text-white/80 mb-8">
-            AI-powered electronics diagnosis and repair assistant
-          </p>
-          
-          <Button 
-            onClick={() => navigate('/auth')} 
-            size="lg"
-            className="bg-white text-primary hover:bg-white/90 text-lg px-8 py-6 rounded-full"
-          >
-            Get Started - Sign In
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background pb-20">

@@ -5,15 +5,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import MobileHeader from '@/components/MobileHeader';
 import BottomNavigation from '@/components/BottomNavigation';
-import { useAuth } from '@/contexts/AuthContext';
 
 const Chat = () => {
-  const { user } = useAuth();
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([
     {
       id: 1,
-      text: `Hi ${user?.email?.split('@')[0] || 'there'} 👋, I'm your Repair Assistant. What device do you want help with today?`,
+      text: `Hi there 👋, I'm your Repair Assistant. What device do you want help with today?`,
       isBot: true,
     }
   ]);

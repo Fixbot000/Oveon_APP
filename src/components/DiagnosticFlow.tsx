@@ -1,5 +1,4 @@
 import React, { useState, useCallback } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -22,7 +21,6 @@ interface DiagnosticSession {
 }
 
 export const DiagnosticFlow: React.FC = () => {
-  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
@@ -43,14 +41,14 @@ export const DiagnosticFlow: React.FC = () => {
   }, []);
 
   const uploadImages = async () => {
-    if (!user || selectedImages.length === 0) return [];
+    if (selectedImages.length === 0) return [];
 
     setIsUploading(true);
     const uploadedUrls = [];
 
     try {
       for (const image of selectedImages) {
-        const fileName = `${user.id}/${Date.now()}_${image.name}`;
+        const fileName = `anonymous/${Date.now()}_${image.name}`;
         const { data, error } = await supabase.storage
           .from('device-images')
           .upload(fileName, image);
@@ -77,11 +75,6 @@ export const DiagnosticFlow: React.FC = () => {
   };
 
   const startDiagnosis = async () => {
-    if (!user) {
-      toast.error('Please sign in to use diagnostics');
-      return;
-    }
-
     if (selectedImages.length === 0) {
       toast.error('Please select at least one image');
       return;
@@ -102,11 +95,11 @@ export const DiagnosticFlow: React.FC = () => {
 
       setProgress(20);
 
-      // Create diagnostic session
+      // Create diagnostic session without user_id
       const { data: sessionData, error: sessionError } = await supabase
         .from('diagnostic_sessions')
         .insert({
-          user_id: user.id,
+          user_id: '00000000-0000-0000-0000-000000000000', // anonymous user
           image_urls: urls,
           symptoms_text: symptomsText,
           device_category: deviceCategory,

@@ -2,15 +2,12 @@ import { Bell, Search } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useAuth } from '@/contexts/AuthContext';
 
 interface MobileHeaderProps {
   showSearch?: boolean;
 }
 
 const MobileHeader = ({ showSearch = true }: MobileHeaderProps) => {
-  const { user } = useAuth();
-
   return (
     <header className="bg-gradient-header p-4 pb-6 rounded-b-3xl">
       <div className="flex items-center justify-between mb-4">
@@ -18,12 +15,12 @@ const MobileHeader = ({ showSearch = true }: MobileHeaderProps) => {
           <Avatar className="h-12 w-12">
             <AvatarImage src="/placeholder.svg" />
             <AvatarFallback className="bg-white/20 text-white">
-              {user?.email?.charAt(0).toUpperCase() || 'U'}
+              U
             </AvatarFallback>
           </Avatar>
           <div>
             <h1 className="text-white text-xl font-semibold">
-              Hi, {user?.email?.split('@')[0] || 'User'}
+              Hi, User
             </h1>
           </div>
         </div>
