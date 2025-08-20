@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Heart, MessageCircle, ThumbsUp, ThumbsDown, Plus, Send, Reply, Users, Image as ImageIcon, X } from 'lucide-react';
+import { Heart, MessageCircle, ThumbsUp, ThumbsDown, Plus, Send, Reply, Users, Image as ImageIcon, X, Zap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import MobileHeader from '@/components/MobileHeader';
@@ -49,6 +49,13 @@ const Community = () => {
   const [expandedComments, setExpandedComments] = useState<string | null>(null);
   const [comments, setComments] = useState<{ [key: string]: Comment[] }>({});
   const [newComment, setNewComment] = useState('');
+  
+  // Pull-to-refresh states
+  const [isPulling, setIsPulling] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
+  const touchStartY = useRef(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     checkUser();
@@ -318,11 +325,85 @@ const Community = () => {
     setSelectedImages([]);
   };
 
+  // Pull-to-refresh handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (scrollRef.current?.scrollTop === 0) {
+      touchStartY.current = e.touches[0].clientY;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (scrollRef.current?.scrollTop === 0 && touchStartY.current > 0) {
+      const currentY = e.touches[0].clientY;
+      const distance = Math.max(0, currentY - touchStartY.current);
+      
+      if (distance > 10) {
+        setIsPulling(true);
+        setPullDistance(Math.min(distance, 80));
+      }
+    }
+  };
+
+  const handleTouchEnd = async () => {
+    if (isPulling && pullDistance > 60) {
+      setIsRefreshing(true);
+      try {
+        await loadPosts();
+        toast.success('Posts refreshed!');
+      } catch (error) {
+        toast.error('Failed to refresh posts');
+      } finally {
+        setTimeout(() => {
+          setIsRefreshing(false);
+          setIsPulling(false);
+          setPullDistance(0);
+          touchStartY.current = 0;
+        }, 800);
+      }
+    } else {
+      setIsPulling(false);
+      setPullDistance(0);
+      touchStartY.current = 0;
+    }
+  };
+
+  // Custom refresh icon component
+  const RefreshIcon = () => (
+    <div className="flex items-center justify-center">
+      <div className="relative">
+        <div className={`w-6 h-6 rounded-full border-2 border-foreground/60 ${isRefreshing ? 'animate-spin' : ''}`}>
+          <Zap className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 h-3 w-3 stroke-foreground/60 fill-none" strokeWidth={2} />
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <MobileHeader />
       
-      <main className="px-4 py-6 space-y-6">
+      {/* Pull-to-refresh indicator */}
+      {(isPulling || isRefreshing) && (
+        <div 
+          className={`fixed top-20 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-300 ${
+            isRefreshing ? 'animate-fade-in' : ''
+          } ${!isRefreshing && !isPulling ? 'animate-fade-out' : ''}`}
+          style={{
+            opacity: isRefreshing ? 1 : Math.min(pullDistance / 60, 1),
+            transform: `translate(-50%, ${isRefreshing ? '0' : `${-20 + (pullDistance / 4)}px`})`
+          }}
+        >
+          <RefreshIcon />
+        </div>
+      )}
+      
+      <main 
+        ref={scrollRef}
+        className="px-4 py-6 space-y-6 overflow-y-auto"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}  
+        onTouchEnd={handleTouchEnd}
+      >
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
