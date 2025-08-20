@@ -79,6 +79,45 @@ export type Database = {
           },
         ]
       }
+      comments: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          post_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          post_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          post_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "post_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       components: {
         Row: {
           "Component Name": string
@@ -193,6 +232,27 @@ export type Database = {
           symptoms_text?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      history: {
+        Row: {
+          action: string
+          created_at: string | null
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -329,25 +389,25 @@ export type Database = {
       }
       posts: {
         Row: {
-          content: string
-          created_at: string
+          content: string | null
+          created_at: string | null
           id: string
           image_url: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
-          content: string
-          created_at?: string
+          content?: string | null
+          created_at?: string | null
           id?: string
           image_url?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
-          content?: string
-          created_at?: string
+          content?: string | null
+          created_at?: string | null
           id?: string
           image_url?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -372,6 +432,45 @@ export type Database = {
         }
         Relationships: []
       }
+      reactions: {
+        Row: {
+          created_at: string | null
+          id: string
+          post_id: string | null
+          reaction: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          post_id?: string | null
+          reaction?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          post_id?: string | null
+          reaction?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reactions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "post_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reactions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -395,7 +494,19 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      post_with_stats: {
+        Row: {
+          comment_count: number | null
+          content: string | null
+          created_at: string | null
+          dislike_count: number | null
+          id: string | null
+          image_url: string | null
+          like_count: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
