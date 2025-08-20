@@ -15,41 +15,60 @@ const BottomNavigation = () => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-sm border-t border-border px-6 py-3 z-50">
-      <div className="flex items-center justify-between max-w-sm mx-auto relative">
-        {navItems.map((item, index) => {
-          const Icon = item.icon;
-          const isActive = location.pathname === item.path;
-          
-          if (item.isCenter) {
+    <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-sm border-t border-border px-4 py-3 z-50">
+      <div className="flex items-center justify-center max-w-md mx-auto relative">
+        <div className="flex items-center justify-between w-full max-w-xs">
+          {navItems.slice(0, 2).map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path;
+            
             return (
-              <div key={item.path} className="absolute left-1/2 transform -translate-x-1/2 -translate-y-1">
-                <Button
-                  onClick={() => navigate(item.path)}
-                  className="h-16 w-16 rounded-full bg-gradient-primary shadow-elevated hover:shadow-elevated hover:scale-105 transition-all duration-200"
-                  size="icon"
-                >
-                  <Icon className="h-7 w-7 text-white" />
-                </Button>
-              </div>
+              <Button
+                key={item.path}
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate(item.path)}
+                className={`flex flex-col items-center gap-1.5 h-auto p-2 transition-all duration-200 hover:scale-105 ${
+                  isActive ? 'text-primary bg-primary/10 rounded-lg' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+                <span className="text-xs font-medium">{item.label}</span>
+              </Button>
             );
-          }
-
-          return (
+          })}
+          
+          {/* Center scan button */}
+          <div className="mx-4">
             <Button
-              key={item.path}
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate(item.path)}
-              className={`flex flex-col items-center gap-1.5 h-auto p-3 min-w-0 transition-all duration-200 hover:scale-105 ${
-                isActive ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'
-              } ${index < 2 ? 'mr-6' : 'ml-6'}`}
+              onClick={() => navigate('/scan')}
+              className="h-16 w-16 rounded-full bg-gradient-primary shadow-elevated hover:shadow-elevated hover:scale-105 transition-all duration-200"
+              size="icon"
             >
-              <Icon className="h-5 w-5" />
-              <span className="text-xs font-medium truncate">{item.label}</span>
+              <Camera className="h-7 w-7 text-white" />
             </Button>
-          );
-        })}
+          </div>
+          
+          {navItems.slice(3).map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path;
+            
+            return (
+              <Button
+                key={item.path}
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate(item.path)}
+                className={`flex flex-col items-center gap-1.5 h-auto p-2 transition-all duration-200 hover:scale-105 ${
+                  isActive ? 'text-primary bg-primary/10 rounded-lg' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+                <span className="text-xs font-medium">{item.label}</span>
+              </Button>
+            );
+          })}
+        </div>
       </div>
     </nav>
   );

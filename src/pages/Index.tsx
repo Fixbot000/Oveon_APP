@@ -1,12 +1,16 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
-import { Camera, History, Clock, Wrench } from 'lucide-react';
+import { Camera, History, Clock, Wrench, Star, TrendingUp } from 'lucide-react';
 import MobileHeader from '@/components/MobileHeader';
 import BottomNavigation from '@/components/BottomNavigation';
 import ActionCard from '@/components/ActionCard';
 import circuitImage from '@/assets/circuit-analysis-tip.jpg';
 import multimeterImage from '@/assets/multimeter-tip.jpg';
+import solderingImage from '@/assets/soldering-tip.jpg';
+import screenRepairImage from '@/assets/screen-repair-tip.jpg';
+import batteryTestingImage from '@/assets/battery-testing-tip.jpg';
+import antistaticImage from '@/assets/antistatic-tip.jpg';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -64,7 +68,7 @@ const Index = () => {
             <Button variant="ghost" className="text-primary hover:bg-primary/10 transition-colors">View all</Button>
           </div>
           
-          <div className="grid gap-4">
+          <div className="grid gap-3">
             <Card className="bg-gradient-card shadow-card hover:shadow-elevated transition-all duration-300 group cursor-pointer">
               <CardContent className="p-4">
                 <div className="flex gap-4">
@@ -76,7 +80,7 @@ const Index = () => {
                     />
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-semibold mb-1 group-hover:text-primary transition-colors">Perfect Circuit Photo Capture Techniques</h4>
+                    <h4 className="font-semibold mb-1 group-hover:text-primary transition-colors text-sm">Capturing Circuit Photos for AI Analysis</h4>
                     <p className="text-xs text-muted-foreground mb-2">Learn optimal lighting and angles for AI analysis</p>
                     <div className="flex items-center gap-2">
                       <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">Today's tip</span>
@@ -99,12 +103,104 @@ const Index = () => {
                     />
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-semibold mb-1 group-hover:text-primary transition-colors">Multimeter Mastery for Circuit Testing</h4>
+                    <h4 className="font-semibold mb-1 group-hover:text-primary transition-colors text-sm">Using a multimeter to check circuits</h4>
                     <p className="text-xs text-muted-foreground mb-2">Essential measurement techniques for electronic repairs</p>
                     <div className="flex items-center gap-2">
                       <span className="text-xs bg-accent/10 text-accent px-2 py-1 rounded-full">Popular</span>
                       <Clock className="w-3 h-3 text-muted-foreground" />
                       <span className="text-xs text-muted-foreground">5 min read</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-card shadow-card hover:shadow-elevated transition-all duration-300 group cursor-pointer">
+              <CardContent className="p-4">
+                <div className="flex gap-4">
+                  <div className="w-16 h-16 rounded-xl flex-shrink-0 overflow-hidden shadow-sm">
+                    <img 
+                      src={solderingImage} 
+                      alt="Professional soldering techniques" 
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold mb-1 group-hover:text-primary transition-colors text-sm">Professional Soldering Techniques</h4>
+                    <p className="text-xs text-muted-foreground mb-2">Master precise component replacement and repair</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs bg-orange-500/10 text-orange-600 px-2 py-1 rounded-full">Advanced</span>
+                      <Clock className="w-3 h-3 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">8 min read</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-card shadow-card hover:shadow-elevated transition-all duration-300 group cursor-pointer">
+              <CardContent className="p-4">
+                <div className="flex gap-4">
+                  <div className="w-16 h-16 rounded-xl flex-shrink-0 overflow-hidden shadow-sm">
+                    <img 
+                      src={screenRepairImage} 
+                      alt="Screen repair tools and techniques" 
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold mb-1 group-hover:text-primary transition-colors text-sm">Screen Replacement Guide</h4>
+                    <p className="text-xs text-muted-foreground mb-2">Step-by-step smartphone screen repair process</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs bg-green-500/10 text-green-600 px-2 py-1 rounded-full">Featured</span>
+                      <Clock className="w-3 h-3 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">6 min read</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-card shadow-card hover:shadow-elevated transition-all duration-300 group cursor-pointer">
+              <CardContent className="p-4">
+                <div className="flex gap-4">
+                  <div className="w-16 h-16 rounded-xl flex-shrink-0 overflow-hidden shadow-sm">
+                    <img 
+                      src={batteryTestingImage} 
+                      alt="Battery testing and diagnostics" 
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold mb-1 group-hover:text-primary transition-colors text-sm">Battery Health Testing</h4>
+                    <p className="text-xs text-muted-foreground mb-2">Diagnose battery issues with professional tools</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs bg-blue-500/10 text-blue-600 px-2 py-1 rounded-full">Essential</span>
+                      <Clock className="w-3 h-3 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">4 min read</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-card shadow-card hover:shadow-elevated transition-all duration-300 group cursor-pointer">
+              <CardContent className="p-4">
+                <div className="flex gap-4">
+                  <div className="w-16 h-16 rounded-xl flex-shrink-0 overflow-hidden shadow-sm">
+                    <img 
+                      src={antistaticImage} 
+                      alt="ESD protection and safety" 
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold mb-1 group-hover:text-primary transition-colors text-sm">ESD Protection Essentials</h4>
+                    <p className="text-xs text-muted-foreground mb-2">Safe handling practices for sensitive electronics</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs bg-red-500/10 text-red-600 px-2 py-1 rounded-full">Safety</span>
+                      <Clock className="w-3 h-3 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">3 min read</span>
                     </div>
                   </div>
                 </div>
