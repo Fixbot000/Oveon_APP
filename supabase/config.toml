@@ -75,6 +75,9 @@ verify_jwt = false
 [functions.backup-search]
 verify_jwt = false
 
+[functions.text-diagnosis]
+verify_jwt = false
+
 [edge-runtime]
 enabled = true
 policy = "per_worker"
