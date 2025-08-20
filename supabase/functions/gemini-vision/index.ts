@@ -2,8 +2,10 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': 'https://byte-fixer.lovable.app',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Credentials': 'true'
 };
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
@@ -14,7 +16,24 @@ serve(async (req) => {
   }
 
   try {
+    // Validate auth token (JWT verification is handled by Supabase)
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     const { imageUrls, symptomsText, deviceCategory } = await req.json();
+
+    // Input validation
+    if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
+      return new Response(JSON.stringify({ error: 'Missing or invalid imageUrls' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
     if (!GEMINI_API_KEY) {
       throw new Error('GEMINI_API_KEY is not configured');

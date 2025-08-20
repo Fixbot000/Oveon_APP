@@ -61,22 +61,22 @@ enable_confirmations = false
 template = { "invite" = "./supabase/templates/invite.html", "confirmation" = "./supabase/templates/confirmation.html", "recovery" = "./supabase/templates/recovery.html", "magic_link" = "./supabase/templates/magic_link.html", "email_change" = "./supabase/templates/email_change.html" }
 
 [functions.analyze-device]
-verify_jwt = false
+verify_jwt = true
 
 [functions.gemini-vision]
-verify_jwt = false
+verify_jwt = true
 
 [functions.database-matcher]
-verify_jwt = false
+verify_jwt = true
 
 [functions.repair-guidance]
-verify_jwt = false
+verify_jwt = true
 
 [functions.backup-search]
-verify_jwt = false
+verify_jwt = true
 
 [functions.text-diagnosis]
-verify_jwt = false
+verify_jwt = true
 
 [edge-runtime]
 enabled = true

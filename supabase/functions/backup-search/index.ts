@@ -2,8 +2,10 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': 'https://byte-fixer.lovable.app',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Credentials': 'true'
 };
 
 const GOOGLE_SEARCH_API_KEY = Deno.env.get('GOOGLE_SEARCH_API_KEY');
@@ -15,7 +17,24 @@ serve(async (req) => {
   }
 
   try {
+    // Validate auth token
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     const { aiAnalysis, symptomsText, deviceCategory } = await req.json();
+
+    // Input validation
+    if (!aiAnalysis || !deviceCategory) {
+      return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
     if (!GOOGLE_SEARCH_API_KEY) {
       throw new Error('GOOGLE_SEARCH_API_KEY is not configured');

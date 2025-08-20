@@ -3,13 +3,24 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': 'https://byte-fixer.lovable.app',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Credentials': 'true'
 };
+
+// Get auth token from request
+function getAuthToken(req: Request): string | null {
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return null;
+  }
+  return authHeader.substring(7);
+}
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  Deno.env.get('SUPABASE_ANON_KEY') ?? ''
 );
 
 serve(async (req) => {
@@ -18,7 +29,34 @@ serve(async (req) => {
   }
 
   try {
+    // Get and validate auth token
+    const token = getAuthToken(req);
+    if (!token) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Set auth header for Supabase client
+    supabase.auth.setSession({
+      access_token: token,
+      refresh_token: '',
+      expires_in: 3600,
+      expires_at: Date.now() / 1000 + 3600,
+      token_type: 'bearer',
+      user: null
+    });
+
     const { sessionId, imageUrls, symptomsText, deviceCategory } = await req.json();
+
+    // Input validation
+    if (!sessionId || !imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
+      return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
     
     console.log('Starting diagnostic analysis for session:', sessionId);
 
