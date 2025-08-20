@@ -75,6 +75,9 @@ verify_jwt = true
 [functions.backup-search]
 verify_jwt = true
 
+[functions.check-password-breach]
+verify_jwt = false
+
 [edge-runtime]
 enabled = true
 policy = "per_worker"

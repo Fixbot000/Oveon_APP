@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { usePasswordSecurity } from '@/hooks/usePasswordSecurity';
 import { Loader2, Wrench, Zap } from 'lucide-react';
 import Turnstile from 'react-turnstile';
 
@@ -19,6 +20,7 @@ const Auth = () => {
   const [signUpCaptchaToken, setSignUpCaptchaToken] = useState<string>('');
   const { signIn, signUp, user } = useAuth();
   const { toast } = useToast();
+  const { checkPasswordBreach, isChecking } = usePasswordSecurity();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -78,6 +80,19 @@ const Auth = () => {
     setLoading(true);
 
     try {
+      // Check password against breach database
+      const breachResult = await checkPasswordBreach(password);
+      
+      if (breachResult?.isCompromised) {
+        toast({
+          title: "Compromised Password Detected",
+          description: `This password has been found in ${breachResult.breachCount.toLocaleString()} data breaches. Please choose a different password for your security.`,
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
       // Pass CAPTCHA token to Supabase
       const { error } = await signUp(email, password, displayName, signUpCaptchaToken);
       
@@ -261,11 +276,11 @@ const Auth = () => {
                 </CardContent>
                 
                 <CardFooter>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? (
+                  <Button type="submit" className="w-full" disabled={loading || isChecking}>
+                    {loading || isChecking ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Creating Account...
+                        {isChecking ? 'Checking Password Security...' : 'Creating Account...'}
                       </>
                     ) : (
                       'Create Account'
