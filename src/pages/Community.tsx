@@ -323,113 +323,124 @@ const Community = () => {
       <MobileHeader />
       
       <main className="px-4 py-6 space-y-6">
-        {/* Header with Create Post Button */}
+        {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Users className="h-6 w-6 text-primary" />
             <h1 className="text-2xl font-bold">Community</h1>
           </div>
           
-          <Dialog open={isCreateOpen} onOpenChange={(open) => {
-            setIsCreateOpen(open);
-            if (!open) resetCreateForm();
-          }}>
-            <DialogTrigger asChild>
-              <Button className="bg-gradient-primary hover:scale-105 transition-all duration-200">
-                <Plus className="h-4 w-4 mr-2" />
-                Create Post
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="mx-4 max-w-md max-h-[80vh] overflow-y-auto top-[15%] translate-y-0">
-              <DialogHeader>
-                <DialogTitle>Create New Post</DialogTitle>
-                <DialogDescription>
-                  Share something with the community
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <Input
-                  placeholder="Post title (optional)"
-                  value={newPost.title}
-                  onChange={(e) => setNewPost(prev => ({ ...prev, title: e.target.value }))}
-                  className="rounded-lg"
-                />
-                <Textarea
-                  placeholder="What's on your mind?"
-                  value={newPost.content}
-                  onChange={(e) => setNewPost(prev => ({ ...prev, content: e.target.value }))}
-                  rows={4}
-                  className="rounded-lg resize-none"
-                />
-                
-                {/* Image Upload Section */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <input
-                      id="image-upload"
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleImageSelect}
-                      className="hidden"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => document.getElementById('image-upload')?.click()}
-                      className="flex items-center gap-2 rounded-lg"
-                      disabled={selectedImages.length >= 5}
-                    >
-                      <ImageIcon className="h-4 w-4" />
-                      Upload Photos ({selectedImages.length}/5)
-                    </Button>
+          <Button 
+            onClick={() => setIsCreateOpen(!isCreateOpen)}
+            className="bg-gradient-primary hover:scale-105 transition-all duration-200"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Create Post
+          </Button>
+        </div>
+
+        {/* Create New Post Card - Inline */}
+        {isCreateOpen && (
+          <div className="w-full flex justify-center">
+            <Card className="w-full max-w-[600px] bg-card border shadow-lg rounded-2xl">
+              <CardContent className="p-6">
+                <div className="space-y-5">
+                  <div className="text-center">
+                    <h2 className="text-xl font-semibold text-foreground">Create New Post</h2>
+                    <p className="text-sm text-muted-foreground mt-1">Share something with the community</p>
                   </div>
                   
-                  {/* Image Previews */}
-                  {selectedImages.length > 0 && (
-                    <div className="grid grid-cols-3 gap-2">
-                      {selectedImages.map((file, index) => (
-                        <div key={index} className="relative group">
-                          <img
-                            src={URL.createObjectURL(file)}
-                            alt={`Preview ${index + 1}`}
-                            className="w-full h-20 object-cover rounded-lg border border-border"
-                          />
-                          <Button
-                            type="button" 
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => removeImage(index)}
-                            className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
+                  <div className="space-y-4">
+                    <Input
+                      placeholder="Post title (optional)"
+                      value={newPost.title}
+                      onChange={(e) => setNewPost(prev => ({ ...prev, title: e.target.value }))}
+                      className="w-full rounded-xl border-border bg-background px-4 py-3 text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
+                    />
+                    
+                    <Textarea
+                      placeholder="What's on your mind?"
+                      value={newPost.content}
+                      onChange={(e) => setNewPost(prev => ({ ...prev, content: e.target.value }))}
+                      rows={4}
+                      className="w-full rounded-xl border-border bg-background px-4 py-3 text-sm resize-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                    />
+                    
+                    {/* Image Upload Section */}
+                    <div className="space-y-4">
+                      <div className="flex justify-center">
+                        <input
+                          id="image-upload"
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handleImageSelect}
+                          className="hidden"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => document.getElementById('image-upload')?.click()}
+                          className="flex items-center gap-2 rounded-xl px-6 py-2.5 border-border hover:bg-accent"
+                          disabled={selectedImages.length >= 5}
+                        >
+                          <ImageIcon className="h-4 w-4" />
+                          Upload Photos ({selectedImages.length}/5)
+                        </Button>
+                      </div>
+                      
+                      {/* Image Previews Grid */}
+                      {selectedImages.length > 0 && (
+                        <div className="grid grid-cols-3 gap-3 p-4 bg-muted/30 rounded-xl">
+                          {selectedImages.map((file, index) => (
+                            <div key={index} className="relative group">
+                              <img
+                                src={URL.createObjectURL(file)}
+                                alt={`Preview ${index + 1}`}
+                                className="w-full h-20 object-cover rounded-lg border border-border"
+                              />
+                              <Button
+                                type="button" 
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => removeImage(index)}
+                                className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      )}
                     </div>
-                  )}
-                </div>
 
-                {/* Action Buttons */}
-                <div className="flex flex-col gap-3 pt-2">
-                  <Button 
-                    onClick={createPost} 
-                    className="w-full bg-gradient-primary hover:bg-primary/90 rounded-lg h-11 text-white font-semibold"
-                  >
-                    Share Post
-                  </Button>
-                  <button
-                    type="button"
-                    onClick={() => setIsCreateOpen(false)}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors text-center"
-                  >
-                    Cancel
-                  </button>
+                    {/* Action Buttons */}
+                    <div className="space-y-3 pt-2">
+                      <Button 
+                        onClick={createPost} 
+                        className="w-full bg-primary hover:bg-primary/90 rounded-xl h-12 text-white font-semibold text-base transition-colors"
+                      >
+                        Share Post
+                      </Button>
+                      <div className="flex justify-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCreateOpen(false);
+                            resetCreateForm();
+                          }}
+                          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Posts Feed */}
         {loading ? (
@@ -458,19 +469,19 @@ const Community = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {posts.map((post) => (
-              <Card key={post.id} className="bg-gradient-card shadow-card hover:shadow-elevated transition-all duration-300">
-                <CardContent className="p-4">
+              <Card key={post.id} className="bg-card border shadow-lg rounded-2xl hover:shadow-xl transition-all duration-300">
+                <CardContent className="p-6">
                   {/* Post Header */}
-                  <div className="flex items-center gap-3 mb-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="text-xs">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Avatar className="h-10 w-10">
+                      <AvatarFallback className="text-sm font-medium">
                         {post.profiles?.display_name?.[0]?.toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-medium text-sm">
+                      <p className="font-semibold text-sm">
                         {post.profiles?.display_name || 'Anonymous User'}
                       </p>
                       <p className="text-xs text-muted-foreground">
@@ -481,21 +492,21 @@ const Community = () => {
 
                   {/* Post Content */}
                   {post.title && (
-                    <h3 className="font-semibold text-lg mb-2">{post.title}</h3>
+                    <h3 className="font-bold text-lg mb-3 text-foreground">{post.title}</h3>
                   )}
                   {post.content && (
-                    <p className="text-foreground mb-4 whitespace-pre-wrap">{post.content}</p>
+                    <p className="text-foreground mb-4 whitespace-pre-wrap leading-relaxed">{post.content}</p>
                   )}
                   
                   {/* Post Images */}
                   {post.image_urls && post.image_urls.length > 0 && (
-                    <div className={`mb-4 ${post.image_urls.length === 1 ? '' : 'grid grid-cols-2 gap-2'}`}>
+                    <div className={`mb-4 ${post.image_urls.length === 1 ? '' : 'grid grid-cols-2 gap-3'}`}>
                       {post.image_urls.map((url, index) => (
                         <img
                           key={index}
                           src={url}
                           alt={`Post image ${index + 1}`}
-                          className={`rounded-lg object-cover border border-border ${
+                          className={`rounded-xl object-cover border border-border ${
                             post.image_urls!.length === 1 ? 'w-full h-64' : 'w-full h-32'
                           }`}
                         />
@@ -503,80 +514,95 @@ const Community = () => {
                     </div>
                   )}
 
-                  {/* Post Actions */}
-                  <div className="flex items-center justify-between pt-3 border-t border-border">
-                    <div className="flex items-center gap-4">
-                      <Button
-                        variant="ghost"
-                        size="sm"
+                  {/* Engagement Actions */}
+                  <div className="flex items-center justify-between pt-4 border-t border-border">
+                    <div className="flex items-center gap-1">
+                      <button
                         onClick={() => toggleLike(post.id, 'like')}
-                        className="flex items-center gap-2 hover:text-green-600 transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl hover:bg-accent transition-colors group"
                       >
-                        <ThumbsUp className="h-4 w-4" />
-                        {post.like_count || 0}
-                      </Button>
+                        <ThumbsUp className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
+                        <span className="text-sm font-medium text-muted-foreground group-hover:text-primary">
+                          {post.like_count || 0}
+                        </span>
+                      </button>
                       
-                      <Button
-                        variant="ghost"
-                        size="sm"
+                      <button
                         onClick={() => toggleLike(post.id, 'dislike')}
-                        className="flex items-center gap-2 hover:text-red-600 transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl hover:bg-accent transition-colors group"
                       >
-                        <ThumbsDown className="h-4 w-4" />
-                        {post.dislike_count || 0}
-                      </Button>
+                        <ThumbsDown className="h-4 w-4 text-muted-foreground group-hover:text-destructive" />
+                        <span className="text-sm font-medium text-muted-foreground group-hover:text-destructive">
+                          {post.dislike_count || 0}
+                        </span>
+                      </button>
                     </div>
-
-                    <Button
-                      variant="ghost"
-                      size="sm"
+                    
+                    <button
                       onClick={() => toggleComments(post.id)}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl hover:bg-accent transition-colors group"
                     >
-                      <MessageCircle className="h-4 w-4" />
-                      {post.comment_count || 0}
-                    </Button>
+                      <MessageCircle className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
+                      <span className="text-sm font-medium text-muted-foreground group-hover:text-primary">
+                        {post.comment_count || 0}
+                      </span>
+                    </button>
                   </div>
 
                   {/* Comments Section */}
                   {expandedComments === post.id && (
-                    <div className="mt-4 pt-4 border-t border-border space-y-3">
+                    <div className="mt-6 pt-4 border-t border-border space-y-4">
                       {/* Add Comment */}
-                      <div className="flex gap-2">
-                        <Textarea
-                          placeholder="Write a comment..."
-                          value={newComment}
-                          onChange={(e) => setNewComment(e.target.value)}
-                          rows={2}
-                          className="flex-1"
-                        />
-                        <Button
-                          onClick={() => addComment(post.id)}
-                          size="sm"
-                          className="self-end"
-                        >
-                          <Send className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      {user && (
+                        <div className="flex gap-3">
+                          <Avatar className="h-8 w-8 flex-shrink-0">
+                            <AvatarFallback className="text-xs">
+                              {user.email?.[0]?.toUpperCase() || 'U'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 flex gap-2">
+                            <Input
+                              placeholder="Add a comment..."
+                              value={newComment}
+                              onChange={(e) => setNewComment(e.target.value)}
+                              className="flex-1 rounded-xl border-border focus:ring-2 focus:ring-primary focus:border-transparent"
+                              onKeyPress={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                  e.preventDefault();
+                                  addComment(post.id);
+                                }
+                              }}
+                            />
+                            <Button
+                              onClick={() => addComment(post.id)}
+                              size="sm"
+                              className="h-10 w-10 p-0 rounded-xl"
+                              disabled={!newComment.trim()}
+                            >
+                              <Send className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Comments List */}
                       {comments[post.id]?.map((comment) => (
-                        <div key={comment.id} className="flex gap-3 bg-muted/30 rounded-lg p-3">
-                          <Avatar className="h-6 w-6">
+                        <div key={comment.id} className="flex gap-3">
+                          <Avatar className="h-8 w-8 flex-shrink-0">
                             <AvatarFallback className="text-xs">
                               {comment.profiles?.display_name?.[0]?.toUpperCase() || 'U'}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <p className="font-medium text-sm">
-                                {comment.profiles?.display_name || 'Anonymous User'}
+                            <div className="bg-muted/50 rounded-xl px-4 py-3">
+                              <p className="font-semibold text-sm mb-1">
+                                {comment.profiles?.display_name || 'Anonymous'}
                               </p>
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(comment.created_at).toLocaleDateString()}
-                              </p>
+                              <p className="text-sm text-foreground">{comment.content}</p>
                             </div>
-                            <p className="text-sm">{comment.content}</p>
+                            <p className="text-xs text-muted-foreground mt-2">
+                              {new Date(comment.created_at).toLocaleDateString()}
+                            </p>
                           </div>
                         </div>
                       ))}
