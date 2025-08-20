@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Send, Mic, Camera, Loader2, AlertCircle } from 'lucide-react';
+import { Send, Mic, Camera, Loader2, AlertCircle, X, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { useNavigate } from 'react-router-dom';
 import MobileHeader from '@/components/MobileHeader';
 import BottomNavigation from '@/components/BottomNavigation';
@@ -15,24 +16,32 @@ interface Message {
   isBot: boolean;
   isLoading?: boolean;
   hasMatches?: boolean;
+  followUpQuestions?: string[];
+  usedFallback?: boolean;
 }
 
 const Chat = () => {
   const navigate = useNavigate();
   const [message, setMessage] = useState('');
+  const [detailedDescription, setDetailedDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showDescription, setShowDescription] = useState(false);
+  const [pendingQuestions, setPendingQuestions] = useState<string[]>([]);
   const [conversationHistory, setConversationHistory] = useState<any[]>([]);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
-      text: `Hi there 👋 I'm your AI Repair Assistant! I can help you diagnose and fix electronic devices.
+      text: `Hi there! 👋 I'm your AI Repair Assistant, just like ChatGPT but specialized in electronics repair!
 
-You can:
-• Describe your device issues here for instant help
-• Use the Scan feature for image-based diagnosis
-• Ask about specific symptoms or problems
+I can help you:
+• Diagnose device problems through conversation
+• Provide step-by-step repair guidance  
+• Answer questions about electronic components
+• Give you contextual symptom questions (which you can skip anytime)
 
-What device do you need help with today?`,
+**Tip:** You can add detailed descriptions using the info box below for better analysis!
+
+What device issue can I help you with today?`,
       isBot: true,
     }
   ]);
@@ -46,33 +55,49 @@ What device do you need help with today?`,
     'Display problems'
   ];
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = async (skipQuestions = false) => {
     if (!message.trim() || isLoading) return;
     
     const userMessage = message.trim();
+    const fullMessage = detailedDescription 
+      ? `${userMessage}\n\nAdditional details: ${detailedDescription}`
+      : userMessage;
     const newMessageId = Date.now();
     
     // Add user message
     setMessages(prev => [
       ...prev,
-      { id: newMessageId, text: userMessage, isBot: false }
+      { 
+        id: newMessageId, 
+        text: detailedDescription 
+          ? `${userMessage}\n\n📝 Additional details: ${detailedDescription}`
+          : userMessage, 
+        isBot: false 
+      }
     ]);
     
     // Add loading message
     const loadingId = newMessageId + 1;
+    const loadingText = conversationHistory.length === 0 
+      ? 'Analyzing your issue with AI...' 
+      : 'Thinking...';
+    
     setMessages(prev => [
       ...prev,
-      { id: loadingId, text: 'Analyzing your issue...', isBot: true, isLoading: true }
+      { id: loadingId, text: loadingText, isBot: true, isLoading: true }
     ]);
     
     setMessage('');
+    setDetailedDescription('');
+    setShowDescription(false);
     setIsLoading(true);
 
     try {
       const { data, error } = await supabase.functions.invoke('text-diagnosis', {
         body: {
-          message: userMessage,
-          conversationHistory: conversationHistory
+          message: fullMessage,
+          conversationHistory: conversationHistory,
+          skipQuestions: skipQuestions
         }
       });
 
@@ -87,18 +112,28 @@ What device do you need help with today?`,
             id: Date.now(), 
             text: data.response || 'I apologize, but I encountered an issue processing your request. Please try again.',
             isBot: true,
-            hasMatches: data.hasMatches
+            hasMatches: data.hasMatches,
+            followUpQuestions: data.followUpQuestions || [],
+            usedFallback: data.usedFallback
           }
         ];
       });
 
+      // Set pending questions for UI
+      if (data.followUpQuestions && data.followUpQuestions.length > 0 && !skipQuestions) {
+        setPendingQuestions(data.followUpQuestions);
+      } else {
+        setPendingQuestions([]);
+      }
+
       // Update conversation history
       setConversationHistory(prev => [
         ...prev,
-        { role: 'user', content: userMessage },
+        { role: 'user', content: fullMessage },
         { role: 'assistant', content: data.response }
       ]);
 
+      // Show database matches info
       if (data.hasMatches) {
         setTimeout(() => {
           setMessages(prev => [
@@ -112,6 +147,20 @@ What device do you need help with today?`,
         }, 1000);
       }
 
+      // Show fallback notice
+      if (data.usedFallback) {
+        setTimeout(() => {
+          setMessages(prev => [
+            ...prev,
+            {
+              id: Date.now() + 2,
+              text: `⚡ Response provided by Gemini AI (ChatGPT was busy)`,
+              isBot: true
+            }
+          ]);
+        }, 1500);
+      }
+
     } catch (error) {
       console.error('Chat error:', error);
       
@@ -122,7 +171,7 @@ What device do you need help with today?`,
           ...filtered,
           { 
             id: Date.now(), 
-            text: 'I apologize, but I\'m having trouble processing your request right now. Please try again or use the Scan feature for image-based diagnosis.',
+            text: 'I\'m having trouble processing your request right now. Please try again - I\'ll do my best to help with your device issue!',
             isBot: true
           }
         ];
@@ -134,8 +183,29 @@ What device do you need help with today?`,
     }
   };
 
+  const handleQuestionSelect = (question: string) => {
+    setMessage(question);
+    setPendingQuestions([]);
+  };
+
+  const handleSkipQuestions = () => {
+    setPendingQuestions([]);
+    toast.success('Questions skipped! Feel free to describe your issue directly.');
+  };
+
   const handleQuickAction = (action: string) => {
     setMessage(action);
+  };
+
+  const handleSendClick = () => {
+    handleSendMessage(false);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage(false);
+    }
   };
 
   return (
@@ -173,6 +243,41 @@ What device do you need help with today?`,
           ))}
         </div>
 
+        {/* Follow-up Questions */}
+        {pendingQuestions.length > 0 && (
+          <Card className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border-blue-200">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium text-foreground">
+                  I have some follow-up questions to help you better:
+                </CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSkipQuestions}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Skip questions
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="space-y-2">
+                {pendingQuestions.map((question, index) => (
+                  <Button
+                    key={index}
+                    variant="outline"
+                    className="w-full text-left justify-start h-auto p-3 bg-background/50 hover:bg-background"
+                    onClick={() => handleQuestionSelect(question)}
+                  >
+                    {question}
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {messages.length === 1 && (
           <div className="space-y-4">
             <Card className="bg-gradient-card shadow-card border-0">
@@ -208,37 +313,80 @@ What device do you need help with today?`,
       </main>
 
       <div className="fixed bottom-20 left-0 right-0 p-4 bg-background/95 backdrop-blur-sm border-t border-border">
-        <div className="flex gap-3 max-w-md mx-auto">
-          <div className="flex-1 relative">
-            <Input
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Describe your device issue..."
-              className="pr-12 h-12 bg-card"
-              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-              disabled={isLoading}
-            />
-            <Button
-              variant="ghost"
+        <div className="space-y-4 max-w-md mx-auto">
+          {/* Description Box */}
+          {showDescription && (
+            <Card className="bg-card border-border">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <Info className="w-4 h-4" />
+                    Additional Details
+                  </CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowDescription(false)}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <Textarea
+                  value={detailedDescription}
+                  onChange={(e) => setDetailedDescription(e.target.value)}
+                  placeholder="Provide additional details about your device issue, symptoms, when it started, what you've tried, etc."
+                  className="min-h-[80px] bg-background"
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="flex gap-3">
+            <div className="flex-1 relative">
+              <Input
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Describe your device issue..."
+                className="pr-20 h-12 bg-card"
+                onKeyPress={handleKeyPress}
+                disabled={isLoading}
+              />
+              <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setShowDescription(!showDescription)}
+                  title="Add detailed description"
+                >
+                  <Info className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled
+                  title="Voice input (coming soon)"
+                >
+                  <Mic className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <Button 
+              onClick={handleSendClick}
+              className="h-12 w-12 bg-gradient-primary" 
               size="icon"
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8"
-              disabled
+              disabled={isLoading || !message.trim()}
             >
-              <Mic className="h-4 w-4" />
+              {isLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Send className="h-5 w-5" />
+              )}
             </Button>
           </div>
-          <Button 
-            onClick={handleSendMessage} 
-            className="h-12 w-12 bg-gradient-primary" 
-            size="icon"
-            disabled={isLoading || !message.trim()}
-          >
-            {isLoading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <Send className="h-5 w-5" />
-            )}
-          </Button>
         </div>
       </div>
 
