@@ -4,9 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Heart, MessageCircle, ThumbsUp, ThumbsDown, Plus, Send, Reply, Users } from 'lucide-react';
+import { Heart, MessageCircle, ThumbsUp, ThumbsDown, Plus, Send, Reply, Users, Image as ImageIcon, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import MobileHeader from '@/components/MobileHeader';
@@ -42,6 +42,7 @@ interface Comment {
 const Community = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [newPost, setNewPost] = useState({ title: '', content: '' });
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
@@ -117,18 +118,49 @@ const Community = () => {
       return;
     }
 
-    if (!newPost.title && !newPost.content) {
-      toast.error('Please add some content to your post');
+    if (!newPost.title && !newPost.content && selectedImages.length === 0) {
+      toast.error('Please add some content or images to your post');
       return;
     }
 
     try {
+      let imageUrls: string[] = [];
+
+      // Upload images if any are selected
+      if (selectedImages.length > 0) {
+        const uploadPromises = selectedImages.map(async (file, index) => {
+          const fileName = `${user.id}/${Date.now()}_${index}_${file.name}`;
+          const { data, error } = await supabase.storage
+            .from('device-images')
+            .upload(fileName, file);
+
+          if (error) throw error;
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('device-images')
+            .getPublicUrl(fileName);
+
+          return publicUrl;
+        });
+
+        imageUrls = await Promise.all(uploadPromises);
+      }
+
+      // Determine post type
+      let postType = 'text';
+      if (imageUrls.length > 0 && (newPost.title || newPost.content)) {
+        postType = 'mixed';
+      } else if (imageUrls.length > 0) {
+        postType = 'image';
+      }
+
       const { error } = await supabase
         .from('posts')
         .insert({
           title: newPost.title || null,
           content: newPost.content || null,
-          post_type: newPost.title && newPost.content ? 'mixed' : newPost.title ? 'text' : 'text',
+          image_urls: imageUrls.length > 0 ? imageUrls : null,
+          post_type: postType,
           user_id: user.id,
         });
 
@@ -136,6 +168,7 @@ const Community = () => {
 
       toast.success('Post created successfully!');
       setNewPost({ title: '', content: '' });
+      setSelectedImages([]);
       setIsCreateOpen(false);
       loadPosts();
     } catch (error) {
@@ -267,6 +300,24 @@ const Community = () => {
     }
   };
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length + selectedImages.length > 5) {
+      toast.error('Maximum 5 images allowed per post');
+      return;
+    }
+    setSelectedImages(prev => [...prev, ...files]);
+  };
+
+  const removeImage = (index: number) => {
+    setSelectedImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const resetCreateForm = () => {
+    setNewPost({ title: '', content: '' });
+    setSelectedImages([]);
+  };
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <MobileHeader />
@@ -279,32 +330,102 @@ const Community = () => {
             <h1 className="text-2xl font-bold">Community</h1>
           </div>
           
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+          <Dialog open={isCreateOpen} onOpenChange={(open) => {
+            setIsCreateOpen(open);
+            if (!open) resetCreateForm();
+          }}>
             <DialogTrigger asChild>
               <Button className="bg-gradient-primary hover:scale-105 transition-all duration-200">
                 <Plus className="h-4 w-4 mr-2" />
                 Create Post
               </Button>
             </DialogTrigger>
-            <DialogContent className="mx-4 max-w-md">
+            <DialogContent className="mx-4 max-w-md max-h-[80vh] overflow-y-auto top-[15%] translate-y-0">
               <DialogHeader>
                 <DialogTitle>Create New Post</DialogTitle>
+                <DialogDescription>
+                  Share something with the community
+                </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <Input
                   placeholder="Post title (optional)"
                   value={newPost.title}
                   onChange={(e) => setNewPost(prev => ({ ...prev, title: e.target.value }))}
+                  className="rounded-lg"
                 />
                 <Textarea
                   placeholder="What's on your mind?"
                   value={newPost.content}
                   onChange={(e) => setNewPost(prev => ({ ...prev, content: e.target.value }))}
                   rows={4}
+                  className="rounded-lg resize-none"
                 />
-                <Button onClick={createPost} className="w-full bg-gradient-primary">
-                  Share Post
-                </Button>
+                
+                {/* Image Upload Section */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="image-upload"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleImageSelect}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => document.getElementById('image-upload')?.click()}
+                      className="flex items-center gap-2 rounded-lg"
+                      disabled={selectedImages.length >= 5}
+                    >
+                      <ImageIcon className="h-4 w-4" />
+                      Upload Photos ({selectedImages.length}/5)
+                    </Button>
+                  </div>
+                  
+                  {/* Image Previews */}
+                  {selectedImages.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2">
+                      {selectedImages.map((file, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-20 object-cover rounded-lg border border-border"
+                          />
+                          <Button
+                            type="button" 
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => removeImage(index)}
+                            className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-col gap-3 pt-2">
+                  <Button 
+                    onClick={createPost} 
+                    className="w-full bg-gradient-primary hover:bg-primary/90 rounded-lg h-11 text-white font-semibold"
+                  >
+                    Share Post
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateOpen(false)}
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors text-center"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
             </DialogContent>
           </Dialog>
@@ -364,6 +485,22 @@ const Community = () => {
                   )}
                   {post.content && (
                     <p className="text-foreground mb-4 whitespace-pre-wrap">{post.content}</p>
+                  )}
+                  
+                  {/* Post Images */}
+                  {post.image_urls && post.image_urls.length > 0 && (
+                    <div className={`mb-4 ${post.image_urls.length === 1 ? '' : 'grid grid-cols-2 gap-2'}`}>
+                      {post.image_urls.map((url, index) => (
+                        <img
+                          key={index}
+                          src={url}
+                          alt={`Post image ${index + 1}`}
+                          className={`rounded-lg object-cover border border-border ${
+                            post.image_urls!.length === 1 ? 'w-full h-64' : 'w-full h-32'
+                          }`}
+                        />
+                      ))}
+                    </div>
                   )}
 
                   {/* Post Actions */}
