@@ -49,27 +49,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, password: string, displayName?: string, captchaToken?: string) => {
     const redirectUrl = `${window.location.origin}/`;
     
+    const options: any = {
+      emailRedirectTo: redirectUrl,
+      data: {
+        display_name: displayName
+      }
+    };
+    
+    // Only include CAPTCHA token if it's provided and not empty
+    if (captchaToken && captchaToken.trim() !== '') {
+      options.captchaToken = captchaToken;
+    }
+    
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: {
-          display_name: displayName
-        },
-        captchaToken
-      }
+      options
     });
     return { error };
   };
 
   const signIn = async (email: string, password: string, captchaToken?: string) => {
+    const options: any = {};
+    
+    // Only include CAPTCHA token if it's provided and not empty
+    if (captchaToken && captchaToken.trim() !== '') {
+      options.captchaToken = captchaToken;
+    }
+    
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
-      options: {
-        captchaToken
-      }
+      options: Object.keys(options).length > 0 ? options : undefined
     });
     return { error };
   };

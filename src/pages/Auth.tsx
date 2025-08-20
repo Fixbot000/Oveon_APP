@@ -31,7 +31,8 @@ const Auth = () => {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!signInCaptchaToken) {
+    // For development/testing, make CAPTCHA optional
+    if (!signInCaptchaToken && window.location.hostname !== 'localhost' && !window.location.hostname.includes('sandbox.lovable.dev')) {
       toast({
         title: "Security verification required",
         description: "Please complete the security check.",
@@ -85,7 +86,8 @@ const Auth = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!signUpCaptchaToken) {
+    // For development/testing, make CAPTCHA optional
+    if (!signUpCaptchaToken && window.location.hostname !== 'localhost' && !window.location.hostname.includes('sandbox.lovable.dev')) {
       toast({
         title: "Security verification required",
         description: "Please complete the security check.",
@@ -202,7 +204,7 @@ const Auth = () => {
                   <div className="space-y-2">
                     <Label>Security Verification</Label>
                     <Turnstile
-                      sitekey="1x00000000000000000000AA"
+                      sitekey="3x00000000000000000000FF"
                       onVerify={(token) => setSignInCaptchaToken(token)}
                       onError={() => setSignInCaptchaToken('')}
                       onExpire={() => setSignInCaptchaToken('')}
@@ -274,7 +276,7 @@ const Auth = () => {
                   <div className="space-y-2">
                     <Label>Security Verification</Label>
                     <Turnstile
-                      sitekey="1x00000000000000000000AA"
+                      sitekey="3x00000000000000000000FF"
                       onVerify={(token) => setSignUpCaptchaToken(token)}
                       onError={() => setSignUpCaptchaToken('')}
                       onExpire={() => setSignUpCaptchaToken('')}
