@@ -56,8 +56,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         emailRedirectTo: redirectUrl,
         data: {
           display_name: displayName
-        }
-        // Removing CAPTCHA options entirely for testing
+        },
+        captchaToken
       }
     });
     return { error };
@@ -66,8 +66,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string, captchaToken?: string) => {
     const { error } = await supabase.auth.signInWithPassword({
       email,
-      password
-      // Removing CAPTCHA options entirely for testing
+      password,
+      options: {
+        captchaToken
+      }
     });
     return { error };
   };

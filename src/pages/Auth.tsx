@@ -33,8 +33,8 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      // For testing, skip CAPTCHA entirely
-      const { error } = await signIn(email, password);
+      // Pass CAPTCHA token to Supabase
+      const { error } = await signIn(email, password, signInCaptchaToken);
       
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
@@ -78,8 +78,8 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      // For testing, skip CAPTCHA entirely
-      const { error } = await signUp(email, password, displayName);
+      // Pass CAPTCHA token to Supabase
+      const { error } = await signUp(email, password, displayName, signUpCaptchaToken);
       
       if (error) {
         if (error.message.includes('User already registered')) {
@@ -182,11 +182,12 @@ const Auth = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label>Security Verification (Currently disabled for testing)</Label>
-                    <div className="text-sm text-muted-foreground p-3 bg-muted rounded-md">
-                      CAPTCHA verification is temporarily disabled for development. 
-                      You can sign in without completing the security check.
-                    </div>
+                    <Label>Security Verification</Label>
+                    <Turnstile
+                      sitekey="1x00000000000000000000AA"
+                      onVerify={(token) => setSignInCaptchaToken(token)}
+                      onExpire={() => setSignInCaptchaToken('')}
+                    />
                   </div>
                 </CardContent>
                 
@@ -250,11 +251,12 @@ const Auth = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label>Security Verification (Currently disabled for testing)</Label>
-                    <div className="text-sm text-muted-foreground p-3 bg-muted rounded-md">
-                      CAPTCHA verification is temporarily disabled for development. 
-                      You can sign up without completing the security check.
-                    </div>
+                    <Label>Security Verification</Label>
+                    <Turnstile
+                      sitekey="1x00000000000000000000AA"
+                      onVerify={(token) => setSignUpCaptchaToken(token)}
+                      onExpire={() => setSignUpCaptchaToken('')}
+                    />
                   </div>
                 </CardContent>
                 
