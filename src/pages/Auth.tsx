@@ -8,12 +8,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Wrench, Zap } from 'lucide-react';
+import Turnstile from 'react-turnstile';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [signInCaptchaToken, setSignInCaptchaToken] = useState<string>('');
+  const [signUpCaptchaToken, setSignUpCaptchaToken] = useState<string>('');
   const { signIn, signUp, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -27,16 +30,32 @@ const Auth = () => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!signInCaptchaToken) {
+      toast({
+        title: "Security verification required",
+        description: "Please complete the security check.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setLoading(true);
 
     try {
-      const { error } = await signIn(email, password);
+      const { error } = await signIn(email, password, signInCaptchaToken);
       
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
           toast({
             title: "Login Failed",
             description: "Invalid email or password. Please check your credentials.",
+            variant: "destructive",
+          });
+        } else if (error.message.includes('captcha')) {
+          toast({
+            title: "Security verification failed",
+            description: "Please try the security check again.",
             variant: "destructive",
           });
         } else {
@@ -65,10 +84,20 @@ const Auth = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!signUpCaptchaToken) {
+      toast({
+        title: "Security verification required",
+        description: "Please complete the security check.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setLoading(true);
 
     try {
-      const { error } = await signUp(email, password, displayName);
+      const { error } = await signUp(email, password, displayName, signUpCaptchaToken);
       
       if (error) {
         if (error.message.includes('User already registered')) {
@@ -81,6 +110,12 @@ const Auth = () => {
           toast({
             title: "Weak password",
             description: "Password should be at least 6 characters long.",
+            variant: "destructive",
+          });
+        } else if (error.message.includes('captcha')) {
+          toast({
+            title: "Security verification failed",
+            description: "Please try the security check again.",
             variant: "destructive",
           });
         } else {
@@ -163,6 +198,18 @@ const Auth = () => {
                       placeholder="••••••••"
                     />
                   </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Security Verification</Label>
+                    <Turnstile
+                      sitekey="1x00000000000000000000AA"
+                      onVerify={(token) => setSignInCaptchaToken(token)}
+                      onError={() => setSignInCaptchaToken('')}
+                      onExpire={() => setSignInCaptchaToken('')}
+                      theme="auto"
+                      size="normal"
+                    />
+                  </div>
                 </CardContent>
                 
                 <CardFooter>
@@ -221,6 +268,18 @@ const Auth = () => {
                       required
                       placeholder="••••••••"
                       minLength={6}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Security Verification</Label>
+                    <Turnstile
+                      sitekey="1x00000000000000000000AA"
+                      onVerify={(token) => setSignUpCaptchaToken(token)}
+                      onError={() => setSignUpCaptchaToken('')}
+                      onExpire={() => setSignUpCaptchaToken('')}
+                      theme="auto"
+                      size="normal"
                     />
                   </div>
                 </CardContent>
