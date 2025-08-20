@@ -9,12 +9,12 @@ interface MobileHeaderProps {
 
 const MobileHeader = ({ showSearch = true }: MobileHeaderProps) => {
   return (
-    <header className="bg-gradient-header p-4 pb-6 rounded-b-3xl">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <Avatar className="h-12 w-12">
+    <header className="bg-gradient-header p-6 pb-8 rounded-b-3xl shadow-card">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-4">
+          <Avatar className="h-14 w-14 ring-2 ring-white/20">
             <AvatarImage src="/placeholder.svg" />
-            <AvatarFallback className="bg-white/20 text-white">
+            <AvatarFallback className="bg-white/20 text-white font-semibold text-lg">
               U
             </AvatarFallback>
           </Avatar>
@@ -22,15 +22,16 @@ const MobileHeader = ({ showSearch = true }: MobileHeaderProps) => {
             <h1 className="text-white text-xl font-semibold">
               Hi, User
             </h1>
+            <p className="text-white/80 text-sm">Ready to fix something?</p>
           </div>
         </div>
         
         {showSearch ? (
-          <Button variant="ghost" size="icon" className="text-white hover:bg-white/10">
+          <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 transition-all duration-200">
             <Search className="h-6 w-6" />
           </Button>
         ) : (
-          <Button variant="ghost" size="icon" className="text-white hover:bg-white/10">
+          <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 transition-all duration-200">
             <Bell className="h-6 w-6" />
           </Button>
         )}
@@ -38,17 +39,17 @@ const MobileHeader = ({ showSearch = true }: MobileHeaderProps) => {
       
       {showSearch && (
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white/60 h-5 w-5" />
           <Input
-            placeholder="Search..."
-            className="bg-white/10 border-white/20 text-white placeholder:text-white/60 pl-12 pr-12 h-12 rounded-full"
+            placeholder="Search repairs, tips..."
+            className="bg-white/15 backdrop-blur-sm border-white/30 text-white placeholder:text-white/70 pl-12 pr-12 h-12 rounded-2xl focus:bg-white/20 focus:border-white/40 transition-all duration-200"
           />
           <Button
             variant="ghost"
             size="icon"
-            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-white hover:bg-white/10 h-8 w-8"
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-white hover:bg-white/20 h-8 w-8 rounded-full transition-all duration-200"
           >
-            <Bell className="h-5 w-5" />
+            <Bell className="h-4 w-4" />
           </Button>
         </div>
       )}

@@ -5,6 +5,8 @@ import { Camera, History, Clock, Wrench } from 'lucide-react';
 import MobileHeader from '@/components/MobileHeader';
 import BottomNavigation from '@/components/BottomNavigation';
 import ActionCard from '@/components/ActionCard';
+import circuitImage from '@/assets/circuit-analysis-tip.jpg';
+import multimeterImage from '@/assets/multimeter-tip.jpg';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -13,25 +15,28 @@ const Index = () => {
     <div className="min-h-screen bg-background pb-20">
       <MobileHeader />
       
-      <main className="px-4 py-6 space-y-6">
+      <main className="px-4 py-6 space-y-8">
         {/* Promotional Banner */}
-        <Card className="bg-gradient-card shadow-card border-0">
+        <Card className="bg-gradient-card shadow-card border-0 relative overflow-hidden">
           <CardContent className="p-6 text-center">
-            <h2 className="text-xl font-bold mb-2">Effortlessly fix your devices!</h2>
-            <p className="text-muted-foreground mb-4">
-              Get AI-powered repair guidance in seconds
-            </p>
-            <Button className="bg-gradient-primary text-white rounded-full px-6">
-              Learn more
-            </Button>
-            <div className="absolute top-2 right-2 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+            <div className="relative z-10">
+              <h2 className="text-xl font-bold mb-2">Effortlessly fix your devices!</h2>
+              <p className="text-muted-foreground mb-4">
+                Get AI-powered repair guidance in seconds
+              </p>
+              <Button className="bg-gradient-primary text-white rounded-full px-6 shadow-lg hover:shadow-elevated transition-all duration-200">
+                Learn more
+              </Button>
+            </div>
+            <div className="absolute top-3 right-3 text-xs text-muted-foreground bg-muted/80 backdrop-blur-sm px-2 py-1 rounded-full">
               Ad
             </div>
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-accent/5 opacity-50"></div>
           </CardContent>
         </Card>
 
         {/* Main Action Cards */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-3">
           <ActionCard
             icon={Camera}
             title="Scan"
@@ -54,31 +59,53 @@ const Index = () => {
 
         {/* Tips & Tricks */}
         <div>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-5">
             <h3 className="text-xl font-bold">Tips & Tricks</h3>
-            <Button variant="ghost" className="text-primary">View all</Button>
+            <Button variant="ghost" className="text-primary hover:bg-primary/10 transition-colors">View all</Button>
           </div>
           
           <div className="grid gap-4">
-            <Card className="bg-card shadow-card">
+            <Card className="bg-gradient-card shadow-card hover:shadow-elevated transition-all duration-300 group cursor-pointer">
               <CardContent className="p-4">
                 <div className="flex gap-4">
-                  <div className="w-16 h-16 bg-muted rounded-lg flex-shrink-0"></div>
+                  <div className="w-16 h-16 rounded-xl flex-shrink-0 overflow-hidden shadow-sm">
+                    <img 
+                      src={circuitImage} 
+                      alt="Circuit board analysis" 
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                  </div>
                   <div className="flex-1">
-                    <h4 className="font-semibold mb-1">Capturing Circuit Photos for AI Analysis</h4>
-                    <p className="text-xs text-muted-foreground mb-2">Today's tip</p>
+                    <h4 className="font-semibold mb-1 group-hover:text-primary transition-colors">Perfect Circuit Photo Capture Techniques</h4>
+                    <p className="text-xs text-muted-foreground mb-2">Learn optimal lighting and angles for AI analysis</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">Today's tip</span>
+                      <Clock className="w-3 h-3 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">3 min read</span>
+                    </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-card shadow-card">
+            <Card className="bg-gradient-card shadow-card hover:shadow-elevated transition-all duration-300 group cursor-pointer">
               <CardContent className="p-4">
                 <div className="flex gap-4">
-                  <div className="w-16 h-16 bg-muted rounded-lg flex-shrink-0"></div>
+                  <div className="w-16 h-16 rounded-xl flex-shrink-0 overflow-hidden shadow-sm">
+                    <img 
+                      src={multimeterImage} 
+                      alt="Multimeter testing circuits" 
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                  </div>
                   <div className="flex-1">
-                    <h4 className="font-semibold mb-1">Using a multimeter to check circuits</h4>
-                    <p className="text-xs text-muted-foreground mb-2">Popular</p>
+                    <h4 className="font-semibold mb-1 group-hover:text-primary transition-colors">Multimeter Mastery for Circuit Testing</h4>
+                    <p className="text-xs text-muted-foreground mb-2">Essential measurement techniques for electronic repairs</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs bg-accent/10 text-accent px-2 py-1 rounded-full">Popular</span>
+                      <Clock className="w-3 h-3 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">5 min read</span>
+                    </div>
                   </div>
                 </div>
               </CardContent>
