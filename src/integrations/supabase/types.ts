@@ -119,6 +119,51 @@ export type Database = {
         }
         Relationships: []
       }
+      diagnostic_sessions: {
+        Row: {
+          ai_analysis: Json | null
+          backup_search_results: Json | null
+          created_at: string
+          database_matches: Json | null
+          device_category: string | null
+          id: string
+          image_urls: string[] | null
+          repair_guidance: Json | null
+          status: string | null
+          symptoms_text: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          backup_search_results?: Json | null
+          created_at?: string
+          database_matches?: Json | null
+          device_category?: string | null
+          id?: string
+          image_urls?: string[] | null
+          repair_guidance?: Json | null
+          status?: string | null
+          symptoms_text?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_analysis?: Json | null
+          backup_search_results?: Json | null
+          created_at?: string
+          database_matches?: Json | null
+          device_category?: string | null
+          id?: string
+          image_urls?: string[] | null
+          repair_guidance?: Json | null
+          status?: string | null
+          symptoms_text?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       instruments: {
         Row: {
           created_at: string | null
