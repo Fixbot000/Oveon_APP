@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
-import { Camera, History, Clock, Wrench, Star, TrendingUp } from 'lucide-react';
+import { Camera, History, Clock, Wrench, Star, TrendingUp, Users } from 'lucide-react';
 import MobileHeader from '@/components/MobileHeader';
 import BottomNavigation from '@/components/BottomNavigation';
 import ActionCard from '@/components/ActionCard';
@@ -40,7 +40,7 @@ const Index = () => {
         </Card>
 
         {/* Main Action Cards */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3 mb-4">
           <ActionCard
             icon={Camera}
             title="Scan"
@@ -48,16 +48,25 @@ const Index = () => {
             onClick={() => navigate('/scan')}
           />
           <ActionCard
-            icon={History}
-            title="History"
-            description="View past repairs"
-            onClick={() => navigate('/history')}
-          />
-          <ActionCard
             icon={Wrench}
             title="Repair Bot"
             description="Chat with AI assistant"
             onClick={() => navigate('/chat')}
+          />
+        </div>
+        
+        <div className="grid grid-cols-2 gap-3">
+          <ActionCard
+            icon={Users}
+            title="Community"
+            description="Share & learn together"
+            onClick={() => navigate('/community')}
+          />
+          <ActionCard
+            icon={History}
+            title="History"
+            description="View past repairs"
+            onClick={() => navigate('/history')}
           />
         </div>
 

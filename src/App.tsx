@@ -7,6 +7,8 @@ import Index from "./pages/Index";
 import Chat from "./pages/Chat";
 import Shop from "./pages/Shop";
 import Scan from "./pages/Scan";
+import Community from "./pages/Community";
+import History from "./pages/History";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +24,8 @@ const App = () => (
           <Route path="/chat" element={<Chat />} />
           <Route path="/shop" element={<Shop />} />
           <Route path="/scan" element={<Scan />} />
+          <Route path="/community" element={<Community />} />
+          <Route path="/history" element={<History />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
