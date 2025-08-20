@@ -197,7 +197,6 @@ export type Database = {
           expertise_level: string | null
           id: string
           location: string | null
-          phone: string | null
           specialization: string[] | null
           updated_at: string
           user_id: string
@@ -210,7 +209,6 @@ export type Database = {
           expertise_level?: string | null
           id?: string
           location?: string | null
-          phone?: string | null
           specialization?: string[] | null
           updated_at?: string
           user_id: string
@@ -223,7 +221,6 @@ export type Database = {
           expertise_level?: string | null
           id?: string
           location?: string | null
-          phone?: string | null
           specialization?: string[] | null
           updated_at?: string
           user_id?: string
