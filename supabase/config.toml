@@ -61,6 +61,15 @@ enable_confirmations = false
 template = { "invite" = "./supabase/templates/invite.html", "confirmation" = "./supabase/templates/confirmation.html", "recovery" = "./supabase/templates/recovery.html", "magic_link" = "./supabase/templates/magic_link.html", "email_change" = "./supabase/templates/email_change.html" }
 
 
+[functions.gemini-image-analysis-v3]
+verify_jwt = false
+
+[functions.gemini-description-analysis-v3]
+verify_jwt = false
+
+[functions.web-search-diagnosis-v3]
+verify_jwt = false
+
 [functions.check-password-breach]
 verify_jwt = false
 
