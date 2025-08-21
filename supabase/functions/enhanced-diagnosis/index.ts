@@ -86,6 +86,12 @@ serve(async (req) => {
       result = createGuaranteedFallback(symptomsText, deviceCategory);
     }
 
+    // Ensure we ALWAYS have a successful result
+    if (!result.success || !result.analysis || !result.guidance) {
+      console.log('Creating emergency fallback to ensure success...');
+      result = createGuaranteedFallback(symptomsText, deviceCategory);
+    }
+
     // Update session with results
     await supabase
       .from('diagnostic_sessions')
@@ -189,29 +195,40 @@ async function analyzeWithGemini(imageUrls: string[], symptomsText: string, devi
     // Process images safely
     const imageParts = [];
     for (const imageUrl of imageUrls) {
-      try {
-        const imageResponse = await fetch(imageUrl, { timeout: 10000 });
-        if (imageResponse.ok) {
-          const imageBuffer = await imageResponse.arrayBuffer();
-          const uint8Array = new Uint8Array(imageBuffer);
-          let base64Image = '';
-          const chunkSize = 8192;
-          
-          for (let i = 0; i < uint8Array.length; i += chunkSize) {
-            const chunk = uint8Array.slice(i, i + chunkSize);
-            base64Image += btoa(String.fromCharCode.apply(null, Array.from(chunk)));
-          }
-          
-          imageParts.push({
-            inlineData: {
-              data: base64Image,
-              mimeType: imageResponse.headers.get('content-type') || 'image/jpeg'
-            }
+        try {
+          const imageResponse = await fetch(imageUrl, { 
+            signal: AbortSignal.timeout(15000)
           });
+          
+          if (imageResponse.ok && imageResponse.body) {
+            const imageBuffer = await imageResponse.arrayBuffer();
+            
+            if (imageBuffer.byteLength > 0) {
+              const uint8Array = new Uint8Array(imageBuffer);
+              let base64Image = '';
+              const chunkSize = 8192; // Process in smaller chunks to avoid stack overflow
+              
+              for (let i = 0; i < uint8Array.length; i += chunkSize) {
+                const chunk = uint8Array.slice(i, Math.min(i + chunkSize, uint8Array.length));
+                const chunkArray = Array.from(chunk);
+                base64Image += btoa(String.fromCharCode(...chunkArray));
+              }
+              
+              if (base64Image.length > 0) {
+                imageParts.push({
+                  inlineData: {
+                    data: base64Image,
+                    mimeType: imageResponse.headers.get('content-type') || 'image/jpeg'
+                  }
+                });
+                console.log(`Successfully processed image: ${base64Image.length} chars`);
+              }
+            }
+          }
+        } catch (error) {
+          console.warn('Failed to process image (continuing without it):', error);
+          // Continue processing without this image - don't fail the entire pipeline
         }
-      } catch (error) {
-        console.warn('Failed to process image:', error);
-      }
     }
 
     const prompt = `Analyze this ${deviceCategory} with symptoms: ${symptomsText}. 
@@ -244,19 +261,37 @@ async function analyzeWithGemini(imageUrls: string[], symptomsText: string, devi
       const analysisText = data.candidates?.[0]?.content?.parts?.[0]?.text;
       
       if (analysisText) {
-        const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const analysis = JSON.parse(jsonMatch[0]);
-          return {
-            success: true,
-            analysis,
-            guidance: {
-              steps: "Based on the identified issues, consult a repair technician",
-              tools: "Standard repair tools",
-              estimatedCost: "Varies by issue",
-              difficulty: "Medium"
-            }
-          };
+        try {
+          const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const analysis = JSON.parse(jsonMatch[0]);
+            
+            // Ensure analysis has required fields
+            const validAnalysis = {
+              visualAnalysis: analysis.visualAnalysis || `I've analyzed your ${deviceCategory} and can help identify the issue.`,
+              likelyProblems: analysis.likelyProblems || ["Hardware component issue", "Connection problem"],
+              confidence: analysis.confidence || "medium",
+              confirmationQuestions: analysis.confirmationQuestions || [
+                "What specific symptoms are you experiencing?",
+                "When did the problem start?",
+                "Have you tried basic troubleshooting?"
+              ]
+            };
+            
+            return {
+              success: true,
+              analysis: validAnalysis,
+              guidance: {
+                steps: "Based on the identified issues, consult a repair technician",
+                tools: "Standard repair tools",
+                estimatedCost: "Varies by issue",
+                difficulty: "Medium"
+              }
+            };
+          }
+        } catch (parseError) {
+          console.warn('Failed to parse Gemini response JSON:', parseError);
+          // Fall through to return failure and try next method
         }
       }
     }
@@ -319,7 +354,7 @@ Provide a JSON response with:
       body: JSON.stringify({
         model: 'gpt-4.1-2025-04-14',
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 1000
+        max_completion_tokens: 1000
       }),
       signal: AbortSignal.timeout(30000)
     });
@@ -329,19 +364,41 @@ Provide a JSON response with:
       const content = data.choices?.[0]?.message?.content;
       
       if (content) {
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const analysis = JSON.parse(jsonMatch[0]);
-          return {
-            success: true,
-            analysis,
-            guidance: {
-              steps: "Follow the repair guidance from search results",
-              tools: "Standard repair tools",
-              estimatedCost: "Varies",
-              difficulty: "Medium"
-            }
-          };
+        try {
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const analysis = JSON.parse(jsonMatch[0]);
+            
+            // Validate and ensure required fields exist
+            const validAnalysis = {
+              visualAnalysis: analysis.visualAnalysis || `Based on search results for ${deviceCategory} issues.`,
+              likelyProblems: Array.isArray(analysis.likelyProblems) && analysis.likelyProblems.length > 0 
+                ? analysis.likelyProblems 
+                : ["Hardware malfunction", "Component failure"],
+              confidence: analysis.confidence || "medium",
+              confirmationQuestions: Array.isArray(analysis.confirmationQuestions) && analysis.confirmationQuestions.length > 0
+                ? analysis.confirmationQuestions
+                : [
+                  "What specific symptoms are you experiencing?",
+                  "When did the issue first occur?",
+                  "Have you attempted any troubleshooting steps?"
+                ]
+            };
+            
+            return {
+              success: true,
+              analysis: validAnalysis,
+              guidance: {
+                steps: "Follow the repair guidance from search results",
+                tools: "Standard repair tools",
+                estimatedCost: "Varies",
+                difficulty: "Medium"
+              }
+            };
+          }
+        } catch (parseError) {
+          console.warn('Failed to parse ChatGPT response JSON:', parseError);
+          // Fall through to return failure and try next method
         }
       }
     }
