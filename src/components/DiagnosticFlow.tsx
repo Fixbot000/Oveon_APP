@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Question {
@@ -32,6 +33,7 @@ const DiagnosticFlow = () => {
   const [deviceName, setDeviceName] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const steps = [
     { number: 1, title: 'Upload Image', description: 'Take or upload a photo of the device' },
@@ -160,6 +162,31 @@ const DiagnosticFlow = () => {
 
       setStepData(prev => ({ ...prev, finalSolution: data.solution }));
       setCurrentStep(6);
+
+      // Save repair session to database
+      if (user) {
+        try {
+          await supabase
+            .from('diagnostic_sessions')
+            .insert({
+              user_id: user.id,
+              device_category: deviceName,
+              symptoms_text: stepData.description,
+              ai_analysis: JSON.parse(JSON.stringify({
+                imageAnalysis: stepData.imageAnalysis,
+                descriptionAnalysis: stepData.descriptionAnalysis,
+                questions1: stepData.questions1?.map(q => ({ id: q.id, question: q.question, answer: q.answer })),
+                questions2: stepData.questions2?.map(q => ({ id: q.id, question: q.question, answer: q.answer })),
+                finalSolution: data.solution,
+                deviceName
+              })),
+              status: 'completed'
+            });
+        } catch (dbError) {
+          console.error('Error saving diagnostic session:', dbError);
+          // Don't show error to user as the main function worked
+        }
+      }
     } catch (error) {
       console.error('Error getting final solution:', error);
       toast({

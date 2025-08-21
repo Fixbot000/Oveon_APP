@@ -2,12 +2,46 @@ import { Bell, Search } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useAuth } from '@/hooks/useAuth';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface MobileHeaderProps {
   showSearch?: boolean;
 }
 
 const MobileHeader = ({ showSearch = true }: MobileHeaderProps) => {
+  const { user } = useAuth();
+  const [profile, setProfile] = useState<any>(null);
+
+  useEffect(() => {
+    if (user) {
+      fetchProfile();
+    }
+  }, [user]);
+
+  const fetchProfile = async () => {
+    if (!user) return;
+    
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('user_id', user.id)
+        .single();
+      
+      setProfile(data);
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
+  };
+
+  const getUserDisplayName = () => {
+    if (profile?.username) return profile.username;
+    if (user?.email) return user.email.split('@')[0];
+    return 'User';
+  };
+
   return (
     <header className="bg-gradient-header p-6 pb-8 rounded-b-3xl shadow-card">
       <div className="flex items-center justify-between mb-6">
@@ -15,12 +49,12 @@ const MobileHeader = ({ showSearch = true }: MobileHeaderProps) => {
           <Avatar className="h-14 w-14 ring-2 ring-white/20">
             <AvatarImage src="/placeholder.svg" />
             <AvatarFallback className="bg-white/20 text-white font-semibold text-lg">
-              U
+              {user ? getUserDisplayName()[0]?.toUpperCase() : 'U'}
             </AvatarFallback>
           </Avatar>
           <div>
             <h1 className="text-white text-xl font-semibold">
-              Hi, User
+              Hi, {user ? getUserDisplayName() : 'User'}
             </h1>
             <p className="text-white/80 text-sm">Ready to fix something?</p>
           </div>

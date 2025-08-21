@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Plus, Send, Users, Image as ImageIcon, X, Zap } from 'lucide-react';
+import { Plus, Send, Users, Image as ImageIcon, X, Zap, Heart, MessageCircle, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -17,14 +17,21 @@ interface Post {
   image_url?: string;
   created_at: string;
   user_id: string;
+  profiles?: {
+    username: string;
+  };
 }
 
 const Community = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [newPost, setNewPost] = useState({ content: '' });
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [postLikes, setPostLikes] = useState<Record<string, number>>({});
+  const [userLikes, setUserLikes] = useState<Record<string, string>>({});
+  const [comments, setComments] = useState<Record<string, any[]>>({});
+  const [showComments, setShowComments] = useState<Record<string, boolean>>({});
+  const [newComment, setNewComment] = useState<Record<string, string>>({});
   const { user, signOut } = useAuth();
   
   // Pull-to-refresh states
@@ -49,12 +56,151 @@ const Community = () => {
 
       if (error) throw error;
 
-      setPosts(postsData || []);
+      // Get user profiles separately to avoid the join issue
+      const userIds = [...new Set(postsData?.map(p => p.user_id) || [])];
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('user_id, username')
+        .in('user_id', userIds);
+
+      // Map profiles to posts
+      const postsWithProfiles = postsData?.map(post => ({
+        ...post,
+        profiles: profilesData?.find(p => p.user_id === post.user_id)
+      })) || [];
+
+      setPosts(postsWithProfiles);
+      
+      // Load likes and comments for each post
+      if (postsWithProfiles?.length) {
+        await loadPostLikesAndComments(postsWithProfiles.map(p => p.id));
+      }
     } catch (error: any) {
       console.error('Error loading posts:', error);
       toast.error('Failed to load posts');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadPostLikesAndComments = async (postIds: string[]) => {
+    try {
+      // Load likes
+      const { data: likesData } = await supabase
+        .from('post_likes')
+        .select('post_id, like_type, user_id')
+        .in('post_id', postIds);
+
+      const likeCounts: Record<string, number> = {};
+      const userLikeTypes: Record<string, string> = {};
+      
+      likesData?.forEach(like => {
+        if (like.like_type === 'like') {
+          likeCounts[like.post_id] = (likeCounts[like.post_id] || 0) + 1;
+        }
+        if (like.user_id === user?.id) {
+          userLikeTypes[like.post_id] = like.like_type;
+        }
+      });
+
+      setPostLikes(likeCounts);
+      setUserLikes(userLikeTypes);
+
+      // Load comments
+      const { data: commentsData } = await supabase
+        .from('post_comments')
+        .select('*')
+        .in('post_id', postIds)
+        .order('created_at', { ascending: true });
+
+      // Get user profiles for comments
+      const commentUserIds = [...new Set(commentsData?.map(c => c.user_id) || [])];
+      const { data: commentProfilesData } = await supabase
+        .from('profiles')
+        .select('user_id, username')
+        .in('user_id', commentUserIds);
+
+      // Map profiles to comments
+      const commentsWithProfiles = commentsData?.map(comment => ({
+        ...comment,
+        profiles: commentProfilesData?.find(p => p.user_id === comment.user_id)
+      })) || [];
+
+      const commentsByPost: Record<string, any[]> = {};
+      commentsWithProfiles?.forEach(comment => {
+        if (!commentsByPost[comment.post_id]) {
+          commentsByPost[comment.post_id] = [];
+        }
+        commentsByPost[comment.post_id].push(comment);
+      });
+
+      setComments(commentsByPost);
+    } catch (error) {
+      console.error('Error loading likes and comments:', error);
+    }
+  };
+
+  const handleLike = async (postId: string, likeType: 'like' | 'dislike') => {
+    if (!user) {
+      toast.error('Please sign in to like posts');
+      return;
+    }
+
+    try {
+      const existingLike = userLikes[postId];
+      
+      if (existingLike) {
+        // Remove existing like
+        await supabase
+          .from('post_likes')
+          .delete()
+          .eq('post_id', postId)
+          .eq('user_id', user.id);
+      }
+
+      if (existingLike !== likeType) {
+        // Add new like
+        await supabase
+          .from('post_likes')
+          .insert({
+            post_id: postId,
+            user_id: user.id,
+            like_type: likeType
+          });
+      }
+
+      // Reload likes
+      await loadPostLikesAndComments([postId]);
+    } catch (error) {
+      console.error('Error updating like:', error);
+      toast.error('Failed to update like');
+    }
+  };
+
+  const handleComment = async (postId: string) => {
+    if (!user) {
+      toast.error('Please sign in to comment');
+      return;
+    }
+
+    const content = newComment[postId]?.trim();
+    if (!content) return;
+
+    try {
+      await supabase
+        .from('post_comments')
+        .insert({
+          post_id: postId,
+          user_id: user.id,
+          content
+        });
+
+      setNewComment(prev => ({ ...prev, [postId]: '' }));
+      await loadPostLikesAndComments([postId]);
+      toast.success('Comment added!');
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      toast.error('Failed to add comment');
     }
   };
 
@@ -82,7 +228,6 @@ const Community = () => {
       toast.success('Post created successfully!');
       setNewPost({ content: '' });
       setSelectedImages([]);
-      setIsCreateOpen(false);
       loadPosts();
     } catch (error: any) {
       console.error('Error creating post:', error);
@@ -269,17 +414,6 @@ const Community = () => {
                   <Send className="h-4 w-4 mr-2" />
                   Share Post
                 </Button>
-                
-                <Button 
-                  variant="ghost" 
-                  onClick={() => {
-                    setNewPost({ content: '' });
-                    setSelectedImages([]);
-                  }}
-                  className="w-full text-muted-foreground hover:text-foreground"
-                >
-                  Cancel
-                </Button>
               </div>
             </CardContent>
           </Card>
@@ -313,12 +447,12 @@ const Community = () => {
                     <div className="flex items-center space-x-3 mb-3">
                       <Avatar className="h-10 w-10">
                         <AvatarFallback className="bg-primary/10 text-primary font-medium">
-                          U
+                          {post.profiles?.username?.[0]?.toUpperCase() || 'U'}
                         </AvatarFallback>
                       </Avatar>
                       <div>
                         <p className="font-semibold text-foreground">
-                          Anonymous User
+                          {post.profiles?.username || 'Anonymous User'}
                         </p>
                         <p className="text-sm text-muted-foreground">
                           {new Date(post.created_at).toLocaleDateString('en-US', {
@@ -342,6 +476,81 @@ const Community = () => {
                           alt="Post image"
                           className="w-full h-64 object-cover rounded-lg border"
                         />
+                      </div>
+                    )}
+
+                    {/* Like and Comment buttons */}
+                    <div className="flex items-center space-x-4 pt-4 border-t">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleLike(post.id, 'like')}
+                        className={`flex items-center space-x-1 ${
+                          userLikes[post.id] === 'like' ? 'text-primary' : 'text-muted-foreground'
+                        }`}
+                      >
+                        <ThumbsUp className="h-4 w-4" />
+                        <span>{postLikes[post.id] || 0}</span>
+                      </Button>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleLike(post.id, 'dislike')}
+                        className={`flex items-center space-x-1 ${
+                          userLikes[post.id] === 'dislike' ? 'text-destructive' : 'text-muted-foreground'
+                        }`}
+                      >
+                        <ThumbsDown className="h-4 w-4" />
+                      </Button>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowComments(prev => ({ ...prev, [post.id]: !prev[post.id] }))}
+                        className="flex items-center space-x-1 text-muted-foreground"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        <span>{comments[post.id]?.length || 0}</span>
+                      </Button>
+                    </div>
+
+                    {/* Comments section */}
+                    {showComments[post.id] && (
+                      <div className="mt-4 space-y-3">
+                        {/* Add comment */}
+                        {user && (
+                          <div className="flex space-x-2">
+                            <Input
+                              placeholder="Add a comment..."
+                              value={newComment[post.id] || ''}
+                              onChange={(e) => setNewComment(prev => ({ ...prev, [post.id]: e.target.value }))}
+                              onKeyPress={(e) => e.key === 'Enter' && handleComment(post.id)}
+                            />
+                            <Button 
+                              size="sm" 
+                              onClick={() => handleComment(post.id)}
+                              disabled={!newComment[post.id]?.trim()}
+                            >
+                              Send
+                            </Button>
+                          </div>
+                        )}
+
+                        {/* Display comments */}
+                        {comments[post.id]?.map((comment) => (
+                          <div key={comment.id} className="flex space-x-2 bg-muted/30 p-3 rounded">
+                            <Avatar className="h-6 w-6">
+                              <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                                {comment.profiles?.username?.[0]?.toUpperCase() || 'U'}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">{comment.profiles?.username || 'Anonymous'}</p>
+                              <p className="text-sm text-muted-foreground">{comment.content}</p>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </CardContent>
