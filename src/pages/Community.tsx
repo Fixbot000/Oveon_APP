@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Plus, Send, Users, Image as ImageIcon, X, Zap, Heart, MessageCircle, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Plus, Send, Users, Image as ImageIcon, X, Zap, Heart, MessageCircle, ThumbsUp, ThumbsDown, Edit, Trash2, Check, X as XIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -32,6 +32,8 @@ const Community = () => {
   const [comments, setComments] = useState<Record<string, any[]>>({});
   const [showComments, setShowComments] = useState<Record<string, boolean>>({});
   const [newComment, setNewComment] = useState<Record<string, string>>({});
+  const [editingPost, setEditingPost] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState('');
   const { user, signOut } = useAuth();
   
   // Pull-to-refresh states
@@ -244,6 +246,73 @@ const Community = () => {
     setSelectedImages(prev => [...prev, ...files]);
   };
 
+  const handleEditPost = async (postId: string) => {
+    if (!user) {
+      toast.error('Please sign in to edit posts');
+      return;
+    }
+
+    if (!editContent.trim()) {
+      toast.error('Post content cannot be empty');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('posts')
+        .update({ content: editContent })
+        .eq('id', postId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setEditingPost(null);
+      setEditContent('');
+      toast.success('Post updated successfully!');
+      loadPosts();
+    } catch (error: any) {
+      console.error('Error updating post:', error);
+      toast.error('Failed to update post');
+    }
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    if (!user) {
+      toast.error('Please sign in to delete posts');
+      return;
+    }
+
+    if (!confirm('Are you sure you want to delete this post?')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', postId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      toast.success('Post deleted successfully!');
+      loadPosts();
+    } catch (error: any) {
+      console.error('Error deleting post:', error);
+      toast.error('Failed to delete post');
+    }
+  };
+
+  const startEditing = (post: Post) => {
+    setEditingPost(post.id);
+    setEditContent(post.content);
+  };
+
+  const cancelEditing = () => {
+    setEditingPost(null);
+    setEditContent('');
+  };
+
   // Pull-to-refresh handlers
   const handleTouchStart = (e: React.TouchEvent) => {
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
@@ -444,30 +513,83 @@ const Community = () => {
               {posts.map((post) => (
                 <Card key={post.id} className="shadow-lg rounded-2xl hover:shadow-xl transition-all duration-300">
                   <CardContent className="p-6">
-                    <div className="flex items-center space-x-3 mb-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarFallback className="bg-primary/10 text-primary font-medium">
-                          {post.profiles?.username?.[0]?.toUpperCase() || 'U'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-semibold text-foreground">
-                          {post.profiles?.username || 'Anonymous User'}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {new Date(post.created_at).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </p>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-3">
+                        <Avatar className="h-10 w-10">
+                          <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                            {post.profiles?.username?.[0]?.toUpperCase() || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-semibold text-foreground">
+                            {post.profiles?.username || 'Anonymous User'}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(post.created_at).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                        </div>
                       </div>
+                      
+                      {/* Edit and Delete buttons for post owner */}
+                      {user && user.id === post.user_id && (
+                        <div className="flex items-center space-x-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => startEditing(post)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeletePost(post.id)}
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
 
-                    <p className="text-foreground mb-4 leading-relaxed">
-                      {post.content}
-                    </p>
+                    {/* Post content or edit form */}
+                    {editingPost === post.id ? (
+                      <div className="space-y-3 mb-4">
+                        <Textarea
+                          value={editContent}
+                          onChange={(e) => setEditContent(e.target.value)}
+                          className="min-h-[100px] w-full resize-none"
+                        />
+                        <div className="flex space-x-2">
+                          <Button
+                            onClick={() => handleEditPost(post.id)}
+                            size="sm"
+                            disabled={!editContent.trim()}
+                          >
+                            <Check className="h-4 w-4 mr-1" />
+                            Save
+                          </Button>
+                          <Button
+                            onClick={cancelEditing}
+                            variant="outline"
+                            size="sm"
+                          >
+                            <XIcon className="h-4 w-4 mr-1" />
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-foreground mb-4 leading-relaxed">
+                        {post.content}
+                      </p>
+                    )}
 
                     {post.image_url && (
                       <div className="mb-4">
