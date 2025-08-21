@@ -68,7 +68,15 @@ serve(async (req) => {
         }
         
         const imageBuffer = await imageResponse.arrayBuffer();
-        const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
+        // Use proper base64 encoding to avoid stack overflow with large images
+        const uint8Array = new Uint8Array(imageBuffer);
+        let base64Image = '';
+        const chunkSize = 8192;
+        
+        for (let i = 0; i < uint8Array.length; i += chunkSize) {
+          const chunk = uint8Array.slice(i, i + chunkSize);
+          base64Image += btoa(String.fromCharCode.apply(null, Array.from(chunk)));
+        }
         
         imageParts.push({
           inlineData: {
