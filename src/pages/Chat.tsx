@@ -31,17 +31,16 @@ const Chat = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
-      text: `Hi there! 👋 I'm your AI Repair Assistant, just like ChatGPT but specialized in electronics repair!
+      text: `Hi there! 👋 I'm your Repair Assistant!
 
-I can help you:
-• Diagnose device problems through conversation
-• Provide step-by-step repair guidance  
-• Answer questions about electronic components
-• Give you contextual symptom questions (which you can skip anytime)
+**Note:** The AI chat feature is currently unavailable as the diagnostic pipeline has been removed.
 
-**Tip:** You can add detailed descriptions using the info box below for better analysis!
+However, you can still:
+• Browse our repair database in the Community section
+• View repair history and tips
+• Access component and device information
 
-What device issue can I help you with today?`,
+The AI features will be restored in a future update. Thank you for your patience!`,
       isBot: true,
     }
   ]);
@@ -93,75 +92,11 @@ What device issue can I help you with today?`,
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('text-diagnosis', {
-        body: {
-          message: fullMessage,
-          conversationHistory: conversationHistory,
-          skipQuestions: skipQuestions
-        }
-      });
-
-      if (error) throw error;
-
-      // Remove loading message and add AI response
-      setMessages(prev => {
-        const filtered = prev.filter(msg => msg.id !== loadingId);
-        return [
-          ...filtered,
-          { 
-            id: Date.now(), 
-            text: data.response || 'I apologize, but I encountered an issue processing your request. Please try again.',
-            isBot: true,
-            hasMatches: data.hasMatches,
-            followUpQuestions: data.followUpQuestions || [],
-            usedFallback: data.usedFallback
-          }
-        ];
-      });
-
-      // Set pending questions for UI
-      if (data.followUpQuestions && data.followUpQuestions.length > 0 && !skipQuestions) {
-        setPendingQuestions(data.followUpQuestions);
-      } else {
-        setPendingQuestions([]);
-      }
-
-      // Update conversation history
-      setConversationHistory(prev => [
-        ...prev,
-        { role: 'user', content: fullMessage },
-        { role: 'assistant', content: data.response }
-      ]);
-
-      // Show database matches info
-      if (data.hasMatches) {
-        setTimeout(() => {
-          setMessages(prev => [
-            ...prev,
-            {
-              id: Date.now() + 1,
-              text: `💡 I found ${data.databaseMatches} matching entries in our repair database that might help with your issue!`,
-              isBot: true
-            }
-          ]);
-        }, 1000);
-      }
-
-      // Show fallback notice
-      if (data.usedFallback) {
-        setTimeout(() => {
-          setMessages(prev => [
-            ...prev,
-            {
-              id: Date.now() + 2,
-              text: `⚡ Response provided by Gemini AI (ChatGPT was busy)`,
-              isBot: true
-            }
-          ]);
-        }, 1500);
-      }
-
+      // Note: text-diagnosis function was removed with AI pipeline
+      // This is a placeholder that will fail gracefully
+      throw new Error('AI pipeline has been removed');
     } catch (error) {
+
       console.error('Chat error:', error);
       
       // Remove loading message and add error message
@@ -171,13 +106,13 @@ What device issue can I help you with today?`,
           ...filtered,
           { 
             id: Date.now(), 
-            text: 'I\'m having trouble processing your request right now. Please try again - I\'ll do my best to help with your device issue!',
+            text: 'The AI chat feature is temporarily unavailable as the diagnostic pipeline has been removed. Please check back later!',
             isBot: true
           }
         ];
       });
       
-      toast.error('Failed to get AI response. Please try again.');
+      toast.error('AI chat is currently unavailable.');
     } finally {
       setIsLoading(false);
     }
