@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import MobileHeader from '@/components/MobileHeader';
 import BottomNavigation from '@/components/BottomNavigation';
-import { DiagnosticFlowV3 } from '@/components/DiagnosticFlowV3';
 
 const Scan = () => {
   return (
@@ -11,7 +10,11 @@ const Scan = () => {
       <MobileHeader showSearch={false} />
       
       <main className="px-4 py-6">
-        <DiagnosticFlowV3 />
+        <div className="text-center py-8">
+          <Camera className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
+          <h2 className="text-2xl font-bold mb-2">AI Diagnostic Scan</h2>
+          <p className="text-muted-foreground">AI pipeline temporarily unavailable</p>
+        </div>
       </main>
 
       <BottomNavigation />
