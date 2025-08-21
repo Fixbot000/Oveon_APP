@@ -2,7 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': 'https://byte-fixer.lovable.app',
+  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Credentials': 'true'
@@ -36,168 +36,217 @@ serve(async (req) => {
       });
     }
 
-    if (!GOOGLE_SEARCH_API_KEY) {
-      throw new Error('GOOGLE_SEARCH_API_KEY is not configured');
-    }
-
     console.log('Performing backup search with Google...');
 
     // Build search query from analysis
     const searchTerms = [
-      aiAnalysis.deviceType || '',
+      aiAnalysis.deviceType || deviceCategory || '',
       ...(aiAnalysis.specifications?.brand ? [aiAnalysis.specifications.brand] : []),
       ...(aiAnalysis.specifications?.model ? [aiAnalysis.specifications.model] : []),
       ...(aiAnalysis.visibleIssues?.slice(0, 2) || []), // Limit to avoid too long query
-      'repair', 'troubleshooting', 'fix'
-    ].filter(term => term && term.length > 2);
+      'repair', 'fix', 'troubleshooting'
+    ].filter(term => term && term.trim().length > 0);
 
-    const searchQuery = searchTerms.join(' ');
+    const searchQuery = searchTerms.join(' ').substring(0, 100); // Limit query length
     console.log('Search query:', searchQuery);
 
-    // Perform multiple searches for comprehensive results
-    const searchResults = [];
+    let searchResults;
 
-    // Search 1: General repair information
-    try {
-      const repairQuery = `${searchQuery} repair guide troubleshooting`;
-      const repairResults = await performGoogleSearch(repairQuery, 'Repair Guides');
-      searchResults.push(...repairResults);
-    } catch (error) {
-      console.warn('Repair search failed:', error);
+    // Check if Google Search API is available
+    if (!GOOGLE_SEARCH_API_KEY) {
+      console.warn('GOOGLE_SEARCH_API_KEY not configured, using fallback results');
+      searchResults = createFallbackResults(searchQuery, deviceCategory, aiAnalysis, symptomsText);
+    } else {
+      try {
+        // Use Google Custom Search API
+        const searchUrl = new URL('https://www.googleapis.com/customsearch/v1');
+        searchUrl.searchParams.set('key', GOOGLE_SEARCH_API_KEY);
+        searchUrl.searchParams.set('cx', GOOGLE_CSE_ID);
+        searchUrl.searchParams.set('q', searchQuery);
+        searchUrl.searchParams.set('num', '10'); // Get top 10 results
+        searchUrl.searchParams.set('safe', 'active');
+
+        console.log('Calling Google Search API...');
+        const response = await fetch(searchUrl.toString(), {
+          signal: AbortSignal.timeout(15000) // 15 second timeout
+        });
+
+        if (!response.ok) {
+          throw new Error(`Google Search API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        if (!data.items || data.items.length === 0) {
+          throw new Error('No search results found');
+        }
+
+        // Process search results
+        searchResults = {
+          query: searchQuery,
+          totalResults: data.searchInformation?.totalResults || '0',
+          searchTime: data.searchInformation?.searchTime || '0',
+          results: data.items.slice(0, 5).map((item: any) => ({
+            title: item.title || '',
+            link: item.link || '',
+            snippet: item.snippet || '',
+            displayLink: item.displayLink || '',
+            formattedUrl: item.formattedUrl || ''
+          })),
+          source: 'google_search_api'
+        };
+
+        console.log(`Google search completed: ${searchResults.results.length} results found`);
+
+      } catch (googleError) {
+        console.warn('Google Search API failed, using fallback results:', googleError);
+        searchResults = createFallbackResults(searchQuery, deviceCategory, aiAnalysis, symptomsText, googleError.message);
+      }
     }
 
-    // Search 2: Parts and components
-    try {
-      const partsQuery = `${aiAnalysis.deviceType} replacement parts components`;
-      const partsResults = await performGoogleSearch(partsQuery, 'Parts & Components');
-      searchResults.push(...partsResults);
-    } catch (error) {
-      console.warn('Parts search failed:', error);
-    }
-
-    // Search 3: Video tutorials (YouTube, etc.)
-    try {
-      const videoQuery = `${searchQuery} repair tutorial video youtube`;
-      const videoResults = await performGoogleSearch(videoQuery, 'Video Tutorials');
-      searchResults.push(...videoResults);
-    } catch (error) {
-      console.warn('Video search failed:', error);
-    }
-
-    const results = {
-      searchQuery,
-      totalResults: searchResults.length,
-      results: searchResults.slice(0, 10), // Limit results
-      searchTimestamp: new Date().toISOString(),
-      categories: ['Repair Guides', 'Parts & Components', 'Video Tutorials']
+    // Enhance search results with analysis context
+    const enhancedResults = {
+      ...searchResults,
+      analysisContext: {
+        deviceCategory,
+        detectedIssues: aiAnalysis.visibleIssues || [],
+        deviceType: aiAnalysis.deviceType || '',
+        specifications: aiAnalysis.specifications || {},
+        symptomsText: symptomsText || ''
+      },
+      searchStrategy: {
+        primaryTerms: searchTerms.slice(0, 3),
+        searchDomain: 'electronics repair',
+        intentFocus: 'troubleshooting and repair guidance'
+      },
+      timestamp: new Date().toISOString()
     };
 
-    console.log(`Backup search completed with ${results.totalResults} results`);
+    console.log('Backup search completed successfully');
 
-    return new Response(JSON.stringify(results), {
+    return new Response(JSON.stringify(enhancedResults), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
     console.error('Error in backup-search function:', error);
-    return new Response(JSON.stringify({ 
-      error: error.message,
-      results: []
-    }), {
-      status: 500,
+
+    // Create fallback results even on complete failure
+    const fallbackResults = {
+      query: `${deviceCategory || 'device'} repair troubleshooting`,
+      totalResults: "0",
+      searchTime: "0",
+      results: [
+        {
+          title: "General Electronics Repair Guide",
+          link: "https://example.com/general-repair",
+          snippet: "Basic electronics repair principles: disconnect power, inspect for damage, check connections, and use proper tools. Always prioritize safety.",
+          displayLink: "example.com",
+          formattedUrl: "https://example.com/general-repair"
+        },
+        {
+          title: "Electronics Safety Guidelines",
+          link: "https://example.com/safety-guide",
+          snippet: "Safety first when repairing electronics: use anti-static equipment, verify power disconnection, and wear appropriate protective gear.",
+          displayLink: "example.com", 
+          formattedUrl: "https://example.com/safety-guide"
+        }
+      ],
+      analysisContext: {
+        deviceCategory: deviceCategory || 'unknown',
+        detectedIssues: [],
+        deviceType: '',
+        specifications: {},
+        symptomsText: ''
+      },
+      searchStrategy: {
+        primaryTerms: [deviceCategory || 'device', 'repair'],
+        searchDomain: 'electronics repair',
+        intentFocus: 'general repair guidance'
+      },
+      timestamp: new Date().toISOString(),
+      source: "error_fallback",
+      error: error.message
+    };
+
+    return new Response(JSON.stringify(fallbackResults), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 });
 
-async function performGoogleSearch(query: string, category: string) {
-  if (!GOOGLE_SEARCH_API_KEY || GOOGLE_CSE_ID === 'demo') {
-    // Return enhanced mock results for demonstration
-    console.log(`Mock search for category "${category}": ${query}`);
-    
-    const mockResults = [];
-    const queryLower = query.toLowerCase();
-    
-    // Generate relevant mock results based on query content
-    if (queryLower.includes('repair')) {
-      mockResults.push({
-        title: `Complete ${category} Guide: ${query.split(' ').slice(0, 3).join(' ')}`,
-        link: 'https://ifixit.com/repair-guide',
-        snippet: 'Step-by-step repair guide with detailed photos and instructions. Tools and parts list included. Difficulty: Moderate. Time required: 1-2 hours.',
-        category,
-        relevanceScore: 0.9
-      });
-    }
-    
-    if (queryLower.includes('parts') || queryLower.includes('components')) {
-      mockResults.push({
-        title: `${category}: Buy Original Parts & Components`,
-        link: 'https://parts-supplier.com',
-        snippet: 'Genuine replacement parts and components. Fast shipping worldwide. Compatible with all major brands. 1-year warranty included.',
-        category,
-        relevanceScore: 0.85
-      });
-    }
-    
-    if (queryLower.includes('tutorial') || queryLower.includes('video')) {
-      mockResults.push({
-        title: `YouTube: ${query} Tutorial [HD]`,
-        link: 'https://youtube.com/watch',
-        snippet: 'Professional repair tutorial video. Clear close-up shots of each step. Narrated by certified technician. 4.8/5 stars from 15K views.',
-        category,
-        relevanceScore: 0.8
-      });
-    }
-    
-    // Add generic helpful results
-    mockResults.push({
-      title: `Electronics Repair Forum: ${query}`,
-      link: 'https://electronics-repair-forum.com',
-      snippet: 'Community discussion about this exact issue. Multiple solutions and troubleshooting tips from experienced technicians.',
-      category,
-      relevanceScore: 0.75
-    });
-    
-    return mockResults.slice(0, 2); // Return top 2 mock results
-  }
+function createFallbackResults(searchQuery: string, deviceCategory: string, aiAnalysis: any, symptomsText: string, errorMessage?: string) {
+  const categorySpecificResults = {
+    'device': [
+      {
+        title: `${deviceCategory} Troubleshooting Guide - Step by Step Repair`,
+        link: `https://example.com/repair-guide/${deviceCategory.toLowerCase()}`,
+        snippet: `Comprehensive troubleshooting guide for ${deviceCategory} devices. Common issues include power failures, connection problems, and component malfunctions. Follow safety protocols when working with electronics.`,
+        displayLink: "example.com",
+        formattedUrl: `https://example.com/repair-guide/${deviceCategory.toLowerCase()}`
+      },
+      {
+        title: `How to Fix Common ${deviceCategory} Problems - Electronics Repair`,
+        link: `https://example.com/troubleshooting/${deviceCategory.toLowerCase()}`,
+        snippet: `Step-by-step solutions for typical ${deviceCategory} issues. Check power supply, inspect connections, test components, and replace faulty parts as needed.`,
+        displayLink: "example.com",
+        formattedUrl: `https://example.com/troubleshooting/${deviceCategory.toLowerCase()}`
+      },
+      {
+        title: `${deviceCategory} Repair Safety Guidelines and Best Practices`,
+        link: `https://example.com/safety/${deviceCategory.toLowerCase()}`,
+        snippet: `Essential safety considerations for ${deviceCategory} repair. Always disconnect power, use anti-static precautions, wear safety equipment, and work in proper lighting.`,
+        displayLink: "example.com",
+        formattedUrl: `https://example.com/safety/${deviceCategory.toLowerCase()}`
+      }
+    ],
+    'instrument': [
+      {
+        title: `${deviceCategory} Calibration and Repair Manual`,
+        link: `https://example.com/instrument-repair/${deviceCategory.toLowerCase()}`,
+        snippet: `Professional repair guide for measuring instruments. Covers calibration procedures, component testing, and accuracy verification.`,
+        displayLink: "example.com",
+        formattedUrl: `https://example.com/instrument-repair/${deviceCategory.toLowerCase()}`
+      }
+    ],
+    'component': [
+      {
+        title: `Electronic Component Testing and Replacement Guide`,
+        link: `https://example.com/component-repair/${deviceCategory.toLowerCase()}`,
+        snippet: `How to test and replace electronic components. Use multimeter, oscilloscope, and component tester for accurate diagnosis.`,
+        displayLink: "example.com",
+        formattedUrl: `https://example.com/component-repair/${deviceCategory.toLowerCase()}`
+      }
+    ],
+    'pcb': [
+      {
+        title: `PCB Repair Techniques and Circuit Board Troubleshooting`,
+        link: `https://example.com/pcb-repair/${deviceCategory.toLowerCase()}`,
+        snippet: `Professional PCB repair methods. Trace repair, component replacement, solder joint inspection, and circuit analysis techniques.`,
+        displayLink: "example.com",
+        formattedUrl: `https://example.com/pcb-repair/${deviceCategory.toLowerCase()}`
+      }
+    ],
+    'board': [
+      {
+        title: `Development Board Troubleshooting and Repair Guide`,
+        link: `https://example.com/board-repair/${deviceCategory.toLowerCase()}`,
+        snippet: `Comprehensive guide for development board issues. Programming problems, power supply issues, and component failures.`,
+        displayLink: "example.com",
+        formattedUrl: `https://example.com/board-repair/${deviceCategory.toLowerCase()}`
+      }
+    ]
+  };
 
-  // Real Google Search implementation (when API key and CSE ID are configured)
-  try {
-    const searchUrl = `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_SEARCH_API_KEY}&cx=${GOOGLE_CSE_ID}&q=${encodeURIComponent(query)}&num=3`;
-    
-    const response = await fetch(searchUrl);
-    
-    if (!response.ok) {
-      throw new Error(`Google Search API error: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    
-    return (data.items || []).map((item: any) => ({
-      title: item.title,
-      link: item.link,
-      snippet: item.snippet,
-      category,
-      relevanceScore: calculateRelevance(item, query)
-    }));
-    
-  } catch (error) {
-    console.error(`Search failed for category ${category}:`, error);
-    return [];
-  }
-}
+  const defaultResults = categorySpecificResults['device'];
+  const specificResults = categorySpecificResults[deviceCategory] || defaultResults;
 
-function calculateRelevance(item: any, query: string): number {
-  // Simple relevance scoring based on query terms in title and snippet
-  const text = `${item.title} ${item.snippet}`.toLowerCase();
-  const queryTerms = query.toLowerCase().split(' ');
-  
-  let score = 0;
-  for (const term of queryTerms) {
-    if (text.includes(term)) {
-      score += 0.1;
-    }
-  }
-  
-  return Math.min(score, 1.0);
+  return {
+    query: searchQuery,
+    totalResults: "0",
+    searchTime: "0",
+    results: specificResults,
+    source: errorMessage ? "api_error_fallback" : "no_api_fallback",
+    error: errorMessage
+  };
 }
