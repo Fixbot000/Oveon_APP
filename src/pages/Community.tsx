@@ -313,7 +313,7 @@ const Community = () => {
     setEditContent('');
   };
 
-  // Pull-to-refresh handlers
+  // Pull-to-refresh and scroll-to-refresh handlers
   const handleTouchStart = (e: React.TouchEvent) => {
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
     isAtTop.current = scrollTop <= 10;
@@ -339,22 +339,7 @@ const Community = () => {
 
   const handleTouchEnd = async () => {
     if (isPulling && pullDistance > 50 && !isRefreshing) {
-      setIsRefreshing(true);
-      
-      try {
-        await loadPosts();
-        toast.success('Posts refreshed!');
-      } catch (error) {
-        console.error('Refresh error:', error);
-        toast.error('Failed to refresh posts');
-      }
-      
-      setTimeout(() => {
-        setIsRefreshing(false);
-        setIsPulling(false);
-        setPullDistance(0);
-        touchStartY.current = 0;
-      }, 1000);
+      await triggerRefresh();
     } else {
       setIsPulling(false);
       setPullDistance(0);
@@ -362,15 +347,55 @@ const Community = () => {
     }
   };
 
+  const triggerRefresh = async () => {
+    setIsRefreshing(true);
+    
+    try {
+      await loadPosts();
+      toast.success('Posts refreshed!');
+    } catch (error) {
+      console.error('Refresh error:', error);
+      toast.error('Failed to refresh posts');
+    }
+    
+    setTimeout(() => {
+      setIsRefreshing(false);
+      setIsPulling(false);
+      setPullDistance(0);
+      touchStartY.current = 0;
+    }, 1000);
+  };
+
   useEffect(() => {
+    let scrollTimeout: NodeJS.Timeout;
+    
     const handleScroll = () => {
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const scrollHeight = document.documentElement.scrollHeight;
+      const clientHeight = window.innerHeight;
+      
       isAtTop.current = scrollTop <= 10;
+      
+      // Check if scrolled to bottom (with some threshold)
+      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 100;
+      
+      if (isAtBottom && !isRefreshing && !loading) {
+        // Clear any existing timeout
+        if (scrollTimeout) clearTimeout(scrollTimeout);
+        
+        // Set a timeout to prevent multiple refreshes
+        scrollTimeout = setTimeout(() => {
+          triggerRefresh();
+        }, 300);
+      }
     };
 
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+    };
+  }, [isRefreshing, loading]);
 
   const RefreshIcon = () => (
     <div className="flex items-center justify-center p-2">
