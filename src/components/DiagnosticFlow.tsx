@@ -99,30 +99,81 @@ export const DiagnosticFlow: React.FC = () => {
     setProgress(10);
 
     try {
-      // Upload images first
+      // Upload images first with error handling
       const urls = await uploadImages();
-      if (urls.length === 0) return;
+      if (urls.length === 0) {
+        // Even if upload fails, provide fallback analysis
+        setInitialAnalysis({
+          visualAnalysis: `I see you've selected ${selectedImages.length} image(s) of your ${deviceCategory}. While I couldn't process them for detailed analysis, I can still help you diagnose the issue.`,
+          likelyProblem: "Manual diagnosis required - image processing unavailable",
+          confirmationQuestions: [
+            "What specific problem are you experiencing with this device?",
+            "When did the issue first start occurring?",
+            "Does the device power on when you try to use it?",
+            "Are there any visible signs of damage or unusual behavior?",
+            "Have you tried any troubleshooting steps already?"
+          ]
+        });
+        setCurrentStep(3);
+        toast.success('Ready for manual diagnosis - please answer the questions below');
+        return;
+      }
 
       setProgress(40);
 
-      // Perform initial image analysis
-      const { data: analysisResult, error: analysisError } = await supabase.functions.invoke('initial-image-analysis', {
-        body: {
-          imageUrls: urls,
-          deviceCategory
-        }
-      });
+      // Perform initial image analysis with robust error handling
+      let analysisResult;
+      try {
+        const { data, error: analysisError } = await supabase.functions.invoke('initial-image-analysis', {
+          body: {
+            imageUrls: urls,
+            deviceCategory
+          }
+        });
 
-      if (analysisError) throw analysisError;
+        if (analysisError) {
+          console.warn('Analysis service error:', analysisError);
+          throw new Error('Analysis service unavailable');
+        }
+
+        analysisResult = data;
+      } catch (analysisError) {
+        console.warn('Analysis failed, using fallback:', analysisError);
+        // Fallback analysis when service fails
+        analysisResult = {
+          visualAnalysis: `I've received your images of the ${deviceCategory}. While AI analysis is temporarily unavailable, I can still guide you through a systematic diagnosis.`,
+          likelyProblem: "AI analysis unavailable - manual diagnosis required",
+          confirmationQuestions: [
+            "What specific symptoms or problems are you experiencing?",
+            "When did you first notice this issue occurring?",
+            "Does the device respond at all when you try to use it?",
+            "Are there any visible signs of damage, burns, or wear?",
+            "Have you tried basic troubleshooting steps already?"
+          ]
+        };
+      }
 
       setProgress(100);
       setInitialAnalysis(analysisResult);
       setCurrentStep(3); // Go to confirmation questions
-      toast.success('Initial analysis completed!');
+      toast.success('Analysis ready - please review and answer the questions below');
 
     } catch (error) {
-      console.error('Initial analysis error:', error);
-      toast.error('Initial analysis failed. Please try again.');
+      console.error('Critical error in analysis flow:', error);
+      // Even on critical error, provide fallback to keep flow going
+      setInitialAnalysis({
+        visualAnalysis: `I'm ready to help you diagnose your ${deviceCategory}. Let's work through this step by step.`,
+        likelyProblem: "Systematic manual diagnosis required",
+        confirmationQuestions: [
+          "What is the main problem you're experiencing with this device?",
+          "When did this problem first start happening?",
+          "Does the device power on or show any signs of life?",
+          "Can you see any obvious physical damage or wear?",
+          "What troubleshooting have you already attempted?"
+        ]
+      });
+      setCurrentStep(3);
+      toast.success('Ready for manual diagnosis');
     } finally {
       setIsAnalyzing(false);
       setProgress(0);
@@ -130,6 +181,9 @@ export const DiagnosticFlow: React.FC = () => {
   };
 
   const generateFollowUpQuestions = async (description: string) => {
+    // Don't regenerate if we already have questions
+    if (followUpQuestions.length > 0) return;
+    
     try {
       const { data: result, error } = await supabase.functions.invoke('text-diagnosis', {
         body: {
@@ -141,22 +195,74 @@ export const DiagnosticFlow: React.FC = () => {
 
       if (error) throw error;
 
-      // Extract questions from the response
-      const questions = result.followUpQuestions || [
-        "When did this problem first occur?",
-        "Does the issue happen consistently or intermittently?",
-        "Have you tried any troubleshooting steps already?"
-      ];
+      // Extract questions from the response with validation
+      let questions = [];
+      if (result && Array.isArray(result.followUpQuestions)) {
+        questions = result.followUpQuestions.filter(q => typeof q === 'string' && q.trim().length > 0);
+      }
+      
+      // If we didn't get valid questions from AI, use intelligent defaults based on description content
+      if (questions.length < 3) {
+        const descLower = description.toLowerCase();
+        const defaultQuestions = [
+          "When did this problem first start occurring?",
+          "Does the issue happen consistently or only sometimes?",
+          "Have you tried any troubleshooting steps already?"
+        ];
+        
+        // Add context-specific questions based on keywords in description
+        if (descLower.includes('power') || descLower.includes('turn on') || descLower.includes('start')) {
+          defaultQuestions.push("What exactly happens when you try to power it on?");
+        }
+        if (descLower.includes('display') || descLower.includes('screen') || descLower.includes('show')) {
+          defaultQuestions.push("Are there any error messages or unusual displays shown?");
+        }
+        if (descLower.includes('sound') || descLower.includes('noise') || descLower.includes('audio')) {
+          defaultQuestions.push("Can you describe the specific sounds you're hearing?");
+        }
+        
+        questions = defaultQuestions.slice(0, 5); // Take first 5
+      }
       
       setFollowUpQuestions(questions);
     } catch (error) {
-      console.error('Error generating follow-up questions:', error);
-      // Set default follow-up questions
-      setFollowUpQuestions([
-        "When did this problem first occur?",
-        "Does the issue happen consistently or intermittently?",
-        "Have you tried any troubleshooting steps already?"
-      ]);
+      console.warn('Error generating follow-up questions, using defaults:', error);
+      // Use context-aware default questions based on device category
+      const categoryDefaults = {
+        'device': [
+          "When did this problem first start occurring?",
+          "Does the issue happen every time you use the device?",
+          "What troubleshooting steps have you already tried?",
+          "Are there any error messages or warning lights?"
+        ],
+        'instrument': [
+          "When did you first notice inaccurate readings?",
+          "Does the problem occur with all measurements or specific ranges?",
+          "Have you checked the calibration recently?",
+          "Are there any error codes being displayed?"
+        ],
+        'component': [
+          "What symptoms led you to suspect this component?",
+          "Do you have test equipment to verify the component's condition?",
+          "What was the component's role in the original circuit?",
+          "When did the parent device start malfunctioning?"
+        ],
+        'pcb': [
+          "What specific functionality is not working?",
+          "Are there any visibly damaged areas on the board?",
+          "When did the parent device start having issues?",
+          "Have you checked for loose connections?"
+        ],
+        'board': [
+          "What specific features are not working on the board?",
+          "Can you successfully program or communicate with it?",
+          "Are there any status indicators showing errors?",
+          "What were you working on when the problem started?"
+        ]
+      };
+      
+      const questions = categoryDefaults[deviceCategory] || categoryDefaults['device'];
+      setFollowUpQuestions(questions);
     }
   };
 

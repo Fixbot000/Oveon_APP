@@ -45,11 +45,23 @@ serve(async (req) => {
 
     console.log('Performing initial image analysis...');
 
-    // Prepare images for Gemini API
+    // Prepare images for Gemini API with robust error handling
     const imageParts = [];
+    const processedImages = [];
+    
     for (const imageUrl of imageUrls) {
       try {
-        const imageResponse = await fetch(imageUrl);
+        console.log(`Processing image: ${imageUrl}`);
+        const imageResponse = await fetch(imageUrl, { 
+          timeout: 10000,
+          headers: { 'User-Agent': 'Supabase-Edge-Function' }
+        });
+        
+        if (!imageResponse.ok) {
+          console.warn(`Failed to fetch image ${imageUrl}: ${imageResponse.status}`);
+          continue;
+        }
+        
         const imageBuffer = await imageResponse.arrayBuffer();
         const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
         
@@ -59,9 +71,30 @@ serve(async (req) => {
             mimeType: imageResponse.headers.get('content-type') || 'image/jpeg'
           }
         });
+        
+        processedImages.push(imageUrl);
+        console.log(`Successfully processed image: ${imageUrl}`);
       } catch (error) {
-        console.warn(`Failed to fetch image ${imageUrl}:`, error);
+        console.warn(`Failed to process image ${imageUrl}:`, error);
       }
+    }
+
+    // If no images could be processed, return fallback
+    if (imageParts.length === 0) {
+      console.log('No images could be processed, returning fallback analysis');
+      return new Response(JSON.stringify({
+        visualAnalysis: `I received ${imageUrls.length} image(s) of your ${deviceCategory || 'electronic device'} but couldn't process them for detailed analysis. This could be due to image format or connectivity issues.`,
+        likelyProblem: "Unable to analyze images - manual description required",
+        confirmationQuestions: [
+          "What specific problem are you experiencing with this device?",
+          "When did the issue first start occurring?",
+          "Does the device power on when you try to use it?",
+          "Are there any visible signs of damage or wear?",
+          "Have you tried any troubleshooting steps already?"
+        ]
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     const prompt = `
@@ -107,62 +140,120 @@ serve(async (req) => {
       }
     };
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody)
-      }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
-    }
-
-    const data = await response.json();
-    
-    if (!data.candidates || data.candidates.length === 0) {
-      throw new Error('No response from Gemini API');
-    }
-
-    const analysisText = data.candidates[0].content.parts[0].text;
-    
-    // Try to parse JSON response
+    // Call Gemini API with timeout and error handling
     let analysis;
     try {
-      const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        analysis = JSON.parse(jsonMatch[0]);
-      } else {
-        // Fallback: create structured response
+      console.log(`Calling Gemini API with ${imageParts.length} processed images`);
+      
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+          signal: AbortSignal.timeout(30000) // 30 second timeout
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.warn(`Gemini API error: ${response.status} - ${errorText}`);
+        throw new Error(`Gemini API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (!data.candidates || data.candidates.length === 0) {
+        console.warn('No candidates in Gemini API response');
+        throw new Error('No response from Gemini API');
+      }
+
+      const analysisText = data.candidates[0].content.parts[0].text;
+      console.log('Received analysis from Gemini API:', analysisText.substring(0, 100) + '...');
+      
+      // Try to parse JSON response with robust error handling
+      try {
+        const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsedAnalysis = JSON.parse(jsonMatch[0]);
+          
+          // Validate the structure
+          if (parsedAnalysis.visualAnalysis && parsedAnalysis.likelyProblem && 
+              Array.isArray(parsedAnalysis.confirmationQuestions) && 
+              parsedAnalysis.confirmationQuestions.length >= 5) {
+            analysis = parsedAnalysis;
+            console.log('Successfully parsed structured analysis from Gemini');
+          } else {
+            throw new Error('Invalid analysis structure from Gemini');
+          }
+        } else {
+          throw new Error('No JSON found in Gemini response');
+        }
+      } catch (parseError) {
+        console.warn('Failed to parse Gemini response, creating fallback:', parseError);
+        // Create fallback with partial content from Gemini
         analysis = {
-          visualAnalysis: "Unable to parse detailed analysis from AI response",
-          likelyProblem: "Analysis completed but requires manual interpretation",
+          visualAnalysis: analysisText.length > 200 ? analysisText.substring(0, 200) + "..." : analysisText,
+          likelyProblem: "AI analysis completed but requires manual verification",
           confirmationQuestions: [
-            "Does the device show any signs of physical damage?",
-            "Are there any visible burn marks or discoloration?",
-            "Do you notice any loose or disconnected components?",
-            "Are there any unusual sounds when you try to use the device?",
-            "Does the device respond at all when you attempt to power it on?"
+            "Based on the images, what specific malfunction are you experiencing?",
+            "Are there any visible signs of damage, burns, or discoloration?",
+            "Do you notice any loose, disconnected, or missing components?",
+            "When you attempt to power on the device, what exactly happens?",
+            "Have you tried any troubleshooting steps or repairs already?"
           ]
         };
       }
-    } catch (parseError) {
-      console.warn('Failed to parse JSON response, using fallback structure');
-      analysis = {
-        visualAnalysis: analysisText.substring(0, 200) + "...",
-        likelyProblem: "Analysis requires further investigation",
-        confirmationQuestions: [
-          "Does the device show any signs of physical damage?",
-          "Are there any visible burn marks or discoloration?",
-          "Do you notice any loose or disconnected components?",
-          "Are there any unusual sounds when you try to use the device?",
-          "Does the device respond at all when you attempt to power it on?"
+      
+    } catch (apiError) {
+      console.warn('Gemini API call failed, using fallback analysis:', apiError);
+      // Use intelligent fallback based on device category
+      const categorySpecificQuestions = {
+        'device': [
+          "What happens when you try to power on this electronic device?",
+          "Are there any visible signs of damage, burns, or unusual wear?",
+          "Do you hear any unusual sounds (clicking, buzzing, etc.) from the device?",
+          "Are all cables and connections properly secured?",
+          "When did you first notice the problem occurring?"
+        ],
+        'instrument': [
+          "What readings or measurements is this instrument showing incorrectly?",
+          "Are there any error messages or warning indicators displayed?",
+          "Do the controls and buttons respond when pressed?",
+          "Are there any visible signs of physical damage to the casing or display?",
+          "When was the last time this instrument worked correctly?"
+        ],
+        'component': [
+          "What symptoms led you to suspect this component is faulty?",
+          "Are there any visible signs of burning, discoloration, or physical damage?",
+          "Do you have a way to test this component (multimeter, oscilloscope, etc.)?",
+          "What circuit or device was this component part of?",
+          "When did the parent device or circuit start malfunctioning?"
+        ],
+        'pcb': [
+          "What symptoms is this PCB or circuit board exhibiting?",
+          "Are there any visible signs of burnt components, traces, or damaged areas?",
+          "Do you see any loose, missing, or obviously damaged components?",
+          "What device or system is this PCB from?",
+          "When did the parent device start having problems?"
+        ],
+        'board': [
+          "What specific functionality is not working on this development board?",
+          "Are there any status LEDs that are not lighting up as expected?",
+          "Can you successfully program or communicate with the board?",
+          "Are there any visible signs of damage to components or connectors?",
+          "What were you trying to do when the problem first occurred?"
         ]
+      };
+      
+      const questions = categorySpecificQuestions[deviceCategory] || categorySpecificQuestions['device'];
+      
+      analysis = {
+        visualAnalysis: `I can see your ${deviceCategory || 'electronic device'} in the uploaded images. While I couldn't perform detailed AI analysis at this time, I can still help you diagnose the issue through targeted questions.`,
+        likelyProblem: "Manual diagnosis required - please provide detailed description",
+        confirmationQuestions: questions
       };
     }
 
