@@ -22,7 +22,8 @@ interface DiagnosticSession {
 
 interface InitialAnalysis {
   visualAnalysis: string;
-  likelyProblem: string;
+  likelyProblems: string[];
+  confidence: string;
   confirmationQuestions: string[];
 }
 
@@ -105,7 +106,12 @@ export const DiagnosticFlow: React.FC = () => {
         // Even if upload fails, provide fallback analysis
         setInitialAnalysis({
           visualAnalysis: `I see you've selected ${selectedImages.length} image(s) of your ${deviceCategory}. While I couldn't process them for detailed analysis, I can still help you diagnose the issue.`,
-          likelyProblem: "Manual diagnosis required - image processing unavailable",
+          likelyProblems: [
+            "Power supply or electrical issue",
+            "Component malfunction or failure",
+            "Connection or interface problem"
+          ],
+          confidence: "low",
           confirmationQuestions: [
             "What specific problem are you experiencing with this device?",
             "When did the issue first start occurring?",
@@ -142,7 +148,12 @@ export const DiagnosticFlow: React.FC = () => {
         // Fallback analysis when service fails
         analysisResult = {
           visualAnalysis: `I've received your images of the ${deviceCategory}. While AI analysis is temporarily unavailable, I can still guide you through a systematic diagnosis.`,
-          likelyProblem: "AI analysis unavailable - manual diagnosis required",
+          likelyProblems: [
+            "Power supply or connection issue",
+            "Component failure or malfunction",
+            "Software or configuration problem"
+          ],
+          confidence: "low",
           confirmationQuestions: [
             "What specific symptoms or problems are you experiencing?",
             "When did you first notice this issue occurring?",
@@ -163,7 +174,12 @@ export const DiagnosticFlow: React.FC = () => {
       // Even on critical error, provide fallback to keep flow going
       setInitialAnalysis({
         visualAnalysis: `I'm ready to help you diagnose your ${deviceCategory}. Let's work through this step by step.`,
-        likelyProblem: "Systematic manual diagnosis required",
+        likelyProblems: [
+          "Power or electrical fault",
+          "Component failure or damage", 
+          "Connection or wiring issue"
+        ],
+        confidence: "low",
         confirmationQuestions: [
           "What is the main problem you're experiencing with this device?",
           "When did this problem first start happening?",
@@ -322,7 +338,7 @@ export const DiagnosticFlow: React.FC = () => {
       }
 
       if (initialAnalysis) {
-        enhancedSymptoms += `\nInitial AI Analysis:\n${initialAnalysis.visualAnalysis}\nLikely Problem: ${initialAnalysis.likelyProblem}`;
+        enhancedSymptoms += `\nInitial AI Analysis:\n${initialAnalysis.visualAnalysis}\nLikely Problems: ${initialAnalysis.likelyProblems.join(', ')}`;
       }
 
       setProgress(60);
@@ -517,8 +533,20 @@ export const DiagnosticFlow: React.FC = () => {
               <h4 className="font-medium mb-2">Initial Analysis:</h4>
               <p className="text-sm text-muted-foreground mb-3">{initialAnalysis.visualAnalysis}</p>
               <div className="bg-background p-3 rounded border">
-                <h5 className="font-medium text-sm">Likely Problem:</h5>
-                <p className="text-sm">{initialAnalysis.likelyProblem}</p>
+                <h5 className="font-medium text-sm mb-2">Likely Problem(s):</h5>
+                <div className="space-y-1">
+                  {initialAnalysis.likelyProblems.map((problem, index) => (
+                    <p key={index} className="text-sm">
+                      {index + 1}. {problem}
+                    </p>
+                  ))}
+                </div>
+                {initialAnalysis.confidence && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Note: Confidence level is {initialAnalysis.confidence}
+                    {initialAnalysis.confidence === 'low' && ' - marked as uncertain'}
+                  </p>
+                )}
               </div>
             </div>
 

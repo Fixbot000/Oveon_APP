@@ -30,7 +30,12 @@ serve(async (req) => {
       console.warn('GEMINI_API_KEY is not configured, using fallback analysis');
       return new Response(JSON.stringify({
         visualAnalysis: `Based on the uploaded images of your ${deviceCategory || 'electronic device'}, I can see the device but need more information to provide a detailed analysis.`,
-        likelyProblem: "Unable to perform AI analysis - please provide detailed description",
+        likelyProblems: [
+          "Power supply failure or connection issue",
+          "Internal component malfunction",
+          "Software or firmware corruption"
+        ],
+        confidence: "low",
         confirmationQuestions: [
           "What specific issue are you experiencing with this device?",
           "When did the problem first occur?",
@@ -84,7 +89,12 @@ serve(async (req) => {
       console.log('No images could be processed, returning fallback analysis');
       return new Response(JSON.stringify({
         visualAnalysis: `I received ${imageUrls.length} image(s) of your ${deviceCategory || 'electronic device'} but couldn't process them for detailed analysis. This could be due to image format or connectivity issues.`,
-        likelyProblem: "Unable to analyze images - manual description required",
+        likelyProblems: [
+          "Connection or power supply issue",
+          "Hardware component failure", 
+          "Configuration or settings problem"
+        ],
+        confidence: "low",
         confirmationQuestions: [
           "What specific problem are you experiencing with this device?",
           "When did the issue first start occurring?",
@@ -98,31 +108,34 @@ serve(async (req) => {
     }
 
     const prompt = `
-    You are an expert electronics repair technician. Analyze the provided images of this ${deviceCategory || 'electronic device'} and identify the most likely problem based on visual inspection.
+    You are an expert device fault detector. Analyze the uploaded image carefully.
+    Your task is to identify and describe the most likely issues with the device shown.
 
-    Please provide:
-    1. A brief analysis of what you see in the images
-    2. The most likely problem based on visual clues
-    3. Exactly 5 specific confirmation questions to verify your assessment (not generic questions)
+    Rules:
+    1. Always return at least 1–3 possible problems, even if uncertain.
+    2. If the image is unclear, describe possible faults based on what can typically go wrong with similar devices instead of saying "unable to analyze".
+    3. Keep your output diagnostic only (do not give repair steps).
 
     Format your response as JSON with this exact structure:
     {
-      "visualAnalysis": "brief description of what you observe in the images",
-      "likelyProblem": "the most probable issue based on visual inspection",
+      "visualAnalysis": "brief description of what you see in the image",
+      "likelyProblems": [
+        "First possible issue based on visual evidence",
+        "Second possible issue if any", 
+        "Third possible issue if any"
+      ],
+      "confidence": "high/medium/low - based on image clarity and visible evidence",
       "confirmationQuestions": [
-        "Specific question 1 based on your analysis?",
-        "Specific question 2 based on your analysis?",
-        "Specific question 3 based on your analysis?",
-        "Specific question 4 based on your analysis?",
-        "Specific question 5 based on your analysis?"
+        "Does the device power on at all?",
+        "Are there any unusual sounds when operating?",
+        "When did you first notice this problem?",
+        "Has the device been dropped or damaged recently?",
+        "Are there any error messages or indicators showing?"
       ]
     }
 
-    Make sure the confirmation questions are:
-    - Specific to what you see in the images
-    - Designed to confirm or refine your initial assessment
-    - Not generic troubleshooting questions
-    - Answerable by the user who has the device
+    If you cannot clearly identify specific problems, provide the most common faults for similar electronic devices.
+    Always include at least one likely problem - never say you cannot analyze.
     `;
 
     const requestBody = {
@@ -180,9 +193,9 @@ serve(async (req) => {
           const parsedAnalysis = JSON.parse(jsonMatch[0]);
           
           // Validate the structure
-          if (parsedAnalysis.visualAnalysis && parsedAnalysis.likelyProblem && 
-              Array.isArray(parsedAnalysis.confirmationQuestions) && 
-              parsedAnalysis.confirmationQuestions.length >= 5) {
+          if (parsedAnalysis.visualAnalysis && Array.isArray(parsedAnalysis.likelyProblems) && 
+              parsedAnalysis.likelyProblems.length >= 1 && 
+              Array.isArray(parsedAnalysis.confirmationQuestions)) {
             analysis = parsedAnalysis;
             console.log('Successfully parsed structured analysis from Gemini');
           } else {
@@ -196,7 +209,12 @@ serve(async (req) => {
         // Create fallback with partial content from Gemini
         analysis = {
           visualAnalysis: analysisText.length > 200 ? analysisText.substring(0, 200) + "..." : analysisText,
-          likelyProblem: "AI analysis completed but requires manual verification",
+          likelyProblems: [
+            "Power or electrical fault",
+            "Component failure or damage",
+            "Connection or wiring issue"
+          ],
+          confidence: "low",
           confirmationQuestions: [
             "Based on the images, what specific malfunction are you experiencing?",
             "Are there any visible signs of damage, burns, or discoloration?",
@@ -252,7 +270,12 @@ serve(async (req) => {
       
       analysis = {
         visualAnalysis: `I can see your ${deviceCategory || 'electronic device'} in the uploaded images. While I couldn't perform detailed AI analysis at this time, I can still help you diagnose the issue through targeted questions.`,
-        likelyProblem: "Manual diagnosis required - please provide detailed description",
+        likelyProblems: [
+          "Power supply or electrical issue",
+          "Component malfunction or failure",
+          "Connection or interface problem"
+        ],
+        confidence: "low",
         confirmationQuestions: questions
       };
     }
@@ -269,7 +292,12 @@ serve(async (req) => {
     // Always return a fallback analysis instead of an error
     return new Response(JSON.stringify({
       visualAnalysis: `I've reviewed the uploaded images of your ${deviceCategory || 'electronic device'}. While I couldn't perform a detailed AI analysis, I can help you diagnose the issue.`,
-      likelyProblem: "Analysis requires additional information - please provide detailed description",
+      likelyProblems: [
+        "Hardware or component failure",
+        "Power or connection issue",
+        "Software or configuration problem"
+      ],
+      confidence: "low",
       confirmationQuestions: [
         "What specific problem are you experiencing with this device?",
         "When did the issue first start occurring?",
