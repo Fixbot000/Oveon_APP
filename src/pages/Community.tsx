@@ -35,13 +35,6 @@ const Community = () => {
   const [editingPost, setEditingPost] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const { user, signOut } = useAuth();
-  
-  // Pull-to-refresh states
-  const [isPulling, setIsPulling] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [pullDistance, setPullDistance] = useState(0);
-  const touchStartY = useRef(0);
-  const isAtTop = useRef(true);
 
   useEffect(() => {
     loadPosts();
@@ -313,136 +306,9 @@ const Community = () => {
     setEditContent('');
   };
 
-  // Pull-to-refresh and scroll-to-refresh handlers
-  const handleTouchStart = (e: React.TouchEvent) => {
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    isAtTop.current = scrollTop <= 10;
-    
-    if (isAtTop.current) {
-      touchStartY.current = e.touches[0].clientY;
-    }
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isAtTop.current || touchStartY.current === 0) return;
-    
-    const currentY = e.touches[0].clientY;
-    const distance = currentY - touchStartY.current;
-    
-    if (distance > 0) {
-      e.preventDefault();
-      const normalizedDistance = Math.min(distance * 0.5, 100);
-      setIsPulling(true);
-      setPullDistance(normalizedDistance);
-    }
-  };
-
-  const handleTouchEnd = async () => {
-    if (isPulling && pullDistance > 50 && !isRefreshing) {
-      await triggerRefresh();
-    } else {
-      setIsPulling(false);
-      setPullDistance(0);
-      touchStartY.current = 0;
-    }
-  };
-
-  const triggerRefresh = async () => {
-    setIsRefreshing(true);
-    
-    try {
-      await loadPosts();
-      toast.success('Posts refreshed!');
-    } catch (error) {
-      console.error('Refresh error:', error);
-      toast.error('Failed to refresh posts');
-    }
-    
-    setTimeout(() => {
-      setIsRefreshing(false);
-      setIsPulling(false);
-      setPullDistance(0);
-      touchStartY.current = 0;
-    }, 1000);
-  };
-
-  useEffect(() => {
-    let scrollTimeout: NodeJS.Timeout;
-    
-    const handleScroll = () => {
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-      const scrollHeight = document.documentElement.scrollHeight;
-      const clientHeight = window.innerHeight;
-      
-      isAtTop.current = scrollTop <= 10;
-      
-      // Check if scrolled to bottom (with some threshold)
-      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 100;
-      
-      if (isAtBottom && !isRefreshing && !loading) {
-        // Clear any existing timeout
-        if (scrollTimeout) clearTimeout(scrollTimeout);
-        
-        // Set a timeout to prevent multiple refreshes
-        scrollTimeout = setTimeout(() => {
-          triggerRefresh();
-        }, 300);
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      if (scrollTimeout) clearTimeout(scrollTimeout);
-    };
-  }, [isRefreshing, loading]);
-
-  const RefreshIcon = () => (
-    <div className="flex items-center justify-center p-2">
-      <div className="relative">
-        <div 
-          className={`w-6 h-6 rounded-full border-2 border-foreground transition-all duration-200 ${
-            isRefreshing ? 'animate-spin border-primary' : 'border-muted-foreground/60'
-          }`}
-          style={{
-            borderStyle: 'solid',
-            borderWidth: '2px'
-          }}
-        >
-          <Zap 
-            className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 h-3 w-3 transition-colors duration-200 ${
-              isRefreshing ? 'stroke-primary' : 'stroke-muted-foreground/60'
-            }`} 
-            strokeWidth={2.5} 
-            fill="none" 
-          />
-        </div>
-      </div>
-    </div>
-  );
-
   return (
-    <div 
-      className="min-h-screen bg-background pb-20"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
-      <MobileHeader />
-      
-      {(isPulling || isRefreshing) && (
-        <div 
-          className="fixed top-16 left-1/2 transform -translate-x-1/2 z-50 transition-all duration-300"
-          style={{
-            opacity: isRefreshing ? 1 : Math.min(pullDistance / 40, 0.9),
-            transform: `translate(-50%, ${isRefreshing ? '0px' : `${Math.max(-10, -20 + (pullDistance * 0.3))}px`})`
-          }}
-        >
-          <div className="bg-background/80 backdrop-blur-sm rounded-full shadow-lg">
-            <RefreshIcon />
-          </div>
-        </div>
-      )}
+    <div className="min-h-screen bg-background pb-20">
+      <MobileHeader onRefresh={loadPosts} />
       
       <main className="px-4 py-6 space-y-6">
         <div className="text-center space-y-6">

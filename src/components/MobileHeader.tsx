@@ -1,18 +1,21 @@
-import { Bell, Search } from 'lucide-react';
+import { Bell, Search, RefreshCw } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface MobileHeaderProps {
   showSearch?: boolean;
+  onRefresh?: () => Promise<void> | void;
 }
 
-const MobileHeader = ({ showSearch = true }: MobileHeaderProps) => {
+const MobileHeader = ({ showSearch = true, onRefresh }: MobileHeaderProps) => {
   const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -42,6 +45,21 @@ const MobileHeader = ({ showSearch = true }: MobileHeaderProps) => {
     return 'User';
   };
 
+  const handleRefresh = async () => {
+    if (!onRefresh || isRefreshing) return;
+    
+    setIsRefreshing(true);
+    try {
+      await onRefresh();
+      toast.success('Refreshed successfully!');
+    } catch (error) {
+      console.error('Refresh error:', error);
+      toast.error('Failed to refresh');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   return (
     <header className="bg-gradient-header p-6 pb-8 rounded-b-3xl shadow-card">
       <div className="flex items-center justify-between mb-6">
@@ -60,15 +78,29 @@ const MobileHeader = ({ showSearch = true }: MobileHeaderProps) => {
           </div>
         </div>
         
-        {showSearch ? (
-          <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 transition-all duration-200">
-            <Search className="h-6 w-6" />
-          </Button>
-        ) : (
-          <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 transition-all duration-200">
-            <Bell className="h-6 w-6" />
-          </Button>
-        )}
+        <div className="flex items-center space-x-2">
+          {onRefresh && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="text-white hover:bg-white/20 transition-all duration-200"
+            >
+              <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </Button>
+          )}
+          
+          {showSearch ? (
+            <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 transition-all duration-200">
+              <Search className="h-6 w-6" />
+            </Button>
+          ) : (
+            <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 transition-all duration-200">
+              <Bell className="h-6 w-6" />
+            </Button>
+          )}
+        </div>
       </div>
       
       {showSearch && (
