@@ -21,7 +21,7 @@ serve(async (req) => {
 
     const searchQuery = `How to repair ${deviceType || 'device'} ${finalAnalysis.slice(0, 200)} step by step guide`;
 
-    // Use Gemini with web search to find repair solutions
+    // Use Gemini directly to generate repair solutions
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
@@ -30,32 +30,42 @@ serve(async (req) => {
       body: JSON.stringify({
         contents: [{
           parts: [{
-            text: `Search the web and provide a comprehensive repair solution for this problem:
+            text: `Based on the detailed analysis and user information, provide a comprehensive repair solution for this electronic device problem:
 
-Problem Analysis: ${finalAnalysis}
-User Answers: ${JSON.stringify(allAnswers)}
-Device Type: ${deviceType || 'Unknown'}
+**Problem Analysis:** ${finalAnalysis}
 
-Please search for current repair guides, tutorials, and solutions. Provide:
+**User Responses:** ${JSON.stringify(allAnswers, null, 2)}
 
-1. **Problem Summary**: Brief overview of the identified issues
-2. **Required Tools**: List of tools needed for the repair
-3. **Required Parts**: Any replacement parts that might be needed
-4. **Step-by-Step Solution**: Detailed repair instructions
-5. **Safety Warnings**: Important safety considerations
-6. **Alternative Solutions**: If multiple repair approaches exist
-7. **Prevention Tips**: How to avoid this problem in the future
+**Device Type:** ${deviceType || 'Electronic Device'}
 
-Make sure the solution is practical, safe, and based on current repair practices found online.`
+Please provide a detailed repair solution with the following sections:
+
+## 1. Problem Summary
+Brief overview of the identified issues and root causes.
+
+## 2. Required Tools
+List specific tools needed for the repair (screwdrivers, compressed air, thermal paste, etc.).
+
+## 3. Required Parts
+Any replacement parts that might be needed with approximate specifications.
+
+## 4. Step-by-Step Repair Instructions
+Detailed, numbered steps for the repair process. Be specific and clear.
+
+## 5. Safety Warnings
+Important safety considerations and precautions to take.
+
+## 6. Testing and Verification
+How to test the device after repair to ensure it's working properly.
+
+## 7. Prevention Tips
+How to avoid this problem in the future.
+
+## 8. When to Seek Professional Help
+Indicators that professional repair might be necessary.
+
+Make the solution practical, safe, and based on standard electronic repair practices. Focus on the most likely solutions first.`
           }]
-        }],
-        tools: [{
-          google_search_retrieval: {
-            dynamic_retrieval_config: {
-              mode: "MODE_DYNAMIC",
-              dynamic_threshold: 0.7
-            }
-          }
         }]
       })
     });
