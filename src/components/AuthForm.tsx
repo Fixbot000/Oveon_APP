@@ -17,11 +17,42 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const checkPasswordBreach = async (password: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('check-password-breach', {
+        body: { password }
+      });
+
+      if (error) {
+        console.error('Password breach check error:', error);
+        // If check fails, allow password (fail open for better UX)
+        return false;
+      }
+
+      return data?.isBreached || false;
+    } catch (error) {
+      console.error('Password breach check failed:', error);
+      // If check fails, allow password (fail open for better UX)
+      return false;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      // Check for password breaches only during signup
+      if (isSignUp) {
+        const isBreached = await checkPasswordBreach(password);
+        
+        if (isBreached) {
+          toast.error('This password has been found in data breaches. Please choose a stronger, unique password for your security.');
+          setLoading(false);
+          return;
+        }
+      }
+
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({
           email,
