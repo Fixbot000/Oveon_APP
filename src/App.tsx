@@ -13,6 +13,7 @@ import Scan from "./pages/Scan";
 import Community from "./pages/Community";
 import History from "./pages/History";
 import NotFound from "./pages/NotFound";
+import OnboardingTutorial from "@/components/OnboardingTutorial";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <OnboardingTutorial />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />

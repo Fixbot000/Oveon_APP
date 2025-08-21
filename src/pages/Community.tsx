@@ -40,6 +40,49 @@ const Community = () => {
     loadPosts();
   }, []);
 
+  const uploadSelectedImages = async (): Promise<string[]> => {
+    if (selectedImages.length === 0) return [];
+
+    if (!user) {
+      toast.error('Please sign in to upload images');
+      return [];
+    }
+
+    const now = Date.now();
+    const uploads = selectedImages.map((file, index) => {
+      const extension = file.name.split('.').pop() || 'jpg';
+      const objectPath = `${user.id}/${now}_${index}.${extension}`;
+      return { file, objectPath };
+    });
+
+    const results = await Promise.allSettled(
+      uploads.map(async ({ file, objectPath }) => {
+        const { error } = await supabase.storage
+          .from('device-images')
+          .upload(objectPath, file, { upsert: false, cacheControl: '3600' });
+        if (error) {
+          console.error('Storage upload error:', error.message || error.name || error);
+          throw error;
+        }
+        const { data } = supabase.storage
+          .from('device-images')
+          .getPublicUrl(objectPath);
+        return data?.publicUrl || '';
+      })
+    );
+
+    const successfulUrls = results
+      .filter(r => r.status === 'fulfilled' && r.value)
+      .map(r => (r as PromiseFulfilledResult<string>).value);
+
+    const failedCount = results.filter(r => r.status === 'rejected').length;
+    if (failedCount > 0) {
+      toast.error(`Failed to upload ${failedCount} image${failedCount > 1 ? 's' : ''}`);
+    }
+
+    return successfulUrls;
+  };
+
   const loadPosts = async () => {
     try {
       setLoading(true);
@@ -205,18 +248,46 @@ const Community = () => {
       return;
     }
 
-    if (!newPost.content.trim()) {
-      toast.error('Please add some content to your post');
+    if (!newPost.content.trim() && selectedImages.length === 0) {
+      toast.error('Add text or at least one image');
       return;
     }
 
     try {
-      const { error } = await supabase
+      const imageUrls = await uploadSelectedImages();
+      // If user selected images but none uploaded and there's no text, block
+      if (selectedImages.length > 0 && imageUrls.length === 0 && !newPost.content.trim()) {
+        toast.error('Image upload failed');
+        return;
+      }
+
+      const insertData: any = {
+        content: newPost.content,
+        user_id: user.id,
+      };
+      if (imageUrls.length > 0) {
+        insertData.image_url = imageUrls[0];
+      }
+
+      // First, try inserting using image_url (most compatible with current schema)
+      let { error } = await supabase
         .from('posts')
-        .insert({
+        .insert(insertData);
+
+      // If that fails for any reason, try alternative schema (image_urls)
+      if (error) {
+        const altInsert: any = {
           content: newPost.content,
-          user_id: user.id
-        });
+          user_id: user.id,
+        };
+        if (imageUrls.length > 0) {
+          altInsert.image_urls = imageUrls;
+          // post_type exists in some schemas; ignore if column missing
+          altInsert.post_type = newPost.content.trim() ? 'mixed' : 'image';
+        }
+        const alt = await supabase.from('posts').insert(altInsert);
+        error = alt.error as any;
+      }
 
       if (error) throw error;
 
@@ -226,7 +297,8 @@ const Community = () => {
       loadPosts();
     } catch (error: any) {
       console.error('Error creating post:', error);
-      toast.error('Failed to create post');
+      const message = error?.message || 'Failed to create post';
+      toast.error(message);
     }
   };
 
@@ -369,7 +441,7 @@ const Community = () => {
                 <Button 
                   onClick={handleCreatePost} 
                   className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
-                  disabled={!newPost.content.trim()}
+                  disabled={!newPost.content.trim() && selectedImages.length === 0}
                 >
                   <Send className="h-4 w-4 mr-2" />
                   Share Post

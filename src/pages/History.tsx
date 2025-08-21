@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { History as HistoryIcon, FileText, Wrench, Calendar, User } from 'lucide-react';
+import { History as HistoryIcon, FileText, Wrench, Calendar, User, Sun, Moon, LogOut, HelpCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -32,12 +33,25 @@ const History = () => {
   const [userPosts, setUserPosts] = useState<UserPost[]>([]);
   const [diagnosticSessions, setDiagnosticSessions] = useState<DiagnosticSession[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   useEffect(() => {
     if (user) {
       checkUser();
     }
   }, [user]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const initialDark = stored ? stored === 'dark' : prefersDark;
+      setIsDarkMode(initialDark);
+      document.documentElement.classList.toggle('dark', initialDark);
+    } catch (e) {
+      // noop
+    }
+  }, []);
 
   const checkUser = async () => {
     if (!user) return;
@@ -76,6 +90,16 @@ const History = () => {
       toast.error('Failed to load user data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleTheme = (checked: boolean) => {
+    setIsDarkMode(checked);
+    try {
+      document.documentElement.classList.toggle('dark', checked);
+      localStorage.setItem('theme', checked ? 'dark' : 'light');
+    } catch (e) {
+      // noop
     }
   };
 
@@ -134,35 +158,44 @@ const History = () => {
 
           <Card>
             <CardContent className="pt-6">
-              <div className="flex flex-col items-center space-y-4">
-                <Avatar className="h-20 w-20">
-                  <AvatarFallback className="bg-primary/10 text-primary text-2xl">
-                    {profile?.username?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
-                  </AvatarFallback>
-                </Avatar>
-                
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold text-foreground">
-                    {profile?.username || 'Anonymous User'}
-                  </h2>
-                  <p className="text-muted-foreground">{user?.email}</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Member since {new Date(profile?.created_at || Date.now()).toLocaleDateString('en-US', {
-                      month: 'long',
-                      year: 'numeric'
-                    })}
-                  </p>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {isDarkMode ? (
+                      <Moon className="h-5 w-5 text-muted-foreground" />
+                    ) : (
+                      <Sun className="h-5 w-5 text-muted-foreground" />
+                    )}
+                    <div>
+                      <p className="font-medium">Appearance</p>
+                      <p className="text-sm text-muted-foreground">{isDarkMode ? 'Dark' : 'Light'} mode</p>
+                    </div>
+                  </div>
+                  <Switch checked={isDarkMode} onCheckedChange={handleToggleTheme} />
                 </div>
 
-                <div className="flex space-x-6 text-center">
-                  <div>
-                    <p className="text-2xl font-bold text-primary">{userPosts.length}</p>
-                    <p className="text-sm text-muted-foreground">Posts</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-primary">{diagnosticSessions.length}</p>
-                    <p className="text-sm text-muted-foreground">Repairs</p>
-                  </div>
+                <div className="grid gap-2">
+                  <button
+                    className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-muted text-left"
+                    onClick={() => (window.location.href = '/help')}
+                  >
+                    <HelpCircle className="h-5 w-5 text-muted-foreground" />
+                    <span className="font-medium">Help</span>
+                  </button>
+                  <button
+                    className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-muted text-left"
+                    onClick={() => (window.location.href = '/terms')}
+                  >
+                    <FileText className="h-5 w-5 text-muted-foreground" />
+                    <span className="font-medium">Terms & Policies</span>
+                  </button>
+                  <button
+                    className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-muted text-left text-destructive"
+                    onClick={signOut}
+                  >
+                    <LogOut className="h-5 w-5" />
+                    <span className="font-medium">Sign Out</span>
+                  </button>
                 </div>
               </div>
             </CardContent>
