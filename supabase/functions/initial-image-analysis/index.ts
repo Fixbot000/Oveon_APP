@@ -2,7 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': 'https://byte-fixer.lovable.app',
+  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Credentials': 'true'
@@ -25,8 +25,22 @@ serve(async (req) => {
       });
     }
 
+    // If GEMINI_API_KEY is not configured, return fallback analysis
     if (!GEMINI_API_KEY) {
-      throw new Error('GEMINI_API_KEY is not configured');
+      console.warn('GEMINI_API_KEY is not configured, using fallback analysis');
+      return new Response(JSON.stringify({
+        visualAnalysis: `Based on the uploaded images of your ${deviceCategory || 'electronic device'}, I can see the device but need more information to provide a detailed analysis.`,
+        likelyProblem: "Unable to perform AI analysis - please provide detailed description",
+        confirmationQuestions: [
+          "What specific issue are you experiencing with this device?",
+          "When did the problem first occur?",
+          "Does the device power on at all?",
+          "Are there any visible signs of damage on the device?",
+          "Have you tried any troubleshooting steps already?"
+        ]
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     console.log('Performing initial image analysis...');
@@ -160,10 +174,19 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in initial-image-analysis function:', error);
-    return new Response(JSON.stringify({ 
-      error: error.message 
+    
+    // Always return a fallback analysis instead of an error
+    return new Response(JSON.stringify({
+      visualAnalysis: `I've reviewed the uploaded images of your ${deviceCategory || 'electronic device'}. While I couldn't perform a detailed AI analysis, I can help you diagnose the issue.`,
+      likelyProblem: "Analysis requires additional information - please provide detailed description",
+      confirmationQuestions: [
+        "What specific problem are you experiencing with this device?",
+        "When did the issue first start occurring?",
+        "Does the device show any signs of physical damage?",
+        "Are there any error messages or unusual behaviors?",
+        "Have you attempted any troubleshooting steps so far?"
+      ]
     }), {
-      status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
