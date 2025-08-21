@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { imageBase64 } = await req.json();
+    const { imageBase64, deviceName } = await req.json();
     const apiKey = Deno.env.get('GEMINI_API_KEY');
 
     if (!apiKey) {
@@ -28,16 +28,16 @@ serve(async (req) => {
         contents: [{
           parts: [
             {
-              text: `Analyze this image for any type of damage or issues. Check for:
+            text: `Analyze this image of a ${deviceName || 'device'} for any type of damage or issues. Check for:
 - Physical damage (cracks, dents, broken parts, scratches)
 - Dust, dirt, corrosion, or buildup
 - Signs of overheating (burn marks, melted areas, discoloration)
 - Loose or disconnected wires/connectors
 - Missing components or screws
 - Misalignment of parts
-- Any other visible problems
+- Any other visible problems specific to ${deviceName || 'this type of device'}
 
-Provide a detailed analysis and list specific issues found. Be thorough and accurate.`
+Provide a detailed analysis and list specific issues found. Be thorough and accurate, considering the device type.`
             },
             {
               inline_data: {
@@ -68,10 +68,11 @@ Provide a detailed analysis and list specific issues found. Be thorough and accu
       body: JSON.stringify({
         contents: [{
           parts: [{
-            text: `Based on this analysis: "${analysis}"
+            text: `Based on this analysis of a ${deviceName || 'device'}: "${analysis}"
 
-Generate 3-5 specific, relevant questions that would help get more details about the problems identified. Questions should be:
+Generate 3-5 specific, relevant questions that would help get more details about the problems identified with this ${deviceName || 'device'}. Questions should be:
 - Directly related to the issues found in the image
+- Specific to ${deviceName || 'this type of device'} and its common problems
 - Helpful for determining the exact cause or solution
 - Clear and easy to answer
 - Focus on symptoms, when the problem started, usage patterns

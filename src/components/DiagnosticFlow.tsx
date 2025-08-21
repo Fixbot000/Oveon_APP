@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,6 +29,7 @@ const DiagnosticFlow = () => {
   const [loading, setLoading] = useState(false);
   const [stepData, setStepData] = useState<StepData>({});
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [deviceName, setDeviceName] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -52,7 +54,7 @@ const DiagnosticFlow = () => {
       setLoading(true);
       try {
         const { data, error } = await supabase.functions.invoke('gemini-analyze-image', {
-          body: { imageBase64: base64 }
+          body: { imageBase64: base64, deviceName }
         });
 
         if (error) throw error;
@@ -150,7 +152,7 @@ const DiagnosticFlow = () => {
         body: {
           finalAnalysis: stepData.descriptionAnalysis || stepData.imageAnalysis,
           allAnswers,
-          deviceType: 'electronic device'
+          deviceType: deviceName
         }
       });
 
@@ -193,6 +195,16 @@ const DiagnosticFlow = () => {
         <CardContent className="space-y-4">
           {currentStep === 1 && (
             <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="deviceName">Device Name *</Label>
+                <Input
+                  id="deviceName"
+                  value={deviceName}
+                  onChange={(e) => setDeviceName(e.target.value)}
+                  placeholder="e.g., iPhone 14, Dell Laptop, Samsung TV..."
+                  required
+                />
+              </div>
               <input
                 type="file"
                 accept="image/*"
@@ -201,7 +213,17 @@ const DiagnosticFlow = () => {
                 className="hidden"
               />
               <Button 
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => {
+                  if (!deviceName.trim()) {
+                    toast({
+                      title: "Device Name Required",
+                      description: "Please enter the device name before uploading an image.",
+                      variant: "destructive"
+                    });
+                    return;
+                  }
+                  fileInputRef.current?.click();
+                }}
                 className="w-full h-32 border-2 border-dashed border-border hover:border-primary"
                 variant="outline"
                 disabled={loading}
@@ -348,6 +370,7 @@ const DiagnosticFlow = () => {
                   setCurrentStep(1);
                   setStepData({});
                   setUploadedImage(null);
+                  setDeviceName('');
                 }}
                 variant="outline"
                 className="w-full"
