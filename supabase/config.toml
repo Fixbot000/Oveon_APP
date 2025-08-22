@@ -73,6 +73,9 @@ verify_jwt = false
 [functions.check-password-breach]
 verify_jwt = false
 
+[functions.chat-repair-bot]
+verify_jwt = false
+
 [edge-runtime]
 enabled = true
 policy = "per_worker"

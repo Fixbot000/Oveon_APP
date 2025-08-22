@@ -31,16 +31,19 @@ const Chat = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
-      text: `Hi there! 👋 I'm your Repair Assistant!
+      text: `Hi there! 👋 I'm your friendly Repair Assistant!
 
-**Note:** The AI chat feature is currently unavailable as the diagnostic pipeline has been removed.
+I'm here to help you troubleshoot and fix your electronic devices with step-by-step guidance. Whether it's a smartphone, laptop, appliance, or any other gadget, I'll do my best to get it working again! 🔧✨
 
-However, you can still:
-• Browse our repair database in the Community section
-• View repair history and tips
-• Access component and device information
+**What I can help with:**
+• 📱 Smartphones & tablets
+• 💻 Laptops & computers  
+• 🏠 Home appliances
+• 🎮 Gaming consoles
+• 🔊 Audio/video equipment
+• ⚡ Basic electrical issues
 
-The AI features will be restored in a future update. Thank you for your patience!`,
+Just describe your problem and I'll guide you through the repair process. Let's fix it together! 💪`,
       isBot: true,
     }
   ]);
@@ -92,11 +95,51 @@ The AI features will be restored in a future update. Thank you for your patience
     setIsLoading(true);
 
     try {
-      // Note: text-diagnosis function was removed with AI pipeline
-      // This is a placeholder that will fail gracefully
-      throw new Error('AI pipeline has been removed');
-    } catch (error) {
+      console.log('Sending message to repair bot:', fullMessage);
+      
+      const { data, error } = await supabase.functions.invoke('chat-repair-bot', {
+        body: {
+          message: fullMessage,
+          conversationHistory: conversationHistory
+        }
+      });
 
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(error.message || 'Failed to get response from repair bot');
+      }
+
+      if (!data.success) {
+        throw new Error(data.error || 'Repair bot returned an error');
+      }
+
+      console.log('Repair bot response received:', data.response);
+
+      // Update conversation history
+      const newHistory = [
+        ...conversationHistory,
+        { role: 'user', content: fullMessage },
+        { role: 'assistant', content: data.response }
+      ];
+      setConversationHistory(newHistory);
+
+      // Remove loading message and add AI response
+      setMessages(prev => {
+        const filtered = prev.filter(msg => msg.id !== loadingId);
+        return [
+          ...filtered,
+          { 
+            id: Date.now(), 
+            text: data.response,
+            isBot: true,
+            hasMatches: true
+          }
+        ];
+      });
+
+      toast.success('Got repair guidance! 🔧');
+
+    } catch (error) {
       console.error('Chat error:', error);
       
       // Remove loading message and add error message
@@ -106,13 +149,13 @@ The AI features will be restored in a future update. Thank you for your patience
           ...filtered,
           { 
             id: Date.now(), 
-            text: 'The AI chat feature is temporarily unavailable as the diagnostic pipeline has been removed. Please check back later!',
+            text: `I'm having trouble connecting right now. 😅 This might be because the OpenAI API key isn't configured yet. Please check back later or contact support if this persists!`,
             isBot: true
           }
         ];
       });
       
-      toast.error('AI chat is currently unavailable.');
+      toast.error('Unable to connect to repair assistant');
     } finally {
       setIsLoading(false);
     }
