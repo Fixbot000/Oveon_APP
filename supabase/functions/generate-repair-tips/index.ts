@@ -13,6 +13,7 @@ interface Tip {
   difficulty: string;
   readTime: string;
   imageAlt: string;
+  imageUrl?: string;
 }
 
 serve(async (req) => {
@@ -22,101 +23,82 @@ serve(async (req) => {
   }
 
   try {
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-    if (!OPENAI_API_KEY) {
-      throw new Error('OpenAI API key not configured');
+    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+    if (!GEMINI_API_KEY) {
+      throw new Error('Gemini API key not configured');
     }
 
-    // Generate a variety of repair tips using AI
-    const systemMessage = {
-      role: "system",
-      content: `You are an expert electronics repair technician and educator. Generate 6 unique, practical repair tips and tricks that would be helpful for DIY device repair enthusiasts.
+    console.log('Generating repair tips with Gemini AI...');
 
-Each tip should include:
-- A catchy, specific title (max 60 characters)
-- A brief, practical description (max 120 characters)
-- A relevant category (e.g., "Smartphone", "Laptop", "Audio", "Gaming", "Safety", "Tools")
-- Difficulty level (e.g., "Beginner", "Intermediate", "Advanced")
-- Estimated read time (e.g., "3 min read", "5 min read", "8 min read")
-- A descriptive alt text for an image (max 80 characters)
+    // Generate tips using Gemini AI
+    const prompt = `Generate 6 unique, practical repair tips and tricks for DIY device repair enthusiasts. 
+
+Return a JSON array where each tip has these exact fields:
+- title: Catchy, specific title (max 60 characters)
+- description: Brief, practical description (max 120 characters)
+- category: One of: "Smartphone", "Laptop", "Audio", "Gaming", "Safety", "Tools"
+- difficulty: One of: "Beginner", "Intermediate", "Advanced"
+- readTime: Format like "3 min read", "5 min read", etc.
+- imageAlt: Descriptive alt text for an image (max 80 characters)
 
 Focus on:
 - Practical, actionable advice
 - Safety considerations
 - Common repair scenarios
-- Tool and technique recommendations
+- Tool recommendations
 - Preventive maintenance
 - Troubleshooting steps
 
-Make the tips diverse and cover different skill levels and device types.`
-    };
+Make tips diverse across different skill levels and device types.`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [systemMessage],
-        max_tokens: 800,
-        temperature: 0.8,
-        presence_penalty: 0.1,
-        frequency_penalty: 0.1,
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.8,
+          maxOutputTokens: 2048,
+        },
       }),
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('OpenAI API error:', errorText);
-      throw new Error(`OpenAI API error: ${response.status} ${errorText}`);
+    if (!geminiResponse.ok) {
+      const errorText = await geminiResponse.text();
+      console.error('Gemini API error:', errorText);
+      throw new Error(`Gemini API error: ${geminiResponse.status} ${errorText}`);
     }
 
-    const data = await response.json();
-    const aiResponse = data.choices[0].message.content;
+    const geminiData = await geminiResponse.json();
+    const aiResponse = geminiData.candidates[0].content.parts[0].text;
+
+    console.log('Gemini response received:', aiResponse);
 
     // Parse the AI response to extract structured tips
-    // The AI should return tips in a structured format, but we'll provide a fallback
     let tips: Tip[] = [];
     
     try {
       // Try to parse JSON if the AI returns it
-      const parsed = JSON.parse(aiResponse);
-      if (Array.isArray(parsed)) {
-        tips = parsed;
-      }
-    } catch {
-      // If parsing fails, create tips from the text response
-      const lines = aiResponse.split('\n').filter(line => line.trim());
-      let currentTip: Partial<Tip> = {};
-      
-      for (const line of lines) {
-        if (line.includes('Title:') || line.includes('title:')) {
-          if (currentTip.title) {
-            tips.push(currentTip as Tip);
-          }
-          currentTip = { title: line.split(':')[1]?.trim() || '' };
-        } else if (line.includes('Description:') || line.includes('description:')) {
-          currentTip.description = line.split(':')[1]?.trim() || '';
-        } else if (line.includes('Category:') || line.includes('category:')) {
-          currentTip.category = line.split(':')[1]?.trim() || '';
-        } else if (line.includes('Difficulty:') || line.includes('difficulty:')) {
-          currentTip.difficulty = line.split(':')[1]?.trim() || '';
-        } else if (line.includes('Read time:') || line.includes('read time:')) {
-          currentTip.readTime = line.split(':')[1]?.trim() || '';
-        } else if (line.includes('Image alt:') || line.includes('image alt:')) {
-          currentTip.imageAlt = line.split(':')[1]?.trim() || '';
+      const jsonMatch = aiResponse.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (Array.isArray(parsed)) {
+          tips = parsed;
         }
       }
-      
-      if (currentTip.title) {
-        tips.push(currentTip as Tip);
-      }
+    } catch (parseError) {
+      console.log('Failed to parse JSON, using fallback tips:', parseError);
     }
 
-    // If we still don't have enough tips, provide some fallback tips
+    // If we still don't have enough tips, provide fallback tips
     if (tips.length < 6) {
+      console.log('Using fallback tips');
       const fallbackTips: Tip[] = [
         {
           title: "Smartphone Battery Optimization",
@@ -170,6 +152,45 @@ Make the tips diverse and cover different skill levels and device types.`
       
       tips = fallbackTips;
     }
+
+    // Generate images for each tip using OpenAI
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    if (OPENAI_API_KEY) {
+      console.log('Generating images for tips...');
+      
+      for (let i = 0; i < tips.length; i++) {
+        try {
+          const imagePrompt = `Professional repair workshop photo showing ${tips[i].title.toLowerCase()}, clean and well-lit, educational style, high quality, realistic`;
+          
+          const imageResponse = await fetch('https://api.openai.com/v1/images/generations', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${OPENAI_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'gpt-image-1',
+              prompt: imagePrompt,
+              n: 1,
+              size: '512x512',
+              quality: 'standard',
+              output_format: 'png'
+            }),
+          });
+
+          if (imageResponse.ok) {
+            const imageData = await imageResponse.json();
+            tips[i].imageUrl = imageData.data[0].url;
+            console.log(`Generated image for tip ${i + 1}`);
+          }
+        } catch (imageError) {
+          console.error(`Failed to generate image for tip ${i + 1}:`, imageError);
+          // Continue without image
+        }
+      }
+    }
+
+    console.log('Tips generated successfully');
 
     return new Response(JSON.stringify({ 
       tips: tips.slice(0, 6),

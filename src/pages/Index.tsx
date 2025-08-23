@@ -50,7 +50,7 @@ const Index = () => {
             </Button>
           </div>
         )}
-        {/* Promotional Banner */}
+        {/* Welcome Banner */}
         <Card className="bg-card shadow-card border-border">
           <CardContent className="p-6 text-center">
             <div className="relative z-10">
@@ -61,9 +61,6 @@ const Index = () => {
               <Button className="bg-primary text-primary-foreground rounded-full px-6 shadow-lg hover:shadow-elevated transition-all duration-200">
                 Learn more
               </Button>
-            </div>
-            <div className="absolute top-3 right-3 text-xs text-muted-foreground bg-muted/80 backdrop-blur-sm px-2 py-1 rounded-full">
-              Ad
             </div>
           </CardContent>
         </Card>
@@ -138,7 +135,7 @@ const Index = () => {
                     <div className="flex gap-4">
                       <div className="w-16 h-16 rounded-xl flex-shrink-0 overflow-hidden shadow-sm">
                         <img 
-                          src={getTipImage(tip.category)} 
+                          src={tip.imageUrl || getTipImage(tip.category)} 
                           alt={tip.imageAlt} 
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                         />

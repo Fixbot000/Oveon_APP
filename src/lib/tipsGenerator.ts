@@ -7,6 +7,7 @@ export interface Tip {
   difficulty: string;
   readTime: string;
   imageAlt: string;
+  imageUrl?: string;
 }
 
 export const generateRepairTips = async (): Promise<Tip[]> => {
