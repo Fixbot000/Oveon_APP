@@ -98,13 +98,13 @@ const Community = () => {
       const userIds = [...new Set(postsData?.map(p => p.user_id) || [])];
       const { data: profilesData } = await supabase
         .from('profiles')
-        .select('user_id, username')
-        .in('user_id', userIds);
+        .select('id, username')
+        .in('id', userIds);
 
       // Map profiles to posts
       const postsWithProfiles = postsData?.map(post => ({
         ...post,
-        profiles: profilesData?.find(p => p.user_id === post.user_id)
+        profiles: profilesData?.find(p => p.id === post.user_id)
       })) || [];
 
       setPosts(postsWithProfiles);
@@ -155,13 +155,13 @@ const Community = () => {
       const commentUserIds = [...new Set(commentsData?.map(c => c.user_id) || [])];
       const { data: commentProfilesData } = await supabase
         .from('profiles')
-        .select('user_id, username')
-        .in('user_id', commentUserIds);
+        .select('id, username')
+        .in('id', commentUserIds);
 
       // Map profiles to comments
       const commentsWithProfiles = commentsData?.map(comment => ({
         ...comment,
-        profiles: commentProfilesData?.find(p => p.user_id === comment.user_id)
+        profiles: commentProfilesData?.find(p => p.id === comment.user_id)
       })) || [];
 
       const commentsByPost: Record<string, any[]> = {};

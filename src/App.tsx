@@ -12,6 +12,7 @@ import Shop from "./pages/Shop";
 import Scan from "./pages/Scan";
 import Community from "./pages/Community";
 import History from "./pages/History";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import OnboardingTutorial from "@/components/OnboardingTutorial";
 
@@ -39,6 +40,11 @@ const App = () => (
             <Route path="/history" element={
               <AuthGuard>
                 <History />
+              </AuthGuard>
+            } />
+            <Route path="/profile" element={
+              <AuthGuard>
+                <Profile />
               </AuthGuard>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

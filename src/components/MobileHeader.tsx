@@ -31,8 +31,8 @@ const MobileHeader = ({ showSearch = true, onRefresh }: MobileHeaderProps) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('display_name, avatar_url, bio') // Remove description
-        .eq('user_id', user.id)
+        .select('username, avatar_url')
+        .eq('id', user.id)
         .single();
       
       if (error) throw error;
@@ -43,7 +43,7 @@ const MobileHeader = ({ showSearch = true, onRefresh }: MobileHeaderProps) => {
   };
 
   const getUserDisplayName = () => {
-    if (profile?.display_name) return profile.display_name; // Use display_name
+    if (profile?.username) return profile.username;
     if (user?.email) return user.email.split('@')[0];
     return 'User';
   };

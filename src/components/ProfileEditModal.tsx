@@ -28,8 +28,8 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
 
   useEffect(() => {
     if (currentProfile) {
-      setDisplayName(currentProfile.display_name || '');
-      setBio(currentProfile.bio || '');
+      setDisplayName(currentProfile.username || '');
+      setBio(''); // Remove bio since it's not in new schema
       setSelectedAvatarUrl(currentProfile.avatar_url || null);
     }
   }, [currentProfile]);
@@ -79,8 +79,8 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
 
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ display_name: displayName, bio, avatar_url: new_avatar_url })
-        .eq('user_id', user.id);
+        .update({ username: displayName, avatar_url: new_avatar_url })
+        .eq('id', user.id);
 
       if (updateError) {
         throw updateError;
@@ -120,17 +120,6 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
               id="displayName"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              className="col-span-3"
-            />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="bio" className="text-right">
-              Bio
-            </Label>
-            <Textarea
-              id="bio"
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
               className="col-span-3"
             />
           </div>

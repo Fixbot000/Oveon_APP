@@ -62,7 +62,7 @@ const History = () => {
       const { data: profileData } = await supabase
         .from('profiles')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('id', user.id)
         .single();
 
       setProfile(profileData);

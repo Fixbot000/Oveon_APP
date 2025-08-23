@@ -1,4 +1,4 @@
-import { Home, ShoppingBag, Camera, Bot, Settings, ArrowUp, Users, History as HistoryIcon } from 'lucide-react';
+import { Home, ShoppingBag, Camera, Bot, Settings, ArrowUp, Users, History as HistoryIcon, User } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
@@ -40,7 +40,7 @@ const BottomNavigation = () => {
     { icon: Users, label: 'Community', path: '/community' },
     { icon: Camera, label: 'Scan', path: '/scan', isCenter: true },
     { icon: Bot, label: 'Repair Bot', path: '/chat' },
-    { icon: HistoryIcon, label: 'History', path: '/history' },
+    { icon: User, label: 'Profile', path: '/profile' },
   ];
 
   return (
