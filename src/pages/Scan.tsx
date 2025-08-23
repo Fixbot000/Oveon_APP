@@ -8,7 +8,7 @@ import DiagnosticFlow from '@/components/DiagnosticFlow';
 const Scan = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
-      <MobileHeader showSearch={false} />
+      <MobileHeader showSearch={false} onRefresh={() => window.location.reload()} />
       
       <main className="px-4 py-6">
         <DiagnosticFlow />

@@ -106,7 +106,7 @@ const History = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background pb-20">
-        <MobileHeader />
+        <MobileHeader onRefresh={checkUser} />
         <main className="px-4 py-6">
           <div className="animate-pulse space-y-4">
             <div className="h-32 bg-muted rounded-lg"></div>
@@ -121,7 +121,7 @@ const History = () => {
   if (!user) {
     return (
       <div className="min-h-screen bg-background pb-20">
-        <MobileHeader />
+        <MobileHeader onRefresh={() => window.location.reload()} />
         <main className="px-4 py-6">
           <Card className="text-center py-8">
             <CardContent>
@@ -143,7 +143,7 @@ const History = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <MobileHeader />
+      <MobileHeader onRefresh={checkUser} />
       
       <main className="px-4 py-6 space-y-6">
         <div className="space-y-6">
