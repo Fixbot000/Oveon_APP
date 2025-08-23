@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import ProfileEditModal from '@/components/ProfileEditModal'; // Import the new modal
 
 interface MobileHeaderProps {
   showSearch?: boolean;
@@ -16,6 +17,7 @@ const MobileHeader = ({ showSearch = true, onRefresh }: MobileHeaderProps) => {
   const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false); // State for modal visibility
 
   useEffect(() => {
     if (user) {
@@ -27,12 +29,13 @@ const MobileHeader = ({ showSearch = true, onRefresh }: MobileHeaderProps) => {
     if (!user) return;
     
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
-        .select('username')
+        .select('display_name, avatar_url, bio') // Remove description
         .eq('user_id', user.id)
         .single();
       
+      if (error) throw error;
       setProfile(data);
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -40,7 +43,7 @@ const MobileHeader = ({ showSearch = true, onRefresh }: MobileHeaderProps) => {
   };
 
   const getUserDisplayName = () => {
-    if (profile?.username) return profile.username;
+    if (profile?.display_name) return profile.display_name; // Use display_name
     if (user?.email) return user.email.split('@')[0];
     return 'User';
   };
@@ -64,8 +67,11 @@ const MobileHeader = ({ showSearch = true, onRefresh }: MobileHeaderProps) => {
     <header className="bg-gradient-header p-6 pb-8 rounded-b-3xl shadow-card">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <Avatar className="h-14 w-14 ring-2 ring-white/20">
-            <AvatarImage src="/placeholder.svg" />
+          <Avatar 
+            className="h-14 w-14 ring-2 ring-white/20 cursor-pointer"
+            onClick={() => setIsEditModalOpen(true)} // Make avatar clickable
+          >
+            <AvatarImage src={profile?.avatar_url || "/placeholder.svg"} />
             <AvatarFallback className="bg-white/20 text-white font-semibold text-lg">
               {user ? getUserDisplayName()[0]?.toUpperCase() : 'U'}
             </AvatarFallback>
@@ -119,6 +125,13 @@ const MobileHeader = ({ showSearch = true, onRefresh }: MobileHeaderProps) => {
           </Button>
         </div>
       )}
+
+      <ProfileEditModal 
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        currentProfile={profile}
+        onProfileUpdated={fetchProfile} // Refresh profile after update
+      />
     </header>
   );
 };
