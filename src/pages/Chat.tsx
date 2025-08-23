@@ -197,20 +197,20 @@ Just describe your problem and I'll guide you through the repair process. Let's 
               <Card className={`max-w-[85%] ${
                 msg.isBot 
                   ? msg.hasMatches 
-                    ? 'bg-gradient-to-r from-green-500/10 to-blue-500/10 border-green-200' 
-                    : 'bg-gradient-primary' 
+                    ? 'bg-card border-green-200' 
+                    : 'bg-primary' 
                   : 'bg-card'
               }`}>
                 <CardContent className="p-4">
                   <div className="flex items-start gap-2">
                     {msg.isLoading && (
-                      <Loader2 className="w-4 h-4 animate-spin text-white mt-0.5 flex-shrink-0" />
+                      <Loader2 className="w-4 h-4 animate-spin text-primary-foreground mt-0.5 flex-shrink-0" />
                     )}
                     {msg.hasMatches && !msg.isLoading && (
                       <AlertCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
                     )}
                     <p className={`text-sm whitespace-pre-wrap ${
-                      msg.isBot ? 'text-white' : 'text-foreground'
+                      msg.isBot ? 'text-primary-foreground' : 'text-foreground'
                     }`}>
                       {msg.text}
                     </p>
@@ -223,7 +223,7 @@ Just describe your problem and I'll guide you through the repair process. Let's 
 
         {/* Follow-up Questions */}
         {pendingQuestions.length > 0 && (
-          <Card className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border-blue-200">
+          <Card className="bg-card border-blue-200">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-medium text-foreground">
@@ -258,12 +258,12 @@ Just describe your problem and I'll guide you through the repair process. Let's 
 
         {messages.length === 1 && (
           <div className="space-y-4">
-            <Card className="bg-gradient-card shadow-card border-0">
+            <Card className="bg-card shadow-card border-border">
               <CardContent className="p-4 text-center">
                 <p className="text-foreground font-medium mb-3">Need visual diagnosis?</p>
                 <Button 
                   onClick={() => navigate('/scan')}
-                  className="w-full bg-gradient-primary text-white"
+                  className="w-full bg-primary text-primary-foreground"
                 >
                   <Camera className="w-4 h-4 mr-2" />
                   Take Photos for AI Analysis
@@ -279,7 +279,7 @@ Just describe your problem and I'll guide you through the repair process. Let's 
                 <Button
                   key={action}
                   variant="outline"
-                  className="h-auto p-4 text-left justify-start bg-gradient-card shadow-card hover:shadow-elevated transition-all"
+                  className="h-auto p-4 text-left justify-start bg-card shadow-card hover:shadow-elevated transition-all border-border"
                   onClick={() => handleQuickAction(action)}
                 >
                   {action}
@@ -354,7 +354,7 @@ Just describe your problem and I'll guide you through the repair process. Let's 
             </div>
             <Button 
               onClick={handleSendClick}
-              className="h-12 w-12 bg-gradient-primary" 
+              className="h-12 w-12 bg-primary" 
               size="icon"
               disabled={isLoading || !message.trim()}
             >

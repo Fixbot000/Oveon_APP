@@ -31,21 +31,20 @@ const Index = () => {
           </div>
         )}
         {/* Promotional Banner */}
-        <Card className="bg-gradient-card shadow-card border-0 relative overflow-hidden">
+        <Card className="bg-card shadow-card border-border">
           <CardContent className="p-6 text-center">
             <div className="relative z-10">
-              <h2 className="text-xl font-bold mb-2">Effortlessly fix your devices!</h2>
+              <h2 className="text-xl font-bold mb-2 text-foreground">Effortlessly fix your devices!</h2>
               <p className="text-muted-foreground mb-4">
                 Get AI-powered repair guidance in seconds
               </p>
-              <Button className="bg-gradient-primary text-white rounded-full px-6 shadow-lg hover:shadow-elevated transition-all duration-200">
+              <Button className="bg-primary text-primary-foreground rounded-full px-6 shadow-lg hover:shadow-elevated transition-all duration-200">
                 Learn more
               </Button>
             </div>
             <div className="absolute top-3 right-3 text-xs text-muted-foreground bg-muted/80 backdrop-blur-sm px-2 py-1 rounded-full">
               Ad
             </div>
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-accent/5 opacity-50"></div>
           </CardContent>
         </Card>
 
@@ -83,12 +82,12 @@ const Index = () => {
         {/* Tips & Tricks */}
         <div>
           <div className="flex items-center justify-between mb-5">
-            <h3 className="text-xl font-bold">Tips & Tricks</h3>
+            <h3 className="text-xl font-bold text-foreground">Tips & Tricks</h3>
             <Button variant="ghost" className="text-primary hover:bg-primary/10 transition-colors">View all</Button>
           </div>
           
           <div className="grid gap-3">
-            <Card className="bg-gradient-card shadow-card hover:shadow-elevated transition-all duration-300 group cursor-pointer">
+            <Card className="bg-card shadow-card hover:shadow-elevated transition-all duration-300 group cursor-pointer border-border">
               <CardContent className="p-4">
                 <div className="flex gap-4">
                   <div className="w-16 h-16 rounded-xl flex-shrink-0 overflow-hidden shadow-sm">
@@ -99,7 +98,7 @@ const Index = () => {
                     />
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-semibold mb-1 group-hover:text-primary transition-colors text-sm">Capturing Circuit Photos for AI Analysis</h4>
+                    <h4 className="font-semibold mb-1 group-hover:text-primary transition-colors text-sm text-foreground">Capturing Circuit Photos for AI Analysis</h4>
                     <p className="text-xs text-muted-foreground mb-2">Learn optimal lighting and angles for AI analysis</p>
                     <div className="flex items-center gap-2">
                       <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">Today's tip</span>
@@ -111,7 +110,7 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-card shadow-card hover:shadow-elevated transition-all duration-300 group cursor-pointer">
+            <Card className="bg-card shadow-card hover:shadow-elevated transition-all duration-300 group cursor-pointer border-border">
               <CardContent className="p-4">
                 <div className="flex gap-4">
                   <div className="w-16 h-16 rounded-xl flex-shrink-0 overflow-hidden shadow-sm">
@@ -122,7 +121,7 @@ const Index = () => {
                     />
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-semibold mb-1 group-hover:text-primary transition-colors text-sm">Using a multimeter to check circuits</h4>
+                    <h4 className="font-semibold mb-1 group-hover:text-primary transition-colors text-sm text-foreground">Using a multimeter to check circuits</h4>
                     <p className="text-xs text-muted-foreground mb-2">Essential measurement techniques for electronic repairs</p>
                     <div className="flex items-center gap-2">
                       <span className="text-xs bg-accent/10 text-accent px-2 py-1 rounded-full">Popular</span>
@@ -134,7 +133,7 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-card shadow-card hover:shadow-elevated transition-all duration-300 group cursor-pointer">
+            <Card className="bg-card shadow-card hover:shadow-elevated transition-all duration-300 group cursor-pointer border-border">
               <CardContent className="p-4">
                 <div className="flex gap-4">
                   <div className="w-16 h-16 rounded-xl flex-shrink-0 overflow-hidden shadow-sm">
@@ -145,7 +144,7 @@ const Index = () => {
                     />
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-semibold mb-1 group-hover:text-primary transition-colors text-sm">Professional Soldering Techniques</h4>
+                    <h4 className="font-semibold mb-1 group-hover:text-primary transition-colors text-sm text-foreground">Professional Soldering Techniques</h4>
                     <p className="text-xs text-muted-foreground mb-2">Master precise component replacement and repair</p>
                     <div className="flex items-center gap-2">
                       <span className="text-xs bg-orange-500/10 text-orange-600 px-2 py-1 rounded-full">Advanced</span>
@@ -157,7 +156,7 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-card shadow-card hover:shadow-elevated transition-all duration-300 group cursor-pointer">
+            <Card className="bg-card shadow-card hover:shadow-elevated transition-all duration-300 group cursor-pointer border-border">
               <CardContent className="p-4">
                 <div className="flex gap-4">
                   <div className="w-16 h-16 rounded-xl flex-shrink-0 overflow-hidden shadow-sm">
@@ -168,7 +167,7 @@ const Index = () => {
                     />
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-semibold mb-1 group-hover:text-primary transition-colors text-sm">Screen Replacement Guide</h4>
+                    <h4 className="font-semibold mb-1 group-hover:text-primary transition-colors text-sm text-foreground">Screen Replacement Guide</h4>
                     <p className="text-xs text-muted-foreground mb-2">Step-by-step smartphone screen repair process</p>
                     <div className="flex items-center gap-2">
                       <span className="text-xs bg-green-500/10 text-green-600 px-2 py-1 rounded-full">Featured</span>
@@ -180,7 +179,7 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-card shadow-card hover:shadow-elevated transition-all duration-300 group cursor-pointer">
+            <Card className="bg-card shadow-card hover:shadow-elevated transition-all duration-300 group cursor-pointer border-border">
               <CardContent className="p-4">
                 <div className="flex gap-4">
                   <div className="w-16 h-16 rounded-xl flex-shrink-0 overflow-hidden shadow-sm">
@@ -191,7 +190,7 @@ const Index = () => {
                     />
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-semibold mb-1 group-hover:text-primary transition-colors text-sm">Battery Health Testing</h4>
+                    <h4 className="font-semibold mb-1 group-hover:text-primary transition-colors text-sm text-foreground">Battery Health Testing</h4>
                     <p className="text-xs text-muted-foreground mb-2">Diagnose battery issues with professional tools</p>
                     <div className="flex items-center gap-2">
                       <span className="text-xs bg-blue-500/10 text-blue-600 px-2 py-1 rounded-full">Essential</span>
@@ -203,7 +202,7 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-card shadow-card hover:shadow-elevated transition-all duration-300 group cursor-pointer">
+            <Card className="bg-card shadow-card hover:shadow-elevated transition-all duration-300 group cursor-pointer border-border">
               <CardContent className="p-4">
                 <div className="flex gap-4">
                   <div className="w-16 h-16 rounded-xl flex-shrink-0 overflow-hidden shadow-sm">
@@ -214,7 +213,7 @@ const Index = () => {
                     />
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-semibold mb-1 group-hover:text-primary transition-colors text-sm">ESD Protection Essentials</h4>
+                    <h4 className="font-semibold mb-1 group-hover:text-primary transition-colors text-sm text-foreground">ESD Protection Essentials</h4>
                     <p className="text-xs text-muted-foreground mb-2">Safe handling practices for sensitive electronics</p>
                     <div className="flex items-center gap-2">
                       <span className="text-xs bg-red-500/10 text-red-600 px-2 py-1 rounded-full">Safety</span>
