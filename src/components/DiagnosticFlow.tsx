@@ -233,10 +233,6 @@ const DiagnosticFlow = () => {
               symptoms_text: stepData.description,
               image_urls: uploadedPublicUrls, // Save uploaded image public URLs
               ai_analysis: JSON.parse(JSON.stringify({
-                imageAnalysis: stepData.imageAnalysis,
-                descriptionAnalysis: stepData.descriptionAnalysis,
-                questions1: stepData.questions1?.map(q => ({ id: q.id, question: q.question, answer: q.answer })),
-                questions2: stepData.questions2?.map(q => ({ id: q.id, question: q.question, answer: q.answer })),
                 finalSolution: data.solution,
                 deviceName
               })),

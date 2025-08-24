@@ -37,7 +37,20 @@ serve(async (req) => {
 - Misalignment of parts
 - Any other visible problems specific to ${deviceName || 'this type of device'}
 
-Provide a detailed analysis and list specific issues found. Be thorough and accurate, considering the device type.`
+IMPORTANT: Keep the analysis SHORT and ACTIONABLE. Follow these rules:
+- Use bullet points for issues found
+- Maximum 5 key issues
+- Each issue under 15 words
+- Focus on most critical problems first
+- If complex, provide brief summary
+
+Format:
+## Issues Found:
+• Issue 1: [description under 15 words]
+• Issue 2: [description under 15 words]
+• Issue 3: [description under 15 words]
+
+## Likely Cause: [brief explanation]`
             },
             {
               inline_data: {

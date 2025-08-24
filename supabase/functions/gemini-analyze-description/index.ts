@@ -37,11 +37,22 @@ User description: ${description}
 
 ${context}
 
-Based on all this information, provide:
-1. An updated and more accurate problem diagnosis
-2. Additional clarifying questions (if needed) to pinpoint the exact issue and solution
+IMPORTANT: Keep the analysis SHORT and ACTIONABLE. Follow these rules:
+- Use bullet points for key findings
+- Maximum 5 key points
+- Each point under 15 words
+- Focus on most likely causes
+- If complex, provide brief summary
 
-Focus on understanding the root cause and what specific repair steps might be needed.`
+Format:
+## Updated Analysis:
+• Finding 1: [description under 15 words]
+• Finding 2: [description under 15 words]
+• Finding 3: [description under 15 words]
+
+## Root Cause: [brief explanation under 20 words]
+
+Based on all this information, provide additional clarifying questions (if needed) to pinpoint the exact issue and solution.`
           }]
         }]
       })

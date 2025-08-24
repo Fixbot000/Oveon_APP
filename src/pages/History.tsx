@@ -179,8 +179,15 @@ const History = () => {
                   {session.symptoms_text && <p className="mb-2">Symptoms: {session.symptoms_text}</p>}
                   {session.ai_analysis?.finalSolution && (
                     <div className="mb-2">
-                      <h4 className="font-medium">AI Analysis & Solution:</h4>
-                      <p>{session.ai_analysis.finalSolution}</p>
+                      <details className="group">
+                        <summary className="font-medium cursor-pointer hover:text-primary flex items-center gap-2">
+                          <span className="group-open:rotate-90 transition-transform">▶</span>
+                          View Repair Solution
+                        </summary>
+                        <div className="mt-2 p-3 bg-muted rounded-lg">
+                          <pre className="whitespace-pre-wrap font-sans text-sm">{session.ai_analysis.finalSolution}</pre>
+                        </div>
+                      </details>
                     </div>
                   )}
                   {session.image_urls && session.image_urls.length > 0 && (
