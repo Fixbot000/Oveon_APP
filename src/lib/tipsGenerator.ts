@@ -38,6 +38,7 @@ const getFallbackTips = (): Tip[] => {
       category: "Smartphone",
       difficulty: "Beginner",
       readTime: "3 min read",
+      fullDescription: "Learn how to optimize your smartphone's battery life through proper charging habits, power settings management, and background app control. This comprehensive guide covers battery calibration, charging cycles, and settings optimization.",
     },
     {
       title: "Laptop Thermal Paste Replacement",
@@ -45,6 +46,7 @@ const getFallbackTips = (): Tip[] => {
       category: "Laptop",
       difficulty: "Intermediate",
       readTime: "8 min read",
+      fullDescription: "Step-by-step guide to replacing thermal paste on your laptop to improve cooling performance and reduce overheating. Includes tools needed, safety precautions, and detailed instructions for disassembly and reassembly.",
     },
     {
       title: "Audio Cable Repair Techniques",
@@ -52,6 +54,7 @@ const getFallbackTips = (): Tip[] => {
       category: "Audio",
       difficulty: "Beginner",
       readTime: "5 min read",
+      fullDescription: "Master the art of audio cable repair with this detailed guide covering soldering techniques, cable testing, and connection troubleshooting. Perfect for fixing headphones, speakers, and audio equipment.",
     },
     {
       title: "Gaming Controller Maintenance",
@@ -59,6 +62,7 @@ const getFallbackTips = (): Tip[] => {
       category: "Gaming",
       difficulty: "Beginner",
       readTime: "4 min read",
+      fullDescription: "Keep your gaming controllers in perfect condition with proper cleaning and maintenance techniques. Learn how to clean buttons, joysticks, and internal mechanisms for optimal gaming performance.",
     },
     {
       title: "ESD Safety Best Practices",
@@ -66,6 +70,7 @@ const getFallbackTips = (): Tip[] => {
       category: "Safety",
       difficulty: "Beginner",
       readTime: "3 min read",
+      fullDescription: "Essential guide to electrostatic discharge (ESD) safety when working with sensitive electronic components. Learn about grounding techniques, anti-static tools, and safe handling procedures.",
     },
     {
       title: "Multimeter Circuit Testing",
@@ -73,6 +78,7 @@ const getFallbackTips = (): Tip[] => {
       category: "Tools",
       difficulty: "Intermediate",
       readTime: "6 min read",
+      fullDescription: "Comprehensive guide to using multimeters for circuit testing and electrical troubleshooting. Covers voltage, current, and resistance measurements, along with safety tips and best practices.",
     }
   ];
 };

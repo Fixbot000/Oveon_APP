@@ -187,7 +187,10 @@ const Community = () => {
         if (!commentsByPost[comment.post_id]) {
           commentsByPost[comment.post_id] = [];
         }
-        commentsByPost[comment.post_id].push(comment as Comment);
+        commentsByPost[comment.post_id].push({
+          ...comment,
+          profiles: comment.profiles || { username: 'Anonymous', avatar_url: null }
+        } as Comment);
       });
 
       setComments(commentsByPost);

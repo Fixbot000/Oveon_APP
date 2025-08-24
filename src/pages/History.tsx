@@ -51,15 +51,27 @@ const History = () => {
         setLoading(true);
         setError(null);
 
-        // Fetch user's posts
+        // Fetch user's posts without join to avoid relation issues
         const { data: postsData, error: postsError } = await supabase
           .from('posts')
-          .select('*, profiles(username, avatar_url)')
+          .select('*')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false });
 
         if (postsError) throw postsError;
-        setPosts(postsData as Post[] || []);
+        
+        // Get user profile separately
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('username, avatar_url')
+          .eq('id', user.id)
+          .single();
+
+        setPosts((postsData || []).map(post => ({ 
+          ...post, 
+          title: post.content?.substring(0, 50) + '...' || 'Untitled Post',
+          profiles: profileData || { username: 'Unknown User', avatar_url: null }
+        })) as Post[]);
 
         // Fetch diagnostic sessions
         const { data: sessionsData, error: sessionsError } = await supabase
@@ -86,7 +98,7 @@ const History = () => {
   if (loading) {
     return (
       <div className="flex flex-col min-h-screen bg-gray-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
-        <MobileHeader title="History" />
+        <MobileHeader />
         <main className="flex-1 overflow-y-auto p-4 pb-20">
           <p>Loading history...</p>
         </main>
@@ -98,7 +110,7 @@ const History = () => {
   if (error) {
     return (
       <div className="flex flex-col min-h-screen bg-gray-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
-        <MobileHeader title="History" />
+        <MobileHeader />
         <main className="flex-1 overflow-y-auto p-4 pb-20">
           <p className="text-red-500">Error: {error}</p>
         </main>
@@ -109,7 +121,7 @@ const History = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
-      <MobileHeader title="History" />
+      <MobileHeader />
       <main className="flex-1 overflow-y-auto p-4 pb-20">
         <h2 className="text-2xl font-bold mb-4">My Posts</h2>
         {posts.length === 0 ? (
