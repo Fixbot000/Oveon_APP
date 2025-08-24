@@ -12,7 +12,7 @@ import Shop from "./pages/Shop";
 import Scan from "./pages/Scan";
 import Community from "./pages/Community";
 import Profile from "./pages/Profile";
-import NotFound from "./pages/NotFound";
+import NotFound from "././pages/NotFound";
 import OnboardingTutorial from "@/components/OnboardingTutorial";
 
 const queryClient = new QueryClient();

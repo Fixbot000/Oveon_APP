@@ -23,12 +23,22 @@ const Index = () => {
       setLoading(true);
       const generatedTips = await generateRepairTips();
       setTips(generatedTips);
+      localStorage.setItem('repairTips', JSON.stringify(generatedTips)); // Store tips in localStorage
     } catch (error) {
       console.error('Error loading tips:', error);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const storedTips = localStorage.getItem('repairTips');
+    if (storedTips) {
+      setTips(JSON.parse(storedTips));
+    } else {
+      loadTips();
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-background pb-20">
