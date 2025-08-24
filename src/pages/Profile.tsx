@@ -20,18 +20,12 @@ interface Profile {
   avatar_url?: string;
 }
 
-interface UserPost {
-  id: string;
-  content: string;
-  created_at: string;
-}
-
 interface DiagnosticSession {
   id: string;
-  device_category?: string;
-  symptoms_text?: string;
-  status: string;
+  device_info: string;
+  problem_description: string;
   created_at: string;
+  status: string;
   ai_analysis?: any;
 }
 
@@ -42,7 +36,6 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [userPosts, setUserPosts] = useState<UserPost[]>([]);
   const [diagnosticSessions, setDiagnosticSessions] = useState<DiagnosticSession[]>([]);
   const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -67,6 +60,7 @@ const Profile = () => {
   const fetchProfile = async () => {
     if (!user) return;
 
+    setLoading(true);
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -85,15 +79,6 @@ const Profile = () => {
         setProfile(data);
         setUsername(data.username);
       }
-
-      // Fetch user's posts
-      const { data: postsData } = await supabase
-        .from('posts')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      setUserPosts(postsData || []);
 
       // Fetch diagnostic sessions
       const { data: sessionsData } = await supabase
@@ -367,53 +352,13 @@ const Profile = () => {
           </CardContent>
         </Card>
 
-        <Tabs defaultValue="posts" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="posts" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Posts
-            </TabsTrigger>
+        {/* User Content Tabs */}
+        <Tabs defaultValue="repairs" className="w-full">
+          <TabsList className="grid w-full grid-cols-1">
             <TabsTrigger value="repairs" className="flex items-center gap-2">
-              <Wrench className="h-4 w-4" />
-              Repairs
+              <Wrench className="h-4 w-4" /> Repairs
             </TabsTrigger>
           </TabsList>
-
-          <TabsContent value="posts" className="space-y-4">
-            {userPosts.length === 0 ? (
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="text-center py-8">
-                    <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-muted-foreground">No Posts Yet</h3>
-                    <p className="text-muted-foreground">Your posts will appear here.</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              userPosts.map((post) => (
-                <Card key={post.id}>
-                  <CardContent className="pt-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Badge variant="outline">Post</Badge>
-                        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                          <Calendar className="h-4 w-4" />
-                          <span>{new Date(post.created_at).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <p className="text-foreground line-clamp-3">
-                          {post.content}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </TabsContent>
 
           <TabsContent value="repairs" className="space-y-4">
             {diagnosticSessions.length === 0 ? (
@@ -441,15 +386,15 @@ const Profile = () => {
                         </div>
                       </div>
                       
-                      {session.device_category && (
+                      {session.device_info && (
                         <h4 className="font-semibold capitalize">
-                          {session.device_category} Repair
+                          {session.device_info} Repair
                         </h4>
                       )}
                       
-                      {session.symptoms_text && (
+                      {session.problem_description && (
                         <p className="text-muted-foreground text-sm">
-                          Symptoms: {session.symptoms_text}
+                          Symptoms: {session.problem_description}
                         </p>
                       )}
                       
