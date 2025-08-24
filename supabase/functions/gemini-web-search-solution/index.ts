@@ -30,7 +30,7 @@ serve(async (req) => {
       body: JSON.stringify({
         contents: [{
           parts: [{
-            text: `Based on the detailed analysis and user information, provide a comprehensive repair solution for this electronic device problem:
+            text: `Based on the detailed analysis and user information, provide a CONCISE repair solution for this electronic device problem:
 
 **Problem Analysis:** ${finalAnalysis}
 
@@ -38,33 +38,26 @@ serve(async (req) => {
 
 **Device Type:** ${deviceType || 'Electronic Device'}
 
-Please provide a detailed repair solution with the following sections:
+IMPORTANT: Keep the solution SHORT and ACTIONABLE. Follow these rules:
+- Use bullet points or numbered steps
+- Maximum 5 steps total
+- Each step under 15 words
+- If complex, provide 2-3 line summary + ask ONE follow-up question
+- Focus on most likely solution first
 
-## 1. Problem Summary
-Brief overview of the identified issues and root causes.
+Format:
+## Quick Solution:
+• Step 1: [action under 15 words]
+• Step 2: [action under 15 words]
+• Step 3: [action under 15 words]
+• Step 4: [action under 15 words]
+• Step 5: [action under 15 words]
 
-## 2. Required Tools
-List specific tools needed for the repair (screwdrivers, compressed air, thermal paste, etc.).
+## Required: [brief tools/parts list]
 
-## 3. Required Parts
-Any replacement parts that might be needed with approximate specifications.
+## Safety: [one key warning]
 
-## 4. Step-by-Step Repair Instructions
-Detailed, numbered steps for the repair process. Be specific and clear.
-
-## 5. Safety Warnings
-Important safety considerations and precautions to take.
-
-## 6. Testing and Verification
-How to test the device after repair to ensure it's working properly.
-
-## 7. Prevention Tips
-How to avoid this problem in the future.
-
-## 8. When to Seek Professional Help
-Indicators that professional repair might be necessary.
-
-Make the solution practical, safe, and based on standard electronic repair practices. Focus on the most likely solutions first.`
+If issue is complex, provide short summary and ask ONE clarifying question instead.`
           }]
         }]
       })

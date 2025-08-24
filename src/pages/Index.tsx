@@ -14,7 +14,7 @@ const Index = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [tips, setTips] = useState<Tip[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [selectedTip, setSelectedTip] = useState<Tip | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -103,7 +103,11 @@ const Index = () => {
             </Button>
           </div>
           
-          {loading ? (
+          {tips.length === 0 && !loading ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground mb-4">Click "Refresh Tips" to generate repair tips</p>
+            </div>
+          ) : loading ? (
             <div className="grid gap-3">
               {[...Array(6)].map((_, index) => (
                 <Card key={index} className="bg-card shadow-card border-border">
