@@ -29,7 +29,8 @@ const DiagnosticFlow = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [stepData, setStepData] = useState<StepData>({});
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]); // To store base64 for display
+  const [uploadedPublicUrls, setUploadedPublicUrls] = useState<string[]>([]); // To store public URLs for database
   const [deviceName, setDeviceName] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -45,18 +46,71 @@ const DiagnosticFlow = () => {
   ];
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const base64 = e.target?.result as string;
-      setUploadedImage(base64);
-      
-      setLoading(true);
-      try {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to upload images.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    const newUploadedBase64s: string[] = [];
+    const newPublicUrls: string[] = [];
+
+    try {
+      const uploadPromises = files.map(async (file, index) => {
+        // Read file as Base64 for AI analysis and temporary display
+        const base64: string = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target?.result as string);
+          reader.readAsDataURL(file);
+        });
+        newUploadedBase64s.push(base64);
+
+        // Upload to Supabase Storage
+        const now = Date.now();
+        const extension = file.name.split('.').pop() || 'jpg';
+        const objectPath = `${user.id}/${now}_${index}.${extension}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('device-images')
+          .upload(objectPath, file, { upsert: false, cacheControl: '3600' });
+
+        if (uploadError) {
+          console.error('Storage upload error:', uploadError.message || uploadError.name || uploadError);
+          toast({
+            title: "Upload Error",
+            description: `Failed to upload image ${file.name}.`,
+            variant: "destructive"
+          });
+          return null;
+        }
+
+        const { data: publicUrlData } = supabase.storage
+          .from('device-images')
+          .getPublicUrl(objectPath);
+
+        if (publicUrlData?.publicUrl) {
+          newPublicUrls.push(publicUrlData.publicUrl);
+          return publicUrlData.publicUrl;
+        }
+        return null;
+      });
+
+      await Promise.allSettled(uploadPromises);
+
+      setUploadedImages(newUploadedBase64s);
+      setUploadedPublicUrls(newPublicUrls);
+
+      // Only send the first image for AI analysis
+      if (newUploadedBase64s.length > 0) {
         const { data, error } = await supabase.functions.invoke('gemini-analyze-image', {
-          body: { imageBase64: base64, deviceName }
+          body: { imageBase64: newUploadedBase64s[0], deviceName }
         });
 
         if (error) throw error;
@@ -67,18 +121,23 @@ const DiagnosticFlow = () => {
           questions1: data.questions.map((q: string, i: number) => ({ id: `q1_${i}`, question: q }))
         }));
         setCurrentStep(3);
-      } catch (error) {
-        console.error('Error analyzing image:', error);
+      } else {
         toast({
-          title: "Analysis Error",
-          description: "Failed to analyze the image. Please try again.",
+          title: "No Images Uploaded",
+          description: "No images were successfully uploaded for analysis.",
           variant: "destructive"
         });
-      } finally {
-        setLoading(false);
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Error during image handling:', error);
+      toast({
+        title: "Image Processing Error",
+        description: "Failed to process images. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleQuestionAnswer = (questionId: string, answer: string, questionSet: 'questions1' | 'questions2') => {
@@ -95,7 +154,7 @@ const DiagnosticFlow = () => {
       toast({
         title: "Description Required",
         description: "Please describe the problem before continuing.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -172,6 +231,7 @@ const DiagnosticFlow = () => {
               user_id: user.id,
               device_category: deviceName,
               symptoms_text: stepData.description,
+              image_urls: uploadedPublicUrls, // Save uploaded image public URLs
               ai_analysis: JSON.parse(JSON.stringify({
                 imageAnalysis: stepData.imageAnalysis,
                 descriptionAnalysis: stepData.descriptionAnalysis,
@@ -396,7 +456,8 @@ const DiagnosticFlow = () => {
                 onClick={() => {
                   setCurrentStep(1);
                   setStepData({});
-                  setUploadedImage(null);
+                  setUploadedImages([]);
+                  setUploadedPublicUrls([]);
                   setDeviceName('');
                 }}
                 variant="outline"
@@ -409,17 +470,20 @@ const DiagnosticFlow = () => {
         </CardContent>
       </Card>
 
-      {uploadedImage && (
+      {uploadedImages.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">Uploaded Image</CardTitle>
+            <CardTitle className="text-sm">Uploaded Images</CardTitle>
           </CardHeader>
-          <CardContent>
-            <img 
-              src={uploadedImage} 
-              alt="Uploaded device" 
-              className="w-full h-48 object-cover rounded-lg"
-            />
+          <CardContent className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+            {uploadedImages.map((image, index) => (
+              <img
+                key={index}
+                src={image}
+                alt={`Uploaded device ${index + 1}`}
+                className="w-full h-24 object-cover rounded-lg"
+              />
+            ))}
           </CardContent>
         </Card>
       )}

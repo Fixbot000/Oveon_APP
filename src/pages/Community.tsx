@@ -4,6 +4,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Plus, Send, Users, Image as ImageIcon, X, Zap, Heart, MessageCircle, ThumbsUp, ThumbsDown, Edit, Trash2, Check, X as XIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -14,12 +16,25 @@ import BottomNavigation from '@/components/BottomNavigation';
 interface Post {
   id: string;
   content: string;
-  image_url?: string;
+  image_urls: string[] | null;
   created_at: string;
   user_id: string;
   profiles?: {
     username: string;
   };
+}
+
+interface Comment {
+  id: string;
+  post_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  profiles?: {
+    username: string;
+    avatar_url: string | null;
+  };
+  parent_comment_id?: string | null;
 }
 
 const Community = () => {
@@ -29,16 +44,21 @@ const Community = () => {
   const [loading, setLoading] = useState(true);
   const [postLikes, setPostLikes] = useState<Record<string, number>>({});
   const [userLikes, setUserLikes] = useState<Record<string, string>>({});
-  const [comments, setComments] = useState<Record<string, any[]>>({});
-  const [showComments, setShowComments] = useState<Record<string, boolean>>({});
-  const [newComment, setNewComment] = useState<Record<string, string>>({});
+  const [comments, setComments] = useState<Record<string, Comment[]>>({});
+  const [newCommentContent, setNewCommentContent] = useState<Record<string, string>>({});
   const [editingPost, setEditingPost] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
+  const [expandedImage, setExpandedImage] = useState<string | null>(null);
+  const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
+  const [isCommentsSheetOpen, setIsCommentsSheetOpen] = useState(false);
+  const [selectedPostIdForComments, setSelectedPostIdForComments] = useState<string | null>(null);
+  const [showMyPosts, setShowMyPosts] = useState(false);
+  const lastPostTimeRef = useRef<number>(0); // Using useRef to persist last post time across renders
   const { user, signOut } = useAuth();
 
   useEffect(() => {
     loadPosts();
-  }, []);
+  }, [showMyPosts]); // Re-load posts when filter changes
 
   const uploadSelectedImages = async (): Promise<string[]> => {
     if (selectedImages.length === 0) return [];
@@ -83,14 +103,25 @@ const Community = () => {
     return successfulUrls;
   };
 
+  const openImageDialog = (imageUrl: string) => {
+    setExpandedImage(imageUrl);
+    setIsImageDialogOpen(true);
+  };
+
   const loadPosts = async () => {
     try {
       setLoading(true);
       
-      const { data: postsData, error } = await supabase
+      let query = supabase
         .from('posts')
         .select('*')
         .order('created_at', { ascending: false });
+
+      if (showMyPosts && user?.id) {
+        query = query.eq('user_id', user.id);
+      }
+
+      const { data: postsData, error } = await query;
 
       if (error) throw error;
 
@@ -147,29 +178,16 @@ const Community = () => {
       // Load comments
       const { data: commentsData } = await supabase
         .from('post_comments')
-        .select('*')
+        .select('*, profiles(username, avatar_url)') // Fetch profile for each comment
         .in('post_id', postIds)
         .order('created_at', { ascending: true });
 
-      // Get user profiles for comments
-      const commentUserIds = [...new Set(commentsData?.map(c => c.user_id) || [])];
-      const { data: commentProfilesData } = await supabase
-        .from('profiles')
-        .select('id, username')
-        .in('id', commentUserIds);
-
-      // Map profiles to comments
-      const commentsWithProfiles = commentsData?.map(comment => ({
-        ...comment,
-        profiles: commentProfilesData?.find(p => p.id === comment.user_id)
-      })) || [];
-
-      const commentsByPost: Record<string, any[]> = {};
-      commentsWithProfiles?.forEach(comment => {
+      const commentsByPost: Record<string, Comment[]> = {};
+      commentsData?.forEach(comment => {
         if (!commentsByPost[comment.post_id]) {
           commentsByPost[comment.post_id] = [];
         }
-        commentsByPost[comment.post_id].push(comment);
+        commentsByPost[comment.post_id].push(comment as Comment);
       });
 
       setComments(commentsByPost);
@@ -215,13 +233,13 @@ const Community = () => {
     }
   };
 
-  const handleComment = async (postId: string) => {
+  const handleComment = async (postId: string, parentCommentId: string | null = null) => {
     if (!user) {
       toast.error('Please sign in to comment');
       return;
     }
 
-    const content = newComment[postId]?.trim();
+    const content = newCommentContent[postId]?.trim();
     if (!content) return;
 
     try {
@@ -230,11 +248,12 @@ const Community = () => {
         .insert({
           post_id: postId,
           user_id: user.id,
-          content
+          content,
+          parent_comment_id: parentCommentId, // Add parent_comment_id
         });
 
-      setNewComment(prev => ({ ...prev, [postId]: '' }));
-      await loadPostLikesAndComments([postId]);
+      setNewCommentContent(prev => ({ ...prev, [postId]: '' }));
+      await loadPostLikesAndComments([postId]); // Reload comments for the specific post
       toast.success('Comment added!');
     } catch (error) {
       console.error('Error adding comment:', error);
@@ -253,6 +272,12 @@ const Community = () => {
       return;
     }
 
+    // Implement 15-minute cooldown for posting
+    if (user && Date.now() - lastPostTimeRef.current < 15 * 60 * 1000) { // 15 minutes in milliseconds
+      toast.error('Please wait 15 minutes before making another post.');
+      return;
+    }
+
     try {
       const imageUrls = await uploadSelectedImages();
       // If user selected images but none uploaded and there's no text, block
@@ -266,32 +291,19 @@ const Community = () => {
         user_id: user.id,
       };
       if (imageUrls.length > 0) {
-        insertData.image_url = imageUrls[0];
+        insertData.image_urls = imageUrls;
+        // post_type exists in some schemas; ignore if column missing
+        insertData.post_type = newPost.content.trim() ? 'mixed' : 'image';
       }
 
-      // First, try inserting using image_url (most compatible with current schema)
       let { error } = await supabase
         .from('posts')
         .insert(insertData);
 
-      // If that fails for any reason, try alternative schema (image_urls)
-      if (error) {
-        const altInsert: any = {
-          content: newPost.content,
-          user_id: user.id,
-        };
-        if (imageUrls.length > 0) {
-          altInsert.image_urls = imageUrls;
-          // post_type exists in some schemas; ignore if column missing
-          altInsert.post_type = newPost.content.trim() ? 'mixed' : 'image';
-        }
-        const alt = await supabase.from('posts').insert(altInsert);
-        error = alt.error as any;
-      }
-
       if (error) throw error;
 
       toast.success('Post created successfully!');
+      lastPostTimeRef.current = Date.now(); // Update last post time on successful post
       setNewPost({ content: '' });
       setSelectedImages([]);
       loadPosts();
@@ -378,6 +390,17 @@ const Community = () => {
     setEditContent('');
   };
 
+  const openCommentsSheet = (postId: string) => {
+    setSelectedPostIdForComments(postId);
+    setIsCommentsSheetOpen(true);
+  };
+
+  const closeCommentsSheet = () => {
+    setIsCommentsSheetOpen(false);
+    setSelectedPostIdForComments(null);
+    setNewCommentContent({}); // Clear new comment content when closing sheet
+  };
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <MobileHeader onRefresh={loadPosts} />
@@ -386,11 +409,22 @@ const Community = () => {
         <div className="text-center space-y-6">
           <div className="flex items-center justify-between mb-8">
             <h1 className="text-3xl font-bold">Community</h1>
-            {user && (
-              <Button onClick={signOut} variant="outline" size="sm">
-                Sign Out
-              </Button>
-            )}
+            <div className="flex space-x-2">
+              {user && (
+                <Button 
+                  onClick={() => setShowMyPosts(prev => !prev)}
+                  variant={showMyPosts ? "default" : "outline"}
+                  size="sm"
+                >
+                  {showMyPosts ? "All Posts" : "My Posts"}
+                </Button>
+              )}
+              {user && (
+                <Button onClick={signOut} variant="outline" size="sm">
+                  Sign Out
+                </Button>
+              )}
+            </div>
           </div>
           
           <Card className="max-w-2xl mx-auto mb-8 shadow-lg border-2 border-border/50 bg-card/95">
@@ -554,13 +588,17 @@ const Community = () => {
                       </p>
                     )}
 
-                    {post.image_url && (
-                      <div className="mb-4">
-                        <img
-                          src={post.image_url}
-                          alt="Post image"
-                          className="w-full h-64 object-cover rounded-lg border"
-                        />
+                    {post.image_urls && post.image_urls.length > 0 && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-4">
+                        {post.image_urls.map((url, index) => (
+                          <img
+                            key={index}
+                            src={url}
+                            alt={`Post image ${index + 1}`}
+                            className="w-full h-32 object-cover rounded-lg cursor-pointer"
+                            onClick={() => openImageDialog(url)}
+                          />
+                        ))}
                       </div>
                     )}
 
@@ -592,7 +630,7 @@ const Community = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setShowComments(prev => ({ ...prev, [post.id]: !prev[post.id] }))}
+                        onClick={() => openCommentsSheet(post.id)}
                         className="flex items-center space-x-1 text-muted-foreground"
                       >
                         <MessageCircle className="h-4 w-4" />
@@ -600,44 +638,9 @@ const Community = () => {
                       </Button>
                     </div>
 
-                    {/* Comments section */}
-                    {showComments[post.id] && (
-                      <div className="mt-4 space-y-3">
-                        {/* Add comment */}
-                        {user && (
-                          <div className="flex space-x-2">
-                            <Input
-                              placeholder="Add a comment..."
-                              value={newComment[post.id] || ''}
-                              onChange={(e) => setNewComment(prev => ({ ...prev, [post.id]: e.target.value }))}
-                              onKeyPress={(e) => e.key === 'Enter' && handleComment(post.id)}
-                            />
-                            <Button 
-                              size="sm" 
-                              onClick={() => handleComment(post.id)}
-                              disabled={!newComment[post.id]?.trim()}
-                            >
-                              Send
-                            </Button>
-                          </div>
-                        )}
+                    {/* No longer showing comments directly in the card */}
+                    {/* {showComments[post.id] && (...) } */}
 
-                        {/* Display comments */}
-                        {comments[post.id]?.map((comment) => (
-                          <div key={comment.id} className="flex space-x-2 bg-muted/30 p-3 rounded">
-                            <Avatar className="h-6 w-6">
-                              <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                                {comment.profiles?.username?.[0]?.toUpperCase() || 'U'}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium">{comment.profiles?.username || 'Anonymous'}</p>
-                              <p className="text-sm text-muted-foreground">{comment.content}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               ))}
@@ -647,6 +650,100 @@ const Community = () => {
       </main>
 
       <BottomNavigation />
+
+      {/* Image Expansion Dialog */}
+      <Dialog open={isImageDialogOpen} onOpenChange={setIsImageDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Expanded Image</DialogTitle>
+          </DialogHeader>
+          {expandedImage && (
+            <img src={expandedImage} alt="Expanded Post Image" className="w-full h-auto object-contain" />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Comments Sheet */}
+      <Sheet open={isCommentsSheetOpen} onOpenChange={closeCommentsSheet}>
+        <SheetContent side="bottom" className="h-[90vh] flex flex-col">
+          <SheetHeader>
+            <SheetTitle>Comments</SheetTitle>
+            <SheetDescription>Comments for the selected post.</SheetDescription>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {selectedPostIdForComments && comments[selectedPostIdForComments] && (
+              comments[selectedPostIdForComments]
+                .filter(comment => !comment.parent_comment_id) // Only show top-level comments initially
+                .map(comment => (
+                  <div key={comment.id} className="flex space-x-3">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                        {comment.profiles?.username?.[0]?.toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 bg-muted/40 p-3 rounded-lg">
+                      <p className="text-sm font-semibold">{comment.profiles?.username || 'Anonymous'}</p>
+                      <p className="text-sm text-foreground">{comment.content}</p>
+                      {/* Display replies */}
+                      {comments[selectedPostIdForComments].filter(reply => reply.parent_comment_id === comment.id).map(reply => (
+                        <div key={reply.id} className="flex space-x-2 mt-3 ml-6 bg-muted/30 p-2 rounded-lg">
+                          <Avatar className="h-6 w-6">
+                            <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                              {reply.profiles?.username?.[0]?.toUpperCase() || 'U'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <p className="text-xs font-semibold">{reply.profiles?.username || 'Anonymous'}</p>
+                            <p className="text-xs text-muted-foreground">{reply.content}</p>
+                          </div>
+                        </div>
+                      ))}
+                      {/* Reply input for top-level comments */}
+                      {user && (
+                        <div className="flex space-x-2 mt-3">
+                          <Input
+                            placeholder="Reply to this comment..."
+                            value={newCommentContent[`${selectedPostIdForComments}-${comment.id}`] || ''}
+                            onChange={(e) => setNewCommentContent(prev => ({ ...prev, [`${selectedPostIdForComments}-${comment.id}`]: e.target.value }))}
+                            onKeyPress={(e) => e.key === 'Enter' && handleComment(selectedPostIdForComments, comment.id)}
+                          />
+                          <Button 
+                            size="sm" 
+                            onClick={() => handleComment(selectedPostIdForComments, comment.id)}
+                            disabled={!newCommentContent[`${selectedPostIdForComments}-${comment.id}`]?.trim()}
+                          >
+                            Reply
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
+            )}
+            {!selectedPostIdForComments || !comments[selectedPostIdForComments] || comments[selectedPostIdForComments].filter(comment => !comment.parent_comment_id).length === 0 ? (
+              <p className="text-center text-muted-foreground">No comments yet. Be the first to comment!</p>
+            ) : null}
+          </div>
+          {/* Main comment input for the post */}
+          {user && selectedPostIdForComments && (
+            <div className="p-4 border-t bg-background flex space-x-2">
+              <Input
+                placeholder="Add a comment..."
+                value={newCommentContent[selectedPostIdForComments] || ''}
+                onChange={(e) => setNewCommentContent(prev => ({ ...prev, [selectedPostIdForComments]: e.target.value }))}
+                onKeyPress={(e) => e.key === 'Enter' && handleComment(selectedPostIdForComments)}
+              />
+              <Button 
+                size="sm" 
+                onClick={() => handleComment(selectedPostIdForComments)}
+                disabled={!newCommentContent[selectedPostIdForComments]?.trim()}
+              >
+                Send
+              </Button>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };

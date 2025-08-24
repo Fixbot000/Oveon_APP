@@ -7,19 +7,16 @@ import { useState, useEffect } from 'react';
 import MobileHeader from '@/components/MobileHeader';
 import BottomNavigation from '@/components/BottomNavigation';
 import ActionCard from '@/components/ActionCard';
-import { generateRepairTips, getTipImage, getDifficultyColor, type Tip } from '@/lib/tipsGenerator';
-import circuitImage from '@/assets/circuit-analysis-tip.jpg';
-import multimeterImage from '@/assets/multimeter-tip.jpg';
-import solderingImage from '@/assets/soldering-tip.jpg';
-import screenRepairImage from '@/assets/screen-repair-tip.jpg';
-import batteryTestingImage from '@/assets/battery-testing-tip.jpg';
-import antistaticImage from '@/assets/antistatic-tip.jpg';
+import { generateRepairTips, getDifficultyColor, type Tip } from '@/lib/tipsGenerator';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 const Index = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [tips, setTips] = useState<Tip[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedTip, setSelectedTip] = useState<Tip | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const loadTips = async () => {
     try {
@@ -32,10 +29,6 @@ const Index = () => {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    loadTips();
-  }, []);
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -130,16 +123,16 @@ const Index = () => {
           ) : (
             <div className="grid gap-3">
               {tips.map((tip, index) => (
-                <Card key={index} className="bg-card shadow-card hover:shadow-elevated transition-all duration-300 group cursor-pointer border-border">
+                <Card 
+                  key={index} 
+                  className="bg-card shadow-card hover:shadow-elevated transition-all duration-300 group cursor-pointer border-border"
+                  onClick={() => {
+                    setSelectedTip(tip);
+                    setIsDialogOpen(true);
+                  }}
+                >
                   <CardContent className="p-4">
                     <div className="flex gap-4">
-                      <div className="w-16 h-16 rounded-xl flex-shrink-0 overflow-hidden shadow-sm">
-                        <img 
-                          src={tip.imageUrl || getTipImage(tip.category)} 
-                          alt={tip.imageAlt} 
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                        />
-                      </div>
                       <div className="flex-1">
                         <h4 className="font-semibold mb-1 group-hover:text-primary transition-colors text-sm text-foreground">{tip.title}</h4>
                         <p className="text-xs text-muted-foreground mb-2">{tip.description}</p>
@@ -161,6 +154,25 @@ const Index = () => {
       </main>
 
       <BottomNavigation />
+
+      {selectedTip && (
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>{selectedTip.title}</DialogTitle>
+              <DialogDescription>{selectedTip.description}</DialogDescription>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground mt-2">{selectedTip.fullDescription}</p>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className={`px-2 py-1 rounded-full ${getDifficultyColor(selectedTip.difficulty)}`}>
+                {selectedTip.difficulty}
+              </span>
+              <Clock className="w-3 h-3" />
+              <span>{selectedTip.readTime}</span>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

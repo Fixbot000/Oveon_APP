@@ -6,8 +6,7 @@ export interface Tip {
   category: string;
   difficulty: string;
   readTime: string;
-  imageAlt: string;
-  imageUrl?: string;
+  fullDescription: string;
 }
 
 export const generateRepairTips = async (): Promise<Tip[]> => {
@@ -39,7 +38,6 @@ const getFallbackTips = (): Tip[] => {
       category: "Smartphone",
       difficulty: "Beginner",
       readTime: "3 min read",
-      imageAlt: "Smartphone battery optimization tips"
     },
     {
       title: "Laptop Thermal Paste Replacement",
@@ -47,7 +45,6 @@ const getFallbackTips = (): Tip[] => {
       category: "Laptop",
       difficulty: "Intermediate",
       readTime: "8 min read",
-      imageAlt: "Laptop thermal paste application"
     },
     {
       title: "Audio Cable Repair Techniques",
@@ -55,7 +52,6 @@ const getFallbackTips = (): Tip[] => {
       category: "Audio",
       difficulty: "Beginner",
       readTime: "5 min read",
-      imageAlt: "Audio cable repair tools"
     },
     {
       title: "Gaming Controller Maintenance",
@@ -63,7 +59,6 @@ const getFallbackTips = (): Tip[] => {
       category: "Gaming",
       difficulty: "Beginner",
       readTime: "4 min read",
-      imageAlt: "Gaming controller disassembly"
     },
     {
       title: "ESD Safety Best Practices",
@@ -71,7 +66,6 @@ const getFallbackTips = (): Tip[] => {
       category: "Safety",
       difficulty: "Beginner",
       readTime: "3 min read",
-      imageAlt: "ESD protection equipment"
     },
     {
       title: "Multimeter Circuit Testing",
@@ -79,23 +73,8 @@ const getFallbackTips = (): Tip[] => {
       category: "Tools",
       difficulty: "Intermediate",
       readTime: "6 min read",
-      imageAlt: "Multimeter testing circuit"
     }
   ];
-};
-
-// Function to get a random image for tips based on category
-export const getTipImage = (category: string): string => {
-  const imageMap: Record<string, string> = {
-    'Smartphone': '/src/assets/battery-testing-tip.jpg',
-    'Laptop': '/src/assets/circuit-analysis-tip.jpg',
-    'Audio': '/src/assets/soldering-tip.jpg',
-    'Gaming': '/src/assets/screen-repair-tip.jpg',
-    'Safety': '/src/assets/antistatic-tip.jpg',
-    'Tools': '/src/assets/multimeter-tip.jpg'
-  };
-  
-  return imageMap[category] || '/src/assets/circuit-analysis-tip.jpg';
 };
 
 // Function to get badge color based on difficulty

@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import ProfileEditModal from '@/components/ProfileEditModal'; // Import the new modal
+import { useNavigate } from 'react-router-dom';
 
 interface MobileHeaderProps {
   showSearch?: boolean;
@@ -17,7 +17,7 @@ const MobileHeader = ({ showSearch = true, onRefresh }: MobileHeaderProps) => {
   const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false); // State for modal visibility
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (user) {
@@ -69,7 +69,7 @@ const MobileHeader = ({ showSearch = true, onRefresh }: MobileHeaderProps) => {
         <div className="flex items-center gap-4">
           <Avatar 
             className="h-14 w-14 ring-2 ring-white/20 cursor-pointer"
-            onClick={() => setIsEditModalOpen(true)} // Make avatar clickable
+            onClick={() => navigate("/profile")} // Make avatar clickable
           >
             <AvatarImage src={profile?.avatar_url || "/placeholder.svg"} />
             <AvatarFallback className="bg-white/20 text-white font-semibold text-lg">
@@ -126,12 +126,13 @@ const MobileHeader = ({ showSearch = true, onRefresh }: MobileHeaderProps) => {
         </div>
       )}
 
-      <ProfileEditModal 
+      {/* Profile Edit Modal */}
+      {/* <ProfileEditModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         currentProfile={profile}
-        onProfileUpdated={fetchProfile} // Refresh profile after update
-      />
+        onProfileUpdated={fetchProfile}
+      /> */}
     </header>
   );
 };

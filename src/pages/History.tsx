@@ -1,140 +1,106 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { History as HistoryIcon, FileText, Wrench, Calendar, User, Sun, Moon, LogOut, HelpCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { Card, CardContent } from '@/components/ui/card';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import MobileHeader from '@/components/MobileHeader';
 import BottomNavigation from '@/components/BottomNavigation';
+import { formatDistanceToNow } from 'date-fns';
+import { toast } from 'sonner';
 
-interface UserPost {
+interface Post {
   id: string;
-  content: string;
+  title: string | null;
+  content: string | null;
+  image_urls: string[] | null;
   created_at: string;
+  user_id: string;
+  profiles?: {
+    username: string;
+    avatar_url: string | null;
+  };
 }
 
 interface DiagnosticSession {
   id: string;
-  device_category?: string;
-  symptoms_text?: string;
-  status: string;
   created_at: string;
-  ai_analysis?: any;
+  device_category: string | null;
+  symptoms_text: string | null;
+  ai_analysis: any | null; // Adjust this type as per your JSONB structure
+  repair_guidance: any | null; // Adjust this type as per your JSONB structure
+  image_urls: string[] | null;
+  user_id: string;
 }
 
 const History = () => {
-  const { user, signOut } = useAuth();
-  const [profile, setProfile] = useState<any>(null);
-  const [userPosts, setUserPosts] = useState<UserPost[]>([]);
+  const { user } = useAuth();
+  const [posts, setPosts] = useState<Post[]>([]);
   const [diagnosticSessions, setDiagnosticSessions] = useState<DiagnosticSession[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user) {
-      checkUser();
-    }
-  }, [user]);
-
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('theme');
-      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const initialDark = stored ? stored === 'dark' : prefersDark;
-      setIsDarkMode(initialDark);
-      document.documentElement.classList.toggle('dark', initialDark);
-    } catch (e) {
-      // noop
-    }
-  }, []);
-
-  const checkUser = async () => {
-    if (!user) return;
-    
-    setLoading(true);
-    try {
-      // Fetch user profile
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      setProfile(profileData);
-
-      // Fetch user's posts
-      const { data: postsData } = await supabase
-        .from('posts')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      setUserPosts(postsData || []);
-
-      // Fetch diagnostic sessions
-      const { data: sessionsData } = await supabase
-        .from('diagnostic_sessions')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      setDiagnosticSessions(sessionsData || []);
-
-    } catch (error: any) {
-      console.error('Error fetching user data:', error);
-      toast.error('Failed to load user data');
-    } finally {
+    if (!user) {
       setLoading(false);
+      setError('Please log in to view your history.');
+      return;
     }
-  };
 
-  const handleToggleTheme = (checked: boolean) => {
-    setIsDarkMode(checked);
-    try {
-      document.documentElement.classList.toggle('dark', checked);
-      localStorage.setItem('theme', checked ? 'dark' : 'light');
-    } catch (e) {
-      // noop
-    }
-  };
+    const fetchHistory = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch user's posts
+        const { data: postsData, error: postsError } = await supabase
+          .from('posts')
+          .select('*, profiles(username, avatar_url)')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (postsError) throw postsError;
+        setPosts(postsData as Post[] || []);
+
+        // Fetch diagnostic sessions
+        const { data: sessionsData, error: sessionsError } = await supabase
+          .from('diagnostic_sessions')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (sessionsError) throw sessionsError;
+        setDiagnosticSessions(sessionsData as DiagnosticSession[] || []);
+
+      } catch (err: any) {
+        console.error('Error fetching history:', err);
+        setError('Failed to load history: ' + err.message);
+        toast.error('Failed to load history');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHistory();
+  }, [user]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background pb-20">
-        <MobileHeader onRefresh={checkUser} />
-        <main className="px-4 py-6">
-          <div className="animate-pulse space-y-4">
-            <div className="h-32 bg-muted rounded-lg"></div>
-            <div className="h-64 bg-muted rounded-lg"></div>
-          </div>
+      <div className="flex flex-col min-h-screen bg-gray-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
+        <MobileHeader title="History" />
+        <main className="flex-1 overflow-y-auto p-4 pb-20">
+          <p>Loading history...</p>
         </main>
         <BottomNavigation />
       </div>
     );
   }
 
-  if (!user) {
+  if (error) {
     return (
-      <div className="min-h-screen bg-background pb-20">
-        <MobileHeader onRefresh={() => window.location.reload()} />
-        <main className="px-4 py-6">
-          <Card className="text-center py-8">
-            <CardContent>
-              <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Sign In Required</h3>
-              <p className="text-muted-foreground mb-4">
-                Please sign in to view your activity history and manage your profile.
-              </p>
-              <Button onClick={() => window.location.href = '/auth'} className="bg-primary">
-                Sign In
-              </Button>
-            </CardContent>
-          </Card>
+      <div className="flex flex-col min-h-screen bg-gray-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
+        <MobileHeader title="History" />
+        <main className="flex-1 overflow-y-auto p-4 pb-20">
+          <p className="text-red-500">Error: {error}</p>
         </main>
         <BottomNavigation />
       </div>
@@ -142,172 +108,87 @@ const History = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <MobileHeader onRefresh={checkUser} />
-      
-      <main className="px-4 py-6 space-y-6">
-        <div className="space-y-6">
-          <div className="flex items-center justify-between mb-8">
-            <h1 className="text-3xl font-bold">History</h1>
-            {user && (
-              <Button onClick={signOut} variant="outline" size="sm">
-                Sign Out
-              </Button>
-            )}
-          </div>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    {isDarkMode ? (
-                      <Moon className="h-5 w-5 text-muted-foreground" />
-                    ) : (
-                      <Sun className="h-5 w-5 text-muted-foreground" />
-                    )}
+    <div className="flex flex-col min-h-screen bg-gray-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
+      <MobileHeader title="History" />
+      <main className="flex-1 overflow-y-auto p-4 pb-20">
+        <h2 className="text-2xl font-bold mb-4">My Posts</h2>
+        {posts.length === 0 ? (
+          <p className="text-zinc-600 dark:text-zinc-400">No posts found.</p>
+        ) : (
+          <div className="space-y-4">
+            {posts.map(post => (
+              <Card key={post.id} className="w-full max-w-2xl mx-auto">
+                <CardContent className="p-4">
+                  <div className="flex items-center space-x-2 mb-4">
+                    <Avatar>
+                      <AvatarFallback>
+                        {post.profiles?.username ? post.profiles.username[0].toUpperCase() : 'U'}
+                      </AvatarFallback>
+                    </Avatar>
                     <div>
-                      <p className="font-medium">Appearance</p>
-                      <p className="text-sm text-muted-foreground">{isDarkMode ? 'Dark' : 'Light'} mode</p>
+                      <p className="font-semibold">{post.profiles?.username || 'Unknown User'}</p>
+                      <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                        {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
+                      </p>
                     </div>
                   </div>
-                  <Switch checked={isDarkMode} onCheckedChange={handleToggleTheme} />
-                </div>
-
-                <div className="grid gap-2">
-                  <button
-                    className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-muted text-left"
-                    onClick={() => (window.location.href = '/help')}
-                  >
-                    <HelpCircle className="h-5 w-5 text-muted-foreground" />
-                    <span className="font-medium">Help</span>
-                  </button>
-                  <button
-                    className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-muted text-left"
-                    onClick={() => (window.location.href = '/terms')}
-                  >
-                    <FileText className="h-5 w-5 text-muted-foreground" />
-                    <span className="font-medium">Terms & Policies</span>
-                  </button>
-                  <button
-                    className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-muted text-left text-destructive"
-                    onClick={signOut}
-                  >
-                    <LogOut className="h-5 w-5" />
-                    <span className="font-medium">Sign Out</span>
-                  </button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Tabs defaultValue="posts" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="posts" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Posts
-              </TabsTrigger>
-              <TabsTrigger value="repairs" className="flex items-center gap-2">
-                <Wrench className="h-4 w-4" />
-                Repairs
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="posts" className="space-y-4">
-              {userPosts.length === 0 ? (
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-center py-8">
-                      <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-muted-foreground">No Posts Yet</h3>
-                      <p className="text-muted-foreground">Your posts will appear here.</p>
+                  {post.title && <h3 className="text-lg font-semibold mb-2">{post.title}</h3>}
+                  {post.content && <p className="mb-4">{post.content}</p>}
+                  {post.image_urls && post.image_urls.length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-4">
+                      {post.image_urls.map((url, index) => (
+                        <img
+                          key={index}
+                          src={url}
+                          alt={`Post image ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-md"
+                        />
+                      ))}
                     </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                userPosts.map((post) => (
-                  <Card key={post.id}>
-                    <CardContent className="pt-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Badge variant="outline">Post</Badge>
-                          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                            <Calendar className="h-4 w-4" />
-                            <span>{new Date(post.created_at).toLocaleDateString()}</span>
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <p className="text-foreground line-clamp-3">
-                            {post.content}
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </TabsContent>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
-            <TabsContent value="repairs" className="space-y-4">
-              {diagnosticSessions.length === 0 ? (
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-center py-8">
-                      <Wrench className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-muted-foreground">No Repairs Yet</h3>
-                      <p className="text-muted-foreground">Your diagnostic sessions will appear here.</p>
+        <h2 className="text-2xl font-bold mb-4 mt-8">My Diagnostic Sessions</h2>
+        {diagnosticSessions.length === 0 ? (
+          <p className="text-zinc-600 dark:text-zinc-400">No diagnostic sessions found.</p>
+        ) : (
+          <div className="space-y-4">
+            {diagnosticSessions.map(session => (
+              <Card key={session.id} className="w-full max-w-2xl mx-auto">
+                <CardContent className="p-4">
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-2">
+                    {formatDistanceToNow(new Date(session.created_at), { addSuffix: true })}
+                  </p>
+                  <h3 className="text-lg font-semibold mb-2">Device: {session.device_category || 'N/A'}</h3>
+                  {session.symptoms_text && <p className="mb-2">Symptoms: {session.symptoms_text}</p>}
+                  {session.ai_analysis?.finalSolution && (
+                    <div className="mb-2">
+                      <h4 className="font-medium">AI Analysis & Solution:</h4>
+                      <p>{session.ai_analysis.finalSolution}</p>
                     </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                diagnosticSessions.map((session) => (
-                  <Card key={session.id}>
-                    <CardContent className="pt-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Badge variant={session.status === 'completed' ? 'default' : 'secondary'}>
-                            {session.status}
-                          </Badge>
-                          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                            <Calendar className="h-4 w-4" />
-                            <span>{new Date(session.created_at).toLocaleDateString()}</span>
-                          </div>
-                        </div>
-                        
-                        {session.device_category && (
-                          <h4 className="font-semibold capitalize">
-                            {session.device_category} Repair
-                          </h4>
-                        )}
-                        
-                        {session.symptoms_text && (
-                          <p className="text-muted-foreground text-sm">
-                            Symptoms: {session.symptoms_text}
-                          </p>
-                        )}
-                        
-                        {session.ai_analysis && (
-                          <div className="bg-muted/30 p-3 rounded">
-                            <p className="text-xs font-medium text-muted-foreground mb-1">AI Analysis:</p>
-                            <p className="text-sm line-clamp-2">
-                              {typeof session.ai_analysis === 'string' 
-                                ? session.ai_analysis 
-                                : JSON.stringify(session.ai_analysis)
-                              }
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </TabsContent>
-          </Tabs>
-        </div>
+                  )}
+                  {session.image_urls && session.image_urls.length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-4">
+                      {session.image_urls.map((url, index) => (
+                        <img
+                          key={index}
+                          src={url}
+                          alt={`Diagnostic image ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-md"
+                        />
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </main>
-
       <BottomNavigation />
     </div>
   );

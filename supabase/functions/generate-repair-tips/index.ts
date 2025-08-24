@@ -12,8 +12,7 @@ interface Tip {
   category: string;
   difficulty: string;
   readTime: string;
-  imageAlt: string;
-  imageUrl?: string;
+  fullDescription: string;
 }
 
 serve(async (req) => {
@@ -39,7 +38,7 @@ Return a JSON array where each tip has these exact fields:
 - category: One of: "Smartphone", "Laptop", "Audio", "Gaming", "Safety", "Tools"
 - difficulty: One of: "Beginner", "Intermediate", "Advanced"
 - readTime: Format like "3 min read", "5 min read", etc.
-- imageAlt: Descriptive alt text for an image (max 80 characters)
+- fullDescription: A detailed explanation of the tip (200-500 characters)
 
 Focus on:
 - Practical, actionable advice
@@ -106,7 +105,7 @@ Make tips diverse across different skill levels and device types.`;
           category: "Smartphone",
           difficulty: "Beginner",
           readTime: "3 min read",
-          imageAlt: "Smartphone battery optimization tips"
+          fullDescription: "Learn how to optimize your smartphone battery to last longer. This includes understanding charging cycles, using a power bank, and adjusting settings for better battery health."
         },
         {
           title: "Laptop Thermal Paste Replacement",
@@ -114,7 +113,7 @@ Make tips diverse across different skill levels and device types.`;
           category: "Laptop",
           difficulty: "Intermediate",
           readTime: "8 min read",
-          imageAlt: "Laptop thermal paste application"
+          fullDescription: "Discover the importance of thermal paste and how to replace it in your laptop. This guide will help you improve cooling efficiency and prevent overheating."
         },
         {
           title: "Audio Cable Repair Techniques",
@@ -122,7 +121,7 @@ Make tips diverse across different skill levels and device types.`;
           category: "Audio",
           difficulty: "Beginner",
           readTime: "5 min read",
-          imageAlt: "Audio cable repair tools"
+          fullDescription: "Learn how to repair damaged audio cables, fix loose connections, and restore audio quality. This is essential for maintaining your audio equipment."
         },
         {
           title: "Gaming Controller Maintenance",
@@ -130,7 +129,7 @@ Make tips diverse across different skill levels and device types.`;
           category: "Gaming",
           difficulty: "Beginner",
           readTime: "4 min read",
-          imageAlt: "Gaming controller disassembly"
+          fullDescription: "Discover how to clean and lubricate your gaming controller to ensure smooth button response and optimal performance."
         },
         {
           title: "ESD Safety Best Practices",
@@ -138,7 +137,7 @@ Make tips diverse across different skill levels and device types.`;
           category: "Safety",
           difficulty: "Beginner",
           readTime: "3 min read",
-          imageAlt: "ESD protection equipment"
+          fullDescription: "Learn how to prevent static electricity damage to your electronic devices. This includes using anti-static tools and following proper handling procedures."
         },
         {
           title: "Multimeter Circuit Testing",
@@ -146,7 +145,7 @@ Make tips diverse across different skill levels and device types.`;
           category: "Tools",
           difficulty: "Intermediate",
           readTime: "6 min read",
-          imageAlt: "Multimeter testing circuit"
+          fullDescription: "Discover how to use a multimeter for circuit testing, voltage measurement, and troubleshooting. This is a fundamental skill for any DIY electronics enthusiast."
         }
       ];
       
@@ -154,6 +153,7 @@ Make tips diverse across different skill levels and device types.`;
     }
 
     // Generate images for each tip using OpenAI
+    /*
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     if (OPENAI_API_KEY) {
       console.log('Generating images for tips...');
@@ -189,7 +189,7 @@ Make tips diverse across different skill levels and device types.`;
         }
       }
     }
-
+    */
     console.log('Tips generated successfully');
 
     return new Response(JSON.stringify({ 
