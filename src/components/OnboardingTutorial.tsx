@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
+import onboarding1 from '@/assets/onboarding1.png';
+import onboarding2 from '@/assets/onboarding2.png';
+import onboarding3 from '@/assets/onboarding3.png';
+import onboarding4 from '@/assets/onboarding4.png';
 import { Bot, Camera, History as HistoryIcon, Settings, User, Users, Wand2, Search } from 'lucide-react';
 
 const STORAGE_KEY = 'hasSeenTutorial';
@@ -17,7 +21,7 @@ export const OnboardingTutorial = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState(0);
 
-  const totalSteps = 3;
+  const totalSteps = 4;
 
   const canGoBack = step > 0;
   const isLastStep = step === totalSteps - 1;
@@ -52,54 +56,36 @@ export const OnboardingTutorial = () => {
   const pages = useMemo(() => [
     (
       <PageContainer>
-        <div className="flex items-center gap-3">
-          <img
-            src="/placeholder.svg"
-            alt="ASwin logo"
-            className="h-10 w-10 rounded-md object-contain border"
-          />
-          <h2 className="font-bold text-xl">👋 Welcome to ASwin</h2>
-        </div>
-        <p className="text-base text-gray-700">
-          This app helps you easily diagnose issues, repair, and connect with the community.
+        <img src={onboarding1} alt="Onboarding Image 1" className="w-full h-auto object-contain" />
+        <p className="text-base text-gray-700 text-center">
+          Do you have a device problem?
+          <br />
+          Scan your problem to get instant solutions.
         </p>
-        <div className="pt-2">
-          <h3 className="font-bold text-xl flex items-center gap-2"><Search className="h-5 w-5 text-primary" /> 🔍 AI Diagnose</h3>
-          <p className="text-base text-gray-700">
-            Upload an image or describe the issue. Our AI will analyze it and give you solutions.
-          </p>
-        </div>
       </PageContainer>
     ),
     (
       <PageContainer>
-        <h2 className="font-bold text-xl flex items-center gap-2"><Bot className="h-5 w-5 text-primary" /> 🤖 Repair Bot</h2>
-        <p className="text-base text-gray-700">
-          Chat with our AI just like ChatGPT or Gemini to ask questions, get help, and learn more.
+        <img src={onboarding2} alt="Onboarding Image 2" className="w-full h-auto object-contain" />
+        <p className="text-base text-gray-700 text-center">
+          Scan the device
         </p>
-        <div className="pt-2">
-          <h3 className="font-bold text-xl flex items-center gap-2"><Users className="h-5 w-5 text-primary" /> 💬 Community</h3>
-          <p className="text-base text-gray-700">
-            Join discussions, share fixes, and learn from others.
-          </p>
-        </div>
-        <div className="pt-2">
-          <h3 className="font-bold text-xl flex items-center gap-2"><HistoryIcon className="h-5 w-5 text-primary" /> 📜 History</h3>
-          <p className="text-base text-gray-700">
-            All your scans, repairs, and posts are saved here for later.
-          </p>
-        </div>
       </PageContainer>
     ),
     (
       <PageContainer>
-        <h2 className="font-bold text-xl flex items-center gap-2"><Settings className="h-5 w-5 text-primary" /> ⚙ Settings & <User className="h-5 w-5 text-primary" /> 👤 Profile</h2>
-        <p className="text-base text-gray-700">
-          Update your information and customize your app preferences.
+        <img src={onboarding3} alt="Onboarding Image 3" className="w-full h-auto object-contain" />
+        <p className="text-base text-gray-700 text-center">
+          Select Symptoms
         </p>
-        <div className="pt-2">
-          <h3 className="font-bold text-xl flex items-center gap-2"><Wand2 className="h-5 w-5 text-primary" /> 🎉 You're all set! Enjoy using ASwin.</h3>
-        </div>
+      </PageContainer>
+    ),
+    (
+      <PageContainer>
+        <img src={onboarding4} alt="Onboarding Image 4" className="w-full h-auto object-contain" />
+        <p className="text-base text-gray-700 text-center">
+          Solutions
+        </p>
       </PageContainer>
     ),
   ], []);
@@ -111,21 +97,14 @@ export const OnboardingTutorial = () => {
       <div className="w-full max-w-lg mx-4 bg-background text-foreground rounded-xl shadow-xl p-6 border">
         <div className="flex items-center justify-between mb-4">
           <div className="text-sm text-gray-500">Step {step + 1} of {totalSteps}</div>
-          <button onClick={finish} className="text-sm text-gray-500 hover:text-gray-800">Skip & Sign in</button>
+          <button onClick={finish} className="text-sm text-gray-500 hover:text-gray-800">Skip</button>
         </div>
 
         <div className="space-y-4">
           {pages[step]}
         </div>
 
-        <div className="mt-6 flex items-center justify-between">
-          <button
-            onClick={back}
-            disabled={!canGoBack}
-            className="px-4 py-2 rounded-md border text-gray-700 disabled:opacity-50"
-          >
-            Back
-          </button>
+        <div className="mt-6 flex items-center justify-end">
           <div className="flex items-center gap-2">
             <button onClick={finish} className="px-4 py-2 rounded-md border text-gray-700">Skip</button>
             <button
