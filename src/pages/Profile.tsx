@@ -22,10 +22,10 @@ interface Profile {
 
 interface DiagnosticSession {
   id: string;
-  device_info: string;
-  problem_description: string;
-  created_at: string;
+  device_category?: string;
+  symptoms_text?: string;
   status: string;
+  created_at: string;
   ai_analysis?: any;
 }
 
@@ -386,15 +386,15 @@ const Profile = () => {
                         </div>
                       </div>
                       
-                      {session.device_info && (
+                      {session.device_category && (
                         <h4 className="font-semibold capitalize">
-                          {session.device_info} Repair
+                          {session.device_category} Repair
                         </h4>
                       )}
                       
-                      {session.problem_description && (
+                      {session.symptoms_text && (
                         <p className="text-muted-foreground text-sm">
-                          Symptoms: {session.problem_description}
+                          Symptoms: {session.symptoms_text}
                         </p>
                       )}
                       

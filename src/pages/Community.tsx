@@ -21,6 +21,7 @@ interface Post {
   user_id: string;
   profiles?: {
     username: string;
+    avatar_url?: string;
   };
 }
 
@@ -129,7 +130,7 @@ const Community = () => {
       const userIds = [...new Set(postsData?.map(p => p.user_id) || [])];
       const { data: profilesData } = await supabase
         .from('profiles')
-        .select('id, username')
+        .select('id, username, avatar_url')
         .in('id', userIds);
 
       // Map profiles to posts
@@ -516,6 +517,13 @@ const Community = () => {
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center space-x-3">
                         <Avatar className="h-10 w-10">
+                          {post.profiles?.avatar_url && (
+                            <img 
+                              src={post.profiles.avatar_url} 
+                              alt="User avatar"
+                              className="w-full h-full object-cover rounded-full"
+                            />
+                          )}
                           <AvatarFallback className="bg-primary/10 text-primary font-medium">
                             {post.profiles?.username?.[0]?.toUpperCase() || 'U'}
                           </AvatarFallback>
