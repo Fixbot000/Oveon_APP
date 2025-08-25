@@ -17,6 +17,7 @@ interface Post {
   id: string;
   content: string;
   image_urls: string[] | null;
+  image_url?: string | null;
   created_at: string;
   user_id: string;
   profiles?: {
@@ -296,8 +297,6 @@ const Community = () => {
       };
       if (imageUrls.length > 0) {
         insertData.image_urls = imageUrls;
-        // post_type exists in some schemas; ignore if column missing
-        insertData.post_type = newPost.content.trim() ? 'mixed' : 'image';
       }
 
       let { error } = await supabase
@@ -599,19 +598,23 @@ const Community = () => {
                       </p>
                     )}
 
-                    {post.image_urls && post.image_urls.length > 0 && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-4">
-                        {post.image_urls.map((url, index) => (
-                          <img
-                            key={index}
-                            src={url}
-                            alt={`Post image ${index + 1}`}
-                            className="w-full h-32 object-cover rounded-lg cursor-pointer"
-                            onClick={() => openImageDialog(url)}
-                          />
-                        ))}
-                      </div>
-                    )}
+                    {(() => {
+                      const images = post.image_urls?.length ? post.image_urls : (post.image_url ? [post.image_url] : []);
+                      if (!images.length) return null;
+                      return (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-4">
+                          {images.map((url, index) => (
+                            <img
+                              key={index}
+                              src={url}
+                              alt={`Post image ${index + 1}`}
+                              className="w-full h-32 object-cover rounded-lg cursor-pointer"
+                              onClick={() => openImageDialog(url)}
+                            />
+                          ))}
+                        </div>
+                      );
+                    })()}
 
                     {/* Like and Comment buttons */}
                     <div className="flex items-center space-x-4 pt-4 border-t">
