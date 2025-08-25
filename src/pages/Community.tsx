@@ -409,7 +409,7 @@ const Community = () => {
       <MobileHeader onRefresh={loadPosts} />
       
       <main className="px-4 py-6 space-y-6">
-        <div className="text-center space-y-6">
+        <div className="space-y-6">
           <div className="flex items-center justify-between mb-8">
             <h1 className="text-3xl font-bold">Community</h1>
             <div className="flex space-x-2">
@@ -501,9 +501,9 @@ const Community = () => {
               ))}
             </div>
           ) : posts.length === 0 ? (
-            <Card className="max-w-2xl mx-auto text-center py-8">
+            <Card className="max-w-2xl mx-auto text-left py-8">
               <CardContent>
-                <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <Users className="h-12 w-12 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No posts yet</h3>
                 <p className="text-muted-foreground">Be the first to share something with the community!</p>
               </CardContent>
@@ -593,24 +593,28 @@ const Community = () => {
                         </div>
                       </div>
                     ) : (
-                      <p className="text-foreground mb-4 leading-relaxed">
-                        {post.content}
-                      </p>
+                      <div className="text-left mb-4">
+                        <p className="text-foreground leading-relaxed">
+                          {post.content}
+                        </p>
+                      </div>
                     )}
 
                     {(() => {
                       const images = post.image_urls?.length ? post.image_urls : (post.image_url ? [post.image_url] : []);
                       if (!images.length) return null;
+                      
                       return (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-4">
+                        <div className="space-y-3 mt-4">
                           {images.map((url, index) => (
-                            <img
-                              key={index}
-                              src={url}
-                              alt={`Post image ${index + 1}`}
-                              className="w-full h-32 object-cover rounded-lg cursor-pointer"
-                              onClick={() => openImageDialog(url)}
-                            />
+                            <div key={index} className="w-full">
+                              <img
+                                src={url}
+                                alt={`Post image ${index + 1}`}
+                                className="w-full max-h-96 object-cover rounded-lg cursor-pointer shadow-md hover:shadow-lg transition-shadow"
+                                onClick={() => openImageDialog(url)}
+                              />
+                            </div>
                           ))}
                         </div>
                       );
