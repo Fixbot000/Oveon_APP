@@ -9,6 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { getTranslation } from '@/lib/translations';
 
 interface Question {
   id: string;
@@ -25,7 +26,11 @@ interface StepData {
   finalSolution?: string;
 }
 
-const DiagnosticFlow = () => {
+interface DiagnosticFlowProps {
+  selectedLanguage: string;
+}
+
+const DiagnosticFlow: React.FC<DiagnosticFlowProps> = ({ selectedLanguage }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [stepData, setStepData] = useState<StepData>({});
@@ -36,13 +41,15 @@ const DiagnosticFlow = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
+  const t = (key: string) => getTranslation(selectedLanguage, key);
+
   const steps = [
-    { number: 1, title: 'Upload Image', description: 'Take or upload a photo of the device' },
-    { number: 2, title: 'AI Analysis', description: 'AI analyzes the image for issues' },
-    { number: 3, title: 'Questions', description: 'Answer questions to help diagnosis (optional)' },
-    { number: 4, title: 'Description', description: 'Describe the problem in detail' },
-    { number: 5, title: 'Final Questions', description: 'Additional clarifying questions (optional)' },
-    { number: 6, title: 'Solution', description: 'Get detailed repair instructions' }
+    { number: 1, title: t('uploadImage'), description: t('uploadImageDesc') },
+    { number: 2, title: t('aiAnalysis'), description: t('aiAnalysisDesc') },
+    { number: 3, title: t('questions'), description: t('questionsDesc') },
+    { number: 4, title: t('description'), description: t('descriptionDesc') },
+    { number: 5, title: t('finalQuestions'), description: t('finalQuestionsDesc') },
+    { number: 6, title: t('solution'), description: t('solutionDesc') }
   ];
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -51,8 +58,8 @@ const DiagnosticFlow = () => {
 
     if (!user) {
       toast({
-        title: "Authentication Required",
-        description: "Please log in to upload images.",
+        title: t('authRequired'),
+        description: t('authRequiredDesc'),
         variant: "destructive",
       });
       return;
@@ -88,8 +95,8 @@ const DiagnosticFlow = () => {
         if (uploadError) {
           console.error('Storage upload error:', uploadError);
           toast({
-            title: "Upload Error",
-            description: `Failed to upload image ${file.name}: ${uploadError.message}`,
+            title: t('uploadError'),
+            description: `${t('failedUpload')} ${file.name}: ${uploadError.message}`,
             variant: "destructive"
           });
           return null;
@@ -114,7 +121,7 @@ const DiagnosticFlow = () => {
       // Only send the first image for AI analysis
       if (newUploadedBase64s.length > 0) {
         const { data, error } = await supabase.functions.invoke('gemini-analyze-image', {
-          body: { imageBase64: newUploadedBase64s[0], deviceName }
+          body: { imageBase64: newUploadedBase64s[0], deviceName, language: selectedLanguage }
         });
 
         if (error) throw error;
@@ -127,16 +134,16 @@ const DiagnosticFlow = () => {
         setCurrentStep(3);
       } else {
         toast({
-          title: "No Images Uploaded",
-          description: "No images were successfully uploaded for analysis.",
+          title: t('noImagesUploaded'),
+          description: t('noImagesUploadedDesc'),
           variant: "destructive"
         });
       }
     } catch (error) {
       console.error('Error during image handling:', error);
       toast({
-        title: "Image Processing Error",
-        description: "Failed to process images. Please try again.",
+        title: t('imageProcessingError'),
+        description: t('imageProcessingErrorDesc'),
         variant: "destructive"
       });
     } finally {
@@ -156,8 +163,8 @@ const DiagnosticFlow = () => {
   const handleDescriptionSubmit = async () => {
     if (!stepData.description?.trim()) {
       toast({
-        title: "Description Required",
-        description: "Please describe the problem before continuing.",
+        title: t('descriptionRequired'),
+        description: t('descriptionRequiredDesc'),
         variant: "destructive",
       });
       return;
@@ -174,7 +181,8 @@ const DiagnosticFlow = () => {
         body: {
           description: stepData.description,
           previousAnalysis: stepData.imageAnalysis,
-          questionAnswers: answers1
+          questionAnswers: answers1,
+          language: selectedLanguage
         }
       });
 
@@ -189,8 +197,8 @@ const DiagnosticFlow = () => {
     } catch (error) {
       console.error('Error analyzing description:', error);
       toast({
-        title: "Analysis Error",
-        description: "Failed to analyze the description. Please try again.",
+        title: t('analysisError'),
+        description: t('analysisErrorDesc'),
         variant: "destructive"
       });
     } finally {
@@ -217,7 +225,8 @@ const DiagnosticFlow = () => {
         body: {
           finalAnalysis: stepData.descriptionAnalysis || stepData.imageAnalysis,
           allAnswers,
-          deviceType: deviceName
+          deviceType: deviceName,
+          language: selectedLanguage
         }
       });
 
@@ -250,8 +259,8 @@ const DiagnosticFlow = () => {
     } catch (error) {
       console.error('Error getting final solution:', error);
       toast({
-        title: "Solution Error",
-        description: "Failed to get repair solution. Please try again.",
+        title: t('solutionError'),
+        description: t('solutionErrorDesc'),
         variant: "destructive"
       });
     } finally {
@@ -265,8 +274,8 @@ const DiagnosticFlow = () => {
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="space-y-2">
         <div className="flex justify-between text-sm text-muted-foreground">
-          <span>Step {currentStep} of {steps.length}</span>
-          <span>{Math.round(progress)}% complete</span>
+          <span>{t('step')} {currentStep} {t('of')} {steps.length}</span>
+          <span>{Math.round(progress)}% {t('complete')}</span>
         </div>
         <Progress value={progress} className="w-full" />
       </div>
@@ -283,12 +292,12 @@ const DiagnosticFlow = () => {
           {currentStep === 1 && (
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="deviceName">Device Name *</Label>
+                <Label htmlFor="deviceName">{t('deviceName')} *</Label>
                 <Input
                   id="deviceName"
                   value={deviceName}
                   onChange={(e) => setDeviceName(e.target.value)}
-                  placeholder="e.g., iPhone 14, Dell Laptop, Samsung TV..."
+                  placeholder={t('deviceNamePlaceholder')}
                   required
                 />
               </div>
@@ -303,8 +312,8 @@ const DiagnosticFlow = () => {
                 onClick={() => {
                   if (!deviceName.trim()) {
                     toast({
-                      title: "Device Name Required",
-                      description: "Please enter the device name before uploading an image.",
+                      title: t('deviceNameRequired'),
+                      description: t('deviceNameRequiredDesc'),
                       variant: "destructive"
                     });
                     return;
@@ -321,7 +330,7 @@ const DiagnosticFlow = () => {
                   ) : (
                     <Camera className="h-8 w-8 mx-auto mb-2" />
                   )}
-                  <p>{loading ? 'Analyzing...' : 'Upload Image'}</p>
+                  <p>{loading ? t('analyzing') : t('uploadImageButton')}</p>
                 </div>
               </Button>
             </div>
@@ -330,20 +339,20 @@ const DiagnosticFlow = () => {
           {currentStep === 2 && (
             <div className="text-center space-y-4">
               <Loader2 className="h-8 w-8 mx-auto animate-spin" />
-              <p>AI is analyzing your image...</p>
+              <p>{t('aiAnalyzing')}</p>
             </div>
           )}
 
           {currentStep === 3 && stepData.questions1 && (
             <div className="space-y-4">
               <div className="p-4 bg-muted rounded-lg">
-                <h4 className="font-medium mb-2">Initial Analysis:</h4>
+                <h4 className="font-medium mb-2">{t('initialAnalysis')}</h4>
                 <p className="text-sm">{stepData.imageAnalysis}</p>
               </div>
               
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-medium">Help us understand better (optional):</h4>
+                  <h4 className="font-medium">{t('helpUnderstand')}</h4>
                   <Button 
                     variant="outline" 
                     size="sm"
@@ -351,7 +360,7 @@ const DiagnosticFlow = () => {
                     className="flex items-center gap-1"
                   >
                     <SkipForward className="h-4 w-4" />
-                    Skip
+                    {t('skip')}
                   </Button>
                 </div>
                 {stepData.questions1.map((q) => (
@@ -360,13 +369,13 @@ const DiagnosticFlow = () => {
                     <Textarea
                       value={q.answer || ''}
                       onChange={(e) => handleQuestionAnswer(q.id, e.target.value, 'questions1')}
-                      placeholder="Your answer (optional)"
+                      placeholder={t('yourAnswer')}
                       rows={2}
                     />
                   </div>
                 ))}
                 <Button onClick={() => setCurrentStep(4)} className="w-full">
-                  Continue to Description
+                  {t('continue')}
                 </Button>
               </div>
             </div>
@@ -375,12 +384,12 @@ const DiagnosticFlow = () => {
           {currentStep === 4 && (
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="description">Describe the problem in detail *</Label>
+                <Label htmlFor="description">{t('describeProblemo')} *</Label>
                 <Textarea
                   id="description"
                   value={stepData.description || ''}
                   onChange={(e) => setStepData(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Please describe what's wrong with your device, when it started, any symptoms you've noticed..."
+                  placeholder={t('describeProblemPlaceholder')}
                   rows={4}
                   required
                 />
@@ -391,7 +400,7 @@ const DiagnosticFlow = () => {
                 className="w-full"
               >
                 {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                Analyze Description
+                {t('analyzeDescription')}
               </Button>
             </div>
           )}
@@ -399,14 +408,14 @@ const DiagnosticFlow = () => {
           {currentStep === 5 && stepData.questions2 && (
             <div className="space-y-4">
               <div className="p-4 bg-muted rounded-lg">
-                <h4 className="font-medium mb-2">Updated Analysis:</h4>
+                <h4 className="font-medium mb-2">{t('updatedAnalysis')}</h4>
                 <p className="text-sm">{stepData.descriptionAnalysis}</p>
               </div>
 
               {stepData.questions2.length > 0 ? (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-medium">Final clarifications (optional):</h4>
+                    <h4 className="font-medium">{t('finalClarifications')}</h4>
                     <Button 
                       variant="outline" 
                       size="sm"
@@ -414,7 +423,7 @@ const DiagnosticFlow = () => {
                       className="flex items-center gap-1"
                     >
                       <SkipForward className="h-4 w-4" />
-                      Skip to Solution
+                      {t('skipToSolution')}
                     </Button>
                   </div>
                   {stepData.questions2.map((q) => (
@@ -423,20 +432,20 @@ const DiagnosticFlow = () => {
                       <Textarea
                         value={q.answer || ''}
                         onChange={(e) => handleQuestionAnswer(q.id, e.target.value, 'questions2')}
-                        placeholder="Your answer (optional)"
+                        placeholder={t('yourAnswer')}
                         rows={2}
                       />
                     </div>
                   ))}
                   <Button onClick={handleFinalDiagnosis} disabled={loading} className="w-full">
                     {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                    Get Repair Solution
+                    {t('getRepairSolution')}
                   </Button>
                 </div>
               ) : (
                 <Button onClick={handleFinalDiagnosis} disabled={loading} className="w-full">
                   {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                  Get Repair Solution
+                  {t('getRepairSolution')}
                 </Button>
               )}
             </div>
@@ -446,7 +455,7 @@ const DiagnosticFlow = () => {
             <div className="space-y-4">
               <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
                 <h4 className="font-medium text-green-800 dark:text-green-200 mb-2">
-                  Repair Solution Found
+                  {t('repairSolutionFound')}
                 </h4>
                 <div className="prose prose-sm max-w-none text-green-700 dark:text-green-300">
                   <pre className="whitespace-pre-wrap font-sans">{stepData.finalSolution}</pre>
@@ -463,7 +472,7 @@ const DiagnosticFlow = () => {
                 variant="outline"
                 className="w-full"
               >
-                Start New Diagnosis
+                {t('startNewDiagnosis')}
               </Button>
             </div>
           )}
@@ -473,7 +482,7 @@ const DiagnosticFlow = () => {
       {uploadedImages.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">Uploaded Images</CardTitle>
+            <CardTitle className="text-sm">{t('uploadedImages')}</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
             {uploadedImages.map((image, index) => (

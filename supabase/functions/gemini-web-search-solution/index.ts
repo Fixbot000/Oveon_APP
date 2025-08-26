@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { finalAnalysis, allAnswers, deviceType } = await req.json();
+    const { finalAnalysis, allAnswers, deviceType, language = 'en' } = await req.json();
     const apiKey = Deno.env.get('GEMINI_API_KEY');
 
     if (!apiKey) {
@@ -30,7 +30,7 @@ serve(async (req) => {
       body: JSON.stringify({
         contents: [{
           parts: [{
-            text: `Based on the detailed analysis and user information, provide a COMPREHENSIVE repair solution for this electronic device problem:
+            text: `Based on the detailed analysis and user information, provide a COMPREHENSIVE repair solution for this electronic device problem in ${getLanguageName(language)}:
 
 **Problem Analysis:** ${finalAnalysis}
 
@@ -38,36 +38,36 @@ serve(async (req) => {
 
 **Device Type:** ${deviceType || 'Electronic Device'}
 
-Provide a detailed solution that includes problem identification, root cause, and step-by-step repair instructions.
+Provide a detailed solution that includes problem identification, root cause, and step-by-step repair instructions. Respond entirely in ${getLanguageName(language)}.
 
 Format:
 ## Problem Identified:
-[Clear description of what's wrong with the device - 2-3 sentences]
+[Clear description of what's wrong with the device - 2-3 sentences in ${getLanguageName(language)}]
 
 ## Root Cause Analysis:
-[Explain WHY this problem occurred - mechanical failure, wear, misuse, etc. - 2-3 sentences]
+[Explain WHY this problem occurred - mechanical failure, wear, misuse, etc. - 2-3 sentences in ${getLanguageName(language)}]
 
 ## Repair Solution:
-1. [Detailed step with specific actions and tools needed]
-2. [Detailed step with specific actions and tools needed]
-3. [Detailed step with specific actions and tools needed]
-4. [Detailed step with specific actions and tools needed]
-5. [Detailed step with specific actions and tools needed]
+1. [Detailed step with specific actions and tools needed in ${getLanguageName(language)}]
+2. [Detailed step with specific actions and tools needed in ${getLanguageName(language)}]
+3. [Detailed step with specific actions and tools needed in ${getLanguageName(language)}]
+4. [Detailed step with specific actions and tools needed in ${getLanguageName(language)}]
+5. [Detailed step with specific actions and tools needed in ${getLanguageName(language)}]
 
 ## Why This Solution Works:
-[Explain the technical reasoning behind the repair approach - how each step addresses the root cause - 2-3 sentences]
+[Explain the technical reasoning behind the repair approach - how each step addresses the root cause - 2-3 sentences in ${getLanguageName(language)}]
 
 ## Required Tools & Parts:
-• [Specific tool 1]
-• [Specific tool 2]
-• [Replacement part if needed]
-• [Any consumables like thermal paste, cleaning solution]
+• [Specific tool 1 in ${getLanguageName(language)}]
+• [Specific tool 2 in ${getLanguageName(language)}]
+• [Replacement part if needed in ${getLanguageName(language)}]
+• [Any consumables like thermal paste, cleaning solution in ${getLanguageName(language)}]
 
 ## Safety Warnings:
-⚠️ [Critical safety precautions specific to this repair]
+⚠️ [Critical safety precautions specific to this repair in ${getLanguageName(language)}]
 
 ## Success Indicators:
-[How to know the repair worked - what to test/observe]`
+[How to know the repair worked - what to test/observe in ${getLanguageName(language)}]`
           }]
         }]
       })
@@ -97,3 +97,21 @@ Format:
     });
   }
 });
+
+function getLanguageName(code: string): string {
+  const languages: Record<string, string> = {
+    'en': 'English',
+    'es': 'Spanish (Español)',
+    'fr': 'French (Français)', 
+    'de': 'German (Deutsch)',
+    'it': 'Italian (Italiano)',
+    'pt': 'Portuguese (Português)',
+    'ru': 'Russian (Русский)',
+    'ja': 'Japanese (日本語)',
+    'ko': 'Korean (한국어)',
+    'zh': 'Chinese (中文)',
+    'ar': 'Arabic (العربية)',
+    'hi': 'Hindi (हिन्दी)'
+  };
+  return languages[code] || 'English';
+}

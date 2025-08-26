@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { description, previousAnalysis, questionAnswers } = await req.json();
+    const { description, previousAnalysis, questionAnswers, language = 'en' } = await req.json();
     const apiKey = Deno.env.get('GEMINI_API_KEY');
 
     if (!apiKey) {
@@ -33,7 +33,7 @@ User description: ${description}
       body: JSON.stringify({
         contents: [{
           parts: [{
-            text: `Analyze this additional context and description to refine the problem diagnosis:
+            text: `Analyze this additional context and description to refine the problem diagnosis and respond in ${getLanguageName(language)}:
 
 ${context}
 
@@ -43,14 +43,15 @@ IMPORTANT: Keep the analysis SHORT and ACTIONABLE. Follow these rules:
 - Each point under 15 words
 - Focus on most likely causes
 - If complex, provide brief summary
+- Respond entirely in ${getLanguageName(language)}
 
 Format:
 ## Updated Analysis:
-• Finding 1: [description under 15 words]
-• Finding 2: [description under 15 words]
-• Finding 3: [description under 15 words]
+• Finding 1: [description under 15 words in ${getLanguageName(language)}]
+• Finding 2: [description under 15 words in ${getLanguageName(language)}]
+• Finding 3: [description under 15 words in ${getLanguageName(language)}]
 
-## Root Cause: [brief explanation under 20 words]
+## Root Cause: [brief explanation under 20 words in ${getLanguageName(language)}]
 
 Based on all this information, provide additional clarifying questions (if needed) to pinpoint the exact issue and solution.`
           }]
@@ -83,8 +84,9 @@ Generate 2-4 specific follow-up questions that would help determine the exact re
 - Understanding the severity/extent of damage
 - Determining what tools or parts might be needed
 - Clarifying any remaining uncertainties
+- Written entirely in ${getLanguageName(language)}
 
-Format as a simple JSON array of strings. If no additional questions are needed, return an empty array.`
+Format as a simple JSON array of strings in ${getLanguageName(language)}. If no additional questions are needed, return an empty array.`
           }]
         }]
       })
@@ -116,3 +118,21 @@ Format as a simple JSON array of strings. If no additional questions are needed,
     });
   }
 });
+
+function getLanguageName(code: string): string {
+  const languages: Record<string, string> = {
+    'en': 'English',
+    'es': 'Spanish (Español)',
+    'fr': 'French (Français)', 
+    'de': 'German (Deutsch)',
+    'it': 'Italian (Italiano)',
+    'pt': 'Portuguese (Português)',
+    'ru': 'Russian (Русский)',
+    'ja': 'Japanese (日本語)',
+    'ko': 'Korean (한국어)',
+    'zh': 'Chinese (中文)',
+    'ar': 'Arabic (العربية)',
+    'hi': 'Hindi (हिन्दी)'
+  };
+  return languages[code] || 'English';
+}

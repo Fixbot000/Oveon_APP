@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { imageBase64, deviceName } = await req.json();
+    const { imageBase64, deviceName, language = 'en' } = await req.json();
     const apiKey = Deno.env.get('GEMINI_API_KEY');
 
     if (!apiKey) {
@@ -28,7 +28,7 @@ serve(async (req) => {
         contents: [{
           parts: [
             {
-            text: `Analyze this image of a ${deviceName || 'device'} for any type of damage or issues. Check for:
+            text: `Analyze this image of a ${deviceName || 'device'} for any type of damage or issues and provide your response in ${getLanguageName(language)}. Check for:
 - Physical damage (cracks, dents, broken parts, scratches)
 - Dust, dirt, corrosion, or buildup
 - Signs of overheating (burn marks, melted areas, discoloration)
@@ -43,14 +43,15 @@ IMPORTANT: Keep the analysis SHORT and ACTIONABLE. Follow these rules:
 - Each issue under 15 words
 - Focus on most critical problems first
 - If complex, provide brief summary
+- Respond entirely in ${getLanguageName(language)}
 
 Format:
 ## Issues Found:
-• Issue 1: [description under 15 words]
-• Issue 2: [description under 15 words]
-• Issue 3: [description under 15 words]
+• Issue 1: [description under 15 words in ${getLanguageName(language)}]
+• Issue 2: [description under 15 words in ${getLanguageName(language)}]
+• Issue 3: [description under 15 words in ${getLanguageName(language)}]
 
-## Likely Cause: [brief explanation]`
+## Likely Cause: [brief explanation in ${getLanguageName(language)}]`
             },
             {
               inline_data: {
@@ -89,8 +90,9 @@ Generate 3-5 specific, relevant questions that would help get more details about
 - Helpful for determining the exact cause or solution
 - Clear and easy to answer
 - Focus on symptoms, when the problem started, usage patterns
+- Written entirely in ${getLanguageName(language)}
 
-Format as a simple JSON array of strings.`
+Format as a simple JSON array of strings in ${getLanguageName(language)}.`
           }]
         }]
       })
@@ -126,3 +128,21 @@ Format as a simple JSON array of strings.`
     });
   }
 });
+
+function getLanguageName(code: string): string {
+  const languages: Record<string, string> = {
+    'en': 'English',
+    'es': 'Spanish (Español)',
+    'fr': 'French (Français)', 
+    'de': 'German (Deutsch)',
+    'it': 'Italian (Italiano)',
+    'pt': 'Portuguese (Português)',
+    'ru': 'Russian (Русский)',
+    'ja': 'Japanese (日本語)',
+    'ko': 'Korean (한국어)',
+    'zh': 'Chinese (中文)',
+    'ar': 'Arabic (العربية)',
+    'hi': 'Hindi (हिन्दी)'
+  };
+  return languages[code] || 'English';
+}
