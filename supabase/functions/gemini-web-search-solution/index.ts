@@ -30,7 +30,7 @@ serve(async (req) => {
       body: JSON.stringify({
         contents: [{
           parts: [{
-            text: `Based on the detailed analysis and user information, provide a CONCISE repair solution for this electronic device problem:
+            text: `Based on the detailed analysis and user information, provide a COMPREHENSIVE repair solution for this electronic device problem:
 
 **Problem Analysis:** ${finalAnalysis}
 
@@ -38,26 +38,36 @@ serve(async (req) => {
 
 **Device Type:** ${deviceType || 'Electronic Device'}
 
-IMPORTANT: Keep the solution SHORT and ACTIONABLE. Follow these rules:
-- Use bullet points or numbered steps
-- Maximum 5 steps total
-- Each step under 15 words
-- If complex, provide 2-3 line summary + ask ONE follow-up question
-- Focus on most likely solution first
+Provide a detailed solution that includes problem identification, root cause, and step-by-step repair instructions.
 
 Format:
-## Quick Solution:
-• Step 1: [action under 15 words]
-• Step 2: [action under 15 words]
-• Step 3: [action under 15 words]
-• Step 4: [action under 15 words]
-• Step 5: [action under 15 words]
+## Problem Identified:
+[Clear description of what's wrong with the device - 2-3 sentences]
 
-## Required: [brief tools/parts list]
+## Root Cause Analysis:
+[Explain WHY this problem occurred - mechanical failure, wear, misuse, etc. - 2-3 sentences]
 
-## Safety: [one key warning]
+## Repair Solution:
+1. [Detailed step with specific actions and tools needed]
+2. [Detailed step with specific actions and tools needed]
+3. [Detailed step with specific actions and tools needed]
+4. [Detailed step with specific actions and tools needed]
+5. [Detailed step with specific actions and tools needed]
 
-If issue is complex, provide short summary and ask ONE clarifying question instead.`
+## Why This Solution Works:
+[Explain the technical reasoning behind the repair approach - how each step addresses the root cause - 2-3 sentences]
+
+## Required Tools & Parts:
+• [Specific tool 1]
+• [Specific tool 2]
+• [Replacement part if needed]
+• [Any consumables like thermal paste, cleaning solution]
+
+## Safety Warnings:
+⚠️ [Critical safety precautions specific to this repair]
+
+## Success Indicators:
+[How to know the repair worked - what to test/observe]`
           }]
         }]
       })
