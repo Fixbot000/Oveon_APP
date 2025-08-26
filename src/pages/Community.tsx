@@ -81,10 +81,14 @@ const Community = () => {
       uploads.map(async ({ file, objectPath }) => {
         const { error } = await supabase.storage
           .from('device-images')
-          .upload(objectPath, file, { upsert: false, cacheControl: '3600' });
+          .upload(objectPath, file, { 
+            upsert: true, 
+            cacheControl: '3600',
+            contentType: file.type
+          });
         if (error) {
-          console.error('Storage upload error:', error.message || error.name || error);
-          throw error;
+          console.error('Storage upload error:', error);
+          throw new Error(`Upload failed: ${error.message}`);
         }
         const { data } = supabase.storage
           .from('device-images')

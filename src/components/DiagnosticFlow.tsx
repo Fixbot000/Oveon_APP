@@ -79,13 +79,17 @@ const DiagnosticFlow = () => {
 
         const { error: uploadError } = await supabase.storage
           .from('device-images')
-          .upload(objectPath, file, { upsert: false, cacheControl: '3600' });
+          .upload(objectPath, file, { 
+            upsert: true, 
+            cacheControl: '3600',
+            contentType: file.type
+          });
 
         if (uploadError) {
-          console.error('Storage upload error:', uploadError.message || uploadError.name || uploadError);
+          console.error('Storage upload error:', uploadError);
           toast({
             title: "Upload Error",
-            description: `Failed to upload image ${file.name}.`,
+            description: `Failed to upload image ${file.name}: ${uploadError.message}`,
             variant: "destructive"
           });
           return null;
