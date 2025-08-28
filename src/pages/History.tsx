@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Button } from '@/components/ui/button';
 import MobileHeader from '@/components/MobileHeader';
 import BottomNavigation from '@/components/BottomNavigation';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Post {
   id: string;
@@ -38,6 +41,7 @@ const History = () => {
   const [diagnosticSessions, setDiagnosticSessions] = useState<DiagnosticSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [openSessions, setOpenSessions] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!user) {
@@ -169,42 +173,94 @@ const History = () => {
           <p className="text-zinc-600 dark:text-zinc-400">No diagnostic sessions found.</p>
         ) : (
           <div className="space-y-4">
-            {diagnosticSessions.map(session => (
-              <Card key={session.id} className="w-full max-w-2xl mx-auto">
-                <CardContent className="p-4">
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-2">
-                    {formatDistanceToNow(new Date(session.created_at), { addSuffix: true })}
-                  </p>
-                  <h3 className="text-lg font-semibold mb-2">Device: {session.device_category || 'N/A'}</h3>
-                  {session.symptoms_text && <p className="mb-2">Symptoms: {session.symptoms_text}</p>}
-                  {session.ai_analysis?.finalSolution && (
-                    <div className="mb-2">
-                      <details className="group">
-                        <summary className="font-medium cursor-pointer hover:text-primary flex items-center gap-2">
-                          <span className="group-open:rotate-90 transition-transform">▶</span>
-                          View Repair Solution
-                        </summary>
-                        <div className="mt-2 p-3 bg-muted rounded-lg">
-                          <pre className="whitespace-pre-wrap font-sans text-sm">{session.ai_analysis.finalSolution}</pre>
-                        </div>
-                      </details>
+            {diagnosticSessions.map(session => {
+              const isOpen = openSessions.has(session.id);
+              return (
+                <Card key={session.id} className="w-full max-w-2xl mx-auto">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-lg">Device: {session.device_category || 'N/A'}</CardTitle>
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                          {formatDistanceToNow(new Date(session.created_at), { addSuffix: true })}
+                        </p>
+                      </div>
+                      <Collapsible 
+                        open={isOpen} 
+                        onOpenChange={(open) => {
+                          const newOpenSessions = new Set(openSessions);
+                          if (open) {
+                            newOpenSessions.add(session.id);
+                          } else {
+                            newOpenSessions.delete(session.id);
+                          }
+                          setOpenSessions(newOpenSessions);
+                        }}
+                      >
+                        <CollapsibleTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            {isOpen ? <ChevronUp /> : <ChevronDown />}
+                            {isOpen ? 'Hide Details' : 'View Details'}
+                          </Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-4">
+                          <CardContent className="pt-0">
+                            {session.symptoms_text && (
+                              <div className="mb-4">
+                                <h4 className="font-semibold mb-2">Symptoms:</h4>
+                                <p className="text-sm bg-muted p-3 rounded-lg">{session.symptoms_text}</p>
+                              </div>
+                            )}
+                            
+                            {session.ai_analysis && (
+                              <div className="mb-4">
+                                <h4 className="font-semibold mb-2">AI Analysis:</h4>
+                                <div className="bg-muted p-3 rounded-lg">
+                                  {session.ai_analysis.problem && (
+                                    <div className="mb-3">
+                                      <h5 className="font-medium text-sm text-red-600 dark:text-red-400">Problem:</h5>
+                                      <p className="text-sm mt-1">{session.ai_analysis.problem}</p>
+                                    </div>
+                                  )}
+                                  {session.ai_analysis.reason && (
+                                    <div className="mb-3">
+                                      <h5 className="font-medium text-sm text-orange-600 dark:text-orange-400">Reason:</h5>
+                                      <p className="text-sm mt-1">{session.ai_analysis.reason}</p>
+                                    </div>
+                                  )}
+                                  {session.ai_analysis.finalSolution && (
+                                    <div>
+                                      <h5 className="font-medium text-sm text-green-600 dark:text-green-400">Solution:</h5>
+                                      <div className="text-sm mt-1 whitespace-pre-wrap">{session.ai_analysis.finalSolution}</div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            {session.image_urls && session.image_urls.length > 0 && (
+                              <div>
+                                <h4 className="font-semibold mb-2">Images:</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                                  {session.image_urls.map((url, index) => (
+                                    <img
+                                      key={index}
+                                      src={url}
+                                      alt={`Diagnostic image ${index + 1}`}
+                                      className="w-full h-32 object-cover rounded-md"
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </CardContent>
+                        </CollapsibleContent>
+                      </Collapsible>
                     </div>
-                  )}
-                  {session.image_urls && session.image_urls.length > 0 && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-4">
-                      {session.image_urls.map((url, index) => (
-                        <img
-                          key={index}
-                          src={url}
-                          alt={`Diagnostic image ${index + 1}`}
-                          className="w-full h-32 object-cover rounded-md"
-                        />
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+                  </CardHeader>
+                </Card>
+              );
+            })}
           </div>
         )}
       </main>
