@@ -271,6 +271,33 @@ export type Database = {
           },
         ]
       }
+      function_usage: {
+        Row: {
+          count: number
+          created_at: string
+          function_name: string
+          id: string
+          user_id: string
+          window_start: string
+        }
+        Insert: {
+          count?: number
+          created_at?: string
+          function_name: string
+          id?: string
+          user_id: string
+          window_start: string
+        }
+        Update: {
+          count?: number
+          created_at?: string
+          function_name?: string
+          id?: string
+          user_id?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       history: {
         Row: {
           action: string

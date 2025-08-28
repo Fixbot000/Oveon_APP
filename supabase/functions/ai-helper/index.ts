@@ -2,9 +2,51 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': 'https://lovable.dev, https://lovable.app',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Rate limiting helper
+async function checkRateLimit(userId: string, functionName: string): Promise<boolean> {
+  // Get current hour window
+  const now = new Date();
+  const windowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours());
+  
+  // Check/update usage
+  const { data, error } = await fetch(`${Deno.env.get('SUPABASE_URL')}/rest/v1/function_usage`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'resolution=merge-duplicates'
+    },
+    body: JSON.stringify({
+      user_id: userId,
+      function_name: functionName,
+      window_start: windowStart.toISOString(),
+      count: 1
+    })
+  });
+
+  if (error) {
+    console.error('Rate limit check error:', error);
+    return true; // Allow on error
+  }
+
+  // Check if under limit (100 calls per hour)
+  const usageCheck = await fetch(`${Deno.env.get('SUPABASE_URL')}/rest/v1/function_usage?user_id=eq.${userId}&function_name=eq.${functionName}&window_start=eq.${windowStart.toISOString()}`, {
+    headers: {
+      'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+    }
+  });
+
+  if (usageCheck.ok) {
+    const usage = await usageCheck.json();
+    return usage[0]?.count <= 100;
+  }
+
+  return true; // Allow on error
+}
 
 interface RequestBody {
   prompt: string;
@@ -30,6 +72,35 @@ serve(async (req) => {
         success: false 
       }), {
         status: 405,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Get user from JWT (now required since verify_jwt = true)
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ 
+        error: 'Authorization required',
+        success: false 
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Extract user ID from JWT (simplified - in production, properly verify JWT)
+    const token = authHeader.replace('Bearer ', '');
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const userId = payload.sub;
+
+    // Rate limiting
+    const withinLimit = await checkRateLimit(userId, 'ai-helper');
+    if (!withinLimit) {
+      return new Response(JSON.stringify({ 
+        error: 'Rate limit exceeded. Please try again later.',
+        success: false 
+      }), {
+        status: 429,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }

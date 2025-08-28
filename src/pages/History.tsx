@@ -10,6 +10,7 @@ import BottomNavigation from '@/components/BottomNavigation';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ImageWithSignedUrl } from '@/components/ImageWithSignedUrl';
 
 interface Post {
   id: string;
@@ -238,21 +239,22 @@ const History = () => {
                               </div>
                             )}
 
-                            {session.image_urls && session.image_urls.length > 0 && (
-                              <div>
-                                <h4 className="font-semibold mb-2">Images:</h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                                  {session.image_urls.map((url, index) => (
-                                    <img
-                                      key={index}
-                                      src={url}
-                                      alt={`Diagnostic image ${index + 1}`}
-                                      className="w-full h-32 object-cover rounded-md"
-                                    />
-                                  ))}
-                                </div>
-                              </div>
-                            )}
+                  {session.image_urls && session.image_urls.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold mb-2">Images:</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {session.image_urls.map((path, index) => (
+                          <ImageWithSignedUrl
+                            key={index}
+                            bucket="device-images"
+                            path={path}
+                            alt={`Diagnostic image ${index + 1}`}
+                            className="w-full h-32 object-cover rounded-md"
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                           </CardContent>
                         </CollapsibleContent>
                       </Collapsible>

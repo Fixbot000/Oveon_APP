@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { getTranslation } from '@/lib/translations';
+import { ImageWithSignedUrl } from '@/components/ImageWithSignedUrl';
 
 interface Question {
   id: string;
@@ -102,15 +103,9 @@ const DiagnosticFlow: React.FC<DiagnosticFlowProps> = ({ selectedLanguage }) => 
           return null;
         }
 
-        const { data: publicUrlData } = supabase.storage
-          .from('device-images')
-          .getPublicUrl(objectPath);
-
-        if (publicUrlData?.publicUrl) {
-          newPublicUrls.push(publicUrlData.publicUrl);
-          return publicUrlData.publicUrl;
-        }
-        return null;
+        // Store the object path instead of public URL for security
+        newPublicUrls.push(objectPath);
+        return objectPath;
       });
 
       await Promise.allSettled(uploadPromises);

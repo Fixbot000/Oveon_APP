@@ -57,7 +57,7 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
       if (avatarFile) {
         const fileExt = avatarFile.name.split('.').pop();
         const fileName = `${user.id}-${Math.random()}.${fileExt}`;
-        const filePath = `avatars/${fileName}`;
+        const filePath = `${user.id}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from('avatars')

@@ -62,25 +62,25 @@ template = { "invite" = "./supabase/templates/invite.html", "confirmation" = "./
 
 
 [functions.gemini-analyze-image]
-verify_jwt = false
+verify_jwt = true
 
 [functions.gemini-analyze-description]
-verify_jwt = false
+verify_jwt = true
 
 [functions.gemini-web-search-solution]
-verify_jwt = false
+verify_jwt = true
 
 [functions.check-password-breach]
-verify_jwt = false
+verify_jwt = true
 
 [functions.chat-repair-bot]
-verify_jwt = false
+verify_jwt = true
 
 [functions.generate-repair-tips]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ai-helper]
-verify_jwt = false
+verify_jwt = true
 
 [edge-runtime]
 enabled = true

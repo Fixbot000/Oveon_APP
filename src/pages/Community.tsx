@@ -12,6 +12,8 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import MobileHeader from '@/components/MobileHeader';
 import BottomNavigation from '@/components/BottomNavigation';
+import { ImageWithSignedUrl } from '@/components/ImageWithSignedUrl';
+import { getSignedUrl } from '@/lib/storage';
 
 interface Post {
   id: string;
@@ -90,10 +92,8 @@ const Community = () => {
           console.error('Storage upload error:', error);
           throw new Error(`Upload failed: ${error.message}`);
         }
-        const { data } = supabase.storage
-          .from('device-images')
-          .getPublicUrl(objectPath);
-        return data?.publicUrl || '';
+        // Return the object path instead of public URL for security
+        return objectPath;
       })
     );
 
@@ -610,16 +610,20 @@ const Community = () => {
                       
                       return (
                         <div className="space-y-3 mt-4">
-                          {images.map((url, index) => (
-                            <div key={index} className="w-full">
-                              <img
-                                src={url}
-                                alt={`Post image ${index + 1}`}
-                                className="w-full max-h-96 object-cover rounded-lg cursor-pointer shadow-md hover:shadow-lg transition-shadow"
-                                onClick={() => openImageDialog(url)}
-                              />
-                            </div>
-                          ))}
+                           {images.map((path, index) => (
+                             <div key={index} className="w-full">
+                               <ImageWithSignedUrl
+                                 bucket="device-images"
+                                 path={path}
+                                 alt={`Post image ${index + 1}`}
+                                 className="w-full max-h-96 object-cover rounded-lg cursor-pointer shadow-md hover:shadow-lg transition-shadow"
+                                 onClick={async () => {
+                                   const signedUrl = await getSignedUrl('device-images', path);
+                                   if (signedUrl) openImageDialog(signedUrl);
+                                 }}
+                               />
+                             </div>
+                           ))}
                         </div>
                       );
                     })()}
