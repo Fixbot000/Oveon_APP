@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getSignedUrl } from '@/lib/storage';
+import { useImageCache } from '@/store/imageCache';
 
 interface ImageWithSignedUrlProps {
   bucket: string;
@@ -23,6 +23,7 @@ export const ImageWithSignedUrl: React.FC<ImageWithSignedUrlProps> = ({
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const { getCachedUrl } = useImageCache();
 
   useEffect(() => {
     const loadSignedUrl = async () => {
@@ -33,7 +34,7 @@ export const ImageWithSignedUrl: React.FC<ImageWithSignedUrlProps> = ({
       }
 
       try {
-        const url = await getSignedUrl(bucket, path, 3600); // 1 hour expiry
+        const url = await getCachedUrl(bucket, path);
         if (url) {
           setSignedUrl(url);
         } else {
@@ -48,7 +49,7 @@ export const ImageWithSignedUrl: React.FC<ImageWithSignedUrlProps> = ({
     };
 
     loadSignedUrl();
-  }, [bucket, path]);
+  }, [bucket, path, getCachedUrl]);
 
   if (loading) {
     return (

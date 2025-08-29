@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,9 +14,8 @@ import MobileHeader from '@/components/MobileHeader';
 import BottomNavigation from '@/components/BottomNavigation';
 import { OptimizedImage } from '@/components/OptimizedImage';
 import { ImageWithSignedUrl } from '@/components/ImageWithSignedUrl';
-import { usePosts, useLikePost, usePostComments, useCreatePost, usePrefetchPost, usePostLikes } from '@/hooks/usePosts';
-import { useRealtimePosts } from '@/hooks/useRealtime';
-import { getSignedUrl } from '@/lib/storage';
+import { PullToRefresh } from '@/components/PullToRefresh';
+import { useGlobalData } from '@/hooks/useGlobalData';
 
 // Import types from the hooks
 import type { Post, Comment } from '@/hooks/usePosts';
@@ -36,23 +35,25 @@ const Community = () => {
   
   const { user, signOut } = useAuth();
   
-  // React Query hooks
-  const { data: posts = [], isLoading: loading, refetch: refetchPosts } = usePosts(showMyPosts);
-  const postIds = posts.map(p => p.id);
-  const { data: likesData } = usePostLikes(postIds);
-  const likeMutation = useLikePost();
-  const createPostMutation = useCreatePost();
-  const prefetchPost = usePrefetchPost();
+  // Use global data store
+  const {
+    posts: allPosts,
+    postLikes,
+    userLikes,
+    comments,
+    loading,
+    error,
+    refreshData,
+    handleLike,
+    handleCreatePost: globalCreatePost,
+    handleAddComment,
+    clearError
+  } = useGlobalData();
   
-  // Real-time updates
-  useRealtimePosts();
-  
-  const postLikes = likesData?.likes || {};
-  const userLikes = likesData?.userLikes || {};
-  
-  // Fetch comments for selected post
-  const { data: commentsData = [] } = usePostComments(selectedPostIdForComments || '');
-  const comments = { [selectedPostIdForComments || '']: commentsData };
+  // Filter posts based on showMyPosts
+  const posts = showMyPosts && user?.id 
+    ? allPosts.filter(post => post.user_id === user.id)
+    : allPosts;
 
   const uploadSelectedImages = async (): Promise<string[]> => {
     if (selectedImages.length === 0) return [];
@@ -104,38 +105,17 @@ const Community = () => {
     setIsImageDialogOpen(true);
   };
 
-  const handleLike = (postId: string, likeType: 'like' | 'dislike') => {
-    if (!user) {
-      toast.error('Please sign in to like posts');
-      return;
-    }
-    likeMutation.mutate({ postId, likeType });
+  const handleLikeClick = (postId: string, likeType: 'like' | 'dislike') => {
+    handleLike(postId, likeType);
   };
 
-  const handleComment = async (postId: string, parentCommentId: string | null = null) => {
-    if (!user) {
-      toast.error('Please sign in to comment');
-      return;
-    }
-
+  const handleComment = async (postId: string) => {
     const content = newCommentContent[postId]?.trim();
     if (!content) return;
 
-    try {
-      await supabase
-        .from('post_comments')
-        .insert({
-          post_id: postId,
-          user_id: user.id,
-          content,
-          parent_comment_id: parentCommentId, // Add parent_comment_id
-        });
-
+    const success = await handleAddComment(postId, content);
+    if (success) {
       setNewCommentContent(prev => ({ ...prev, [postId]: '' }));
-      toast.success('Comment added!');
-    } catch (error) {
-      console.error('Error adding comment:', error);
-      toast.error('Failed to add comment');
     }
   };
 
@@ -163,14 +143,12 @@ const Community = () => {
         return;
       }
 
-      await createPostMutation.mutateAsync({
-        content: newPost.content,
-        imageUrls
-      });
-
-      lastPostTimeRef.current = Date.now();
-      setNewPost({ content: '' });
-      setSelectedImages([]);
+      const success = await globalCreatePost(newPost.content, imageUrls);
+      if (success) {
+        lastPostTimeRef.current = Date.now();
+        setNewPost({ content: '' });
+        setSelectedImages([]);
+      }
     } catch (error: any) {
       console.error('Error creating post:', error);
     }
@@ -208,7 +186,7 @@ const Community = () => {
       setEditingPost(null);
       setEditContent('');
       toast.success('Post updated successfully!');
-      refetchPosts();
+      refreshData();
     } catch (error: any) {
       console.error('Error updating post:', error);
       toast.error('Failed to update post');
@@ -235,7 +213,7 @@ const Community = () => {
       if (error) throw error;
 
       toast.success('Post deleted successfully!');
-      refetchPosts();
+      refreshData();
     } catch (error: any) {
       console.error('Error deleting post:', error);
       toast.error('Failed to delete post');
@@ -264,8 +242,20 @@ const Community = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <MobileHeader onRefresh={() => void refetchPosts()} />
+    <PullToRefresh onRefresh={refreshData} disabled={loading}>
+      <div className="min-h-screen bg-background pb-20">
+        <MobileHeader onRefresh={() => void refreshData()} />
+        
+        {error && (
+          <div className="px-4 py-2">
+            <div className="bg-destructive/10 border border-destructive/20 text-destructive px-3 py-2 rounded-md text-sm flex items-center justify-between">
+              <span>{error}</span>
+              <Button variant="ghost" size="sm" onClick={clearError}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       
       <main className="px-4 py-6 space-y-6">
         <div className="space-y-6">
@@ -472,10 +462,7 @@ const Community = () => {
                                  path={path}
                                  alt={`Post image ${index + 1}`}
                                  className="w-full max-h-96 object-cover rounded-lg cursor-pointer shadow-md hover:shadow-lg transition-shadow"
-                                 onClick={async () => {
-                                   const signedUrl = await getSignedUrl('device-images', path);
-                                   if (signedUrl) openImageDialog(signedUrl);
-                                 }}
+                                  onClick={() => openImageDialog(path)}
                                />
                              </div>
                            ))}
@@ -488,19 +475,19 @@ const Community = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleLike(post.id, 'like')}
+                        onClick={() => handleLikeClick(post.id, 'like')}
                         className={`flex items-center space-x-1 ${
-                          userLikes[post.id] === 'like' ? 'text-primary' : 'text-muted-foreground'
+                          userLikes[post.id] === 'like' ? 'text-red-500' : 'text-muted-foreground'
                         }`}
                       >
-                        <ThumbsUp className="h-4 w-4" />
+                        <Heart className="h-4 w-4" />
                         <span>{postLikes[post.id] || 0}</span>
                       </Button>
 
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleLike(post.id, 'dislike')}
+                        onClick={() => handleLikeClick(post.id, 'dislike')}
                         className={`flex items-center space-x-1 ${
                           userLikes[post.id] === 'dislike' ? 'text-destructive' : 'text-muted-foreground'
                         }`}
@@ -512,7 +499,6 @@ const Community = () => {
                         variant="ghost"
                         size="sm"
                         onClick={() => {
-                          prefetchPost(post.id);
                           openCommentsSheet(post.id);
                         }}
                         className="flex items-center space-x-1 text-muted-foreground"
@@ -589,11 +575,11 @@ const Community = () => {
                             placeholder="Reply to this comment..."
                             value={newCommentContent[`${selectedPostIdForComments}-${comment.id}`] || ''}
                             onChange={(e) => setNewCommentContent(prev => ({ ...prev, [`${selectedPostIdForComments}-${comment.id}`]: e.target.value }))}
-                            onKeyPress={(e) => e.key === 'Enter' && handleComment(selectedPostIdForComments, comment.id)}
+                            onKeyPress={(e) => e.key === 'Enter' && handleComment(selectedPostIdForComments)}
                           />
                           <Button 
                             size="sm" 
-                            onClick={() => handleComment(selectedPostIdForComments, comment.id)}
+                            onClick={() => handleComment(selectedPostIdForComments)}
                             disabled={!newCommentContent[`${selectedPostIdForComments}-${comment.id}`]?.trim()}
                           >
                             Reply
@@ -628,7 +614,8 @@ const Community = () => {
           )}
         </SheetContent>
       </Sheet>
-    </div>
+      </div>
+    </PullToRefresh>
   );
 };
 
