@@ -7,6 +7,8 @@ interface ImageWithSignedUrlProps {
   alt: string;
   className?: string;
   onClick?: () => void;
+  onLoad?: () => void;
+  onError?: () => void;
 }
 
 export const ImageWithSignedUrl: React.FC<ImageWithSignedUrlProps> = ({
@@ -14,7 +16,9 @@ export const ImageWithSignedUrl: React.FC<ImageWithSignedUrlProps> = ({
   path,
   alt,
   className,
-  onClick
+  onClick,
+  onLoad,
+  onError
 }) => {
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,7 +76,16 @@ export const ImageWithSignedUrl: React.FC<ImageWithSignedUrlProps> = ({
       alt={alt}
       className={className}
       onClick={onClick}
-      onError={() => setError(true)}
+      onLoad={() => {
+        setLoading(false);
+        onLoad?.();
+      }}
+      onError={() => {
+        setError(true);
+        onError?.();
+      }}
+      loading="lazy"
+      decoding="async"
     />
   );
 };

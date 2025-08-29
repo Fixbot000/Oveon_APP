@@ -12,43 +12,18 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import MobileHeader from '@/components/MobileHeader';
 import BottomNavigation from '@/components/BottomNavigation';
+import { OptimizedImage } from '@/components/OptimizedImage';
 import { ImageWithSignedUrl } from '@/components/ImageWithSignedUrl';
+import { usePosts, useLikePost, usePostComments, useCreatePost, usePrefetchPost, usePostLikes } from '@/hooks/usePosts';
+import { useRealtimePosts } from '@/hooks/useRealtime';
 import { getSignedUrl } from '@/lib/storage';
 
-interface Post {
-  id: string;
-  content: string;
-  image_urls: string[] | null;
-  image_url?: string | null;
-  created_at: string;
-  user_id: string;
-  profiles?: {
-    username: string;
-    avatar_url?: string;
-  };
-}
-
-interface Comment {
-  id: string;
-  post_id: string;
-  user_id: string;
-  content: string;
-  created_at: string;
-  profiles?: {
-    username: string;
-    avatar_url: string | null;
-  };
-  parent_comment_id?: string | null;
-}
+// Import types from the hooks
+import type { Post, Comment } from '@/hooks/usePosts';
 
 const Community = () => {
-  const [posts, setPosts] = useState<Post[]>([]);
   const [newPost, setNewPost] = useState({ content: '' });
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [postLikes, setPostLikes] = useState<Record<string, number>>({});
-  const [userLikes, setUserLikes] = useState<Record<string, string>>({});
-  const [comments, setComments] = useState<Record<string, Comment[]>>({});
   const [newCommentContent, setNewCommentContent] = useState<Record<string, string>>({});
   const [editingPost, setEditingPost] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
@@ -57,12 +32,27 @@ const Community = () => {
   const [isCommentsSheetOpen, setIsCommentsSheetOpen] = useState(false);
   const [selectedPostIdForComments, setSelectedPostIdForComments] = useState<string | null>(null);
   const [showMyPosts, setShowMyPosts] = useState(false);
-  const lastPostTimeRef = useRef<number>(0); // Using useRef to persist last post time across renders
+  const lastPostTimeRef = useRef<number>(0);
+  
   const { user, signOut } = useAuth();
-
-  useEffect(() => {
-    loadPosts();
-  }, [showMyPosts]); // Re-load posts when filter changes
+  
+  // React Query hooks
+  const { data: posts = [], isLoading: loading, refetch: refetchPosts } = usePosts(showMyPosts);
+  const postIds = posts.map(p => p.id);
+  const { data: likesData } = usePostLikes(postIds);
+  const likeMutation = useLikePost();
+  const createPostMutation = useCreatePost();
+  const prefetchPost = usePrefetchPost();
+  
+  // Real-time updates
+  useRealtimePosts();
+  
+  const postLikes = likesData?.likes || {};
+  const userLikes = likesData?.userLikes || {};
+  
+  // Fetch comments for selected post
+  const { data: commentsData = [] } = usePostComments(selectedPostIdForComments || '');
+  const comments = { [selectedPostIdForComments || '']: commentsData };
 
   const uploadSelectedImages = async (): Promise<string[]> => {
     if (selectedImages.length === 0) return [];
@@ -114,132 +104,12 @@ const Community = () => {
     setIsImageDialogOpen(true);
   };
 
-  const loadPosts = async () => {
-    try {
-      setLoading(true);
-      
-      let query = supabase
-        .from('posts')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (showMyPosts && user?.id) {
-        query = query.eq('user_id', user.id);
-      }
-
-      const { data: postsData, error } = await query;
-
-      if (error) throw error;
-
-      // Get user profiles separately to avoid the join issue
-      const userIds = [...new Set(postsData?.map(p => p.user_id) || [])];
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('id, username, avatar_url')
-        .in('id', userIds);
-
-      // Map profiles to posts
-      const postsWithProfiles = postsData?.map(post => ({
-        ...post,
-        profiles: profilesData?.find(p => p.id === post.user_id)
-      })) || [];
-
-      setPosts(postsWithProfiles);
-      
-      // Load likes and comments for each post
-      if (postsWithProfiles?.length) {
-        await loadPostLikesAndComments(postsWithProfiles.map(p => p.id));
-      }
-    } catch (error: any) {
-      console.error('Error loading posts:', error);
-      toast.error('Failed to load posts');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadPostLikesAndComments = async (postIds: string[]) => {
-    try {
-      // Load likes
-      const { data: likesData } = await supabase
-        .from('post_likes')
-        .select('post_id, like_type, user_id')
-        .in('post_id', postIds);
-
-      const likeCounts: Record<string, number> = {};
-      const userLikeTypes: Record<string, string> = {};
-      
-      likesData?.forEach(like => {
-        if (like.like_type === 'like') {
-          likeCounts[like.post_id] = (likeCounts[like.post_id] || 0) + 1;
-        }
-        if (like.user_id === user?.id) {
-          userLikeTypes[like.post_id] = like.like_type;
-        }
-      });
-
-      setPostLikes(likeCounts);
-      setUserLikes(userLikeTypes);
-
-      // Load comments
-      const { data: commentsData } = await supabase
-        .from('post_comments')
-        .select('*, profiles(username, avatar_url)') // Fetch profile for each comment
-        .in('post_id', postIds)
-        .order('created_at', { ascending: true });
-
-      const commentsByPost: Record<string, Comment[]> = {};
-      commentsData?.forEach(comment => {
-        if (!commentsByPost[comment.post_id]) {
-          commentsByPost[comment.post_id] = [];
-        }
-        commentsByPost[comment.post_id].push({
-          ...comment,
-          profiles: comment.profiles || { username: 'Anonymous', avatar_url: null }
-        } as Comment);
-      });
-
-      setComments(commentsByPost);
-    } catch (error) {
-      console.error('Error loading likes and comments:', error);
-    }
-  };
-
-  const handleLike = async (postId: string, likeType: 'like' | 'dislike') => {
+  const handleLike = (postId: string, likeType: 'like' | 'dislike') => {
     if (!user) {
       toast.error('Please sign in to like posts');
       return;
     }
-
-    try {
-      const existingLike = userLikes[postId];
-      
-      if (existingLike) {
-        // Remove existing like
-        await supabase
-          .from('post_likes')
-          .delete()
-          .eq('post_id', postId)
-          .eq('user_id', user.id);
-      }
-
-      if (existingLike !== likeType) {
-        // Add new like
-        await supabase
-          .from('post_likes')
-          .insert({
-            post_id: postId,
-            user_id: user.id,
-            like_type: likeType
-          });
-      }
-
-      // Reload likes
-      await loadPostLikesAndComments([postId]);
-    } catch (error) {
-      console.error('Error updating like:', error);
-      toast.error('Failed to update like');
-    }
+    likeMutation.mutate({ postId, likeType });
   };
 
   const handleComment = async (postId: string, parentCommentId: string | null = null) => {
@@ -262,7 +132,6 @@ const Community = () => {
         });
 
       setNewCommentContent(prev => ({ ...prev, [postId]: '' }));
-      await loadPostLikesAndComments([postId]); // Reload comments for the specific post
       toast.success('Comment added!');
     } catch (error) {
       console.error('Error adding comment:', error);
@@ -282,42 +151,28 @@ const Community = () => {
     }
 
     // Implement 15-minute cooldown for posting
-    if (user && Date.now() - lastPostTimeRef.current < 15 * 60 * 1000) { // 15 minutes in milliseconds
+    if (user && Date.now() - lastPostTimeRef.current < 15 * 60 * 1000) {
       toast.error('Please wait 15 minutes before making another post.');
       return;
     }
 
     try {
       const imageUrls = await uploadSelectedImages();
-      // If user selected images but none uploaded and there's no text, block
       if (selectedImages.length > 0 && imageUrls.length === 0 && !newPost.content.trim()) {
         toast.error('Image upload failed');
         return;
       }
 
-      const insertData: any = {
+      await createPostMutation.mutateAsync({
         content: newPost.content,
-        user_id: user.id,
-      };
-      if (imageUrls.length > 0) {
-        insertData.image_urls = imageUrls;
-      }
+        imageUrls
+      });
 
-      let { error } = await supabase
-        .from('posts')
-        .insert(insertData);
-
-      if (error) throw error;
-
-      toast.success('Post created successfully!');
-      lastPostTimeRef.current = Date.now(); // Update last post time on successful post
+      lastPostTimeRef.current = Date.now();
       setNewPost({ content: '' });
       setSelectedImages([]);
-      loadPosts();
     } catch (error: any) {
       console.error('Error creating post:', error);
-      const message = error?.message || 'Failed to create post';
-      toast.error(message);
     }
   };
 
@@ -353,7 +208,7 @@ const Community = () => {
       setEditingPost(null);
       setEditContent('');
       toast.success('Post updated successfully!');
-      loadPosts();
+      refetchPosts();
     } catch (error: any) {
       console.error('Error updating post:', error);
       toast.error('Failed to update post');
@@ -380,7 +235,7 @@ const Community = () => {
       if (error) throw error;
 
       toast.success('Post deleted successfully!');
-      loadPosts();
+      refetchPosts();
     } catch (error: any) {
       console.error('Error deleting post:', error);
       toast.error('Failed to delete post');
@@ -410,7 +265,7 @@ const Community = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <MobileHeader onRefresh={loadPosts} />
+      <MobileHeader onRefresh={() => void refetchPosts()} />
       
       <main className="px-4 py-6 space-y-6">
         <div className="space-y-6">
@@ -656,7 +511,10 @@ const Community = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => openCommentsSheet(post.id)}
+                        onClick={() => {
+                          prefetchPost(post.id);
+                          openCommentsSheet(post.id);
+                        }}
                         className="flex items-center space-x-1 text-muted-foreground"
                       >
                         <MessageCircle className="h-4 w-4" />
