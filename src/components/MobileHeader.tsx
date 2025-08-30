@@ -11,9 +11,10 @@ import { useNavigate } from 'react-router-dom';
 interface MobileHeaderProps {
   showSearch?: boolean;
   onRefresh?: () => Promise<void> | void;
+  isPremium?: boolean; // Add isPremium prop
 }
 
-const MobileHeader = ({ showSearch = true, onRefresh }: MobileHeaderProps) => {
+const MobileHeader = ({ showSearch = true, onRefresh, isPremium }: MobileHeaderProps) => {
   const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -67,6 +68,7 @@ const MobileHeader = ({ showSearch = true, onRefresh }: MobileHeaderProps) => {
     <header className="bg-gradient-header p-6 pb-8 rounded-b-3xl shadow-card">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
+          
           <Avatar 
             className="h-14 w-14 ring-2 ring-white/20 cursor-pointer"
             onClick={() => navigate("/profile")} // Make avatar clickable
@@ -85,6 +87,17 @@ const MobileHeader = ({ showSearch = true, onRefresh }: MobileHeaderProps) => {
         </div>
         
         <div className="flex items-center space-x-2">
+          {/* Upgrade Button - Top Right */}
+          {user && !isPremium && (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="rounded-full bg-yellow-500 text-white hover:bg-yellow-600 transition-colors"
+              onClick={() => navigate('/premium')}
+            >
+              Upgrade
+            </Button>
+          )}
           {onRefresh && (
             <Button 
               variant="ghost" 

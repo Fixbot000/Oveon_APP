@@ -9,3 +9,16 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // import { supabase } from "@/integrations/supabase/client";
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+export const updatePremiumUiEnabled = async (userId: string, premiumUiEnabled: boolean) => {
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({ premiumUiEnabled })
+    .eq('id', userId);
+
+  if (error) {
+    console.error('Error updating premium UI enabled status:', error);
+    throw error;
+  }
+  return data;
+};

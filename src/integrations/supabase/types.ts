@@ -569,6 +569,10 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           id?: string
+          isPremium?: boolean
+          premiumUiEnabled?: boolean
+          remainingScans?: number
+          lastScanReset?: string | null
           username: string
         }
         Update: {
@@ -576,6 +580,10 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           id?: string
+          isPremium?: boolean
+          premiumUiEnabled?: boolean
+          remainingScans?: number
+          lastScanReset?: string | null
           username?: string
         }
         Relationships: []

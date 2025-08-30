@@ -7,17 +7,20 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
-import { Upload, User, FileText, Wrench, Calendar, Sun, Moon, LogOut, HelpCircle } from 'lucide-react';
+import { Upload, User, FileText, Wrench, Calendar, Sun, Moon, LogOut, HelpCircle, Star } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import MobileHeader from "@/components/MobileHeader";
 import BottomNavigation from "@/components/BottomNavigation";
+import { useNavigate } from 'react-router-dom';
 
 interface Profile {
   id: string;
   username: string;
   avatar_url?: string;
+  isPremium?: boolean;
+  premiumUiEnabled?: boolean;
 }
 
 interface DiagnosticSession {
@@ -38,6 +41,7 @@ const Profile = () => {
   const [uploading, setUploading] = useState(false);
   const [diagnosticSessions, setDiagnosticSessions] = useState<DiagnosticSession[]>([]);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (user) {
@@ -76,7 +80,7 @@ const Profile = () => {
           throw error;
         }
       } else {
-        setProfile(data);
+        setProfile(data as Profile); // Cast data to Profile
         setUsername(data.username);
       }
 
@@ -104,7 +108,9 @@ const Profile = () => {
     try {
       const newProfile = {
         id: user.id,
-        username: user.email?.split('@')[0] || 'user'
+        username: user.email?.split('@')[0] || 'user',
+        isPremium: false,
+        premiumUiEnabled: false,
       };
 
       const { error } = await supabase
@@ -199,6 +205,28 @@ const Profile = () => {
     }
   };
 
+  const handleTogglePremiumUi = async (checked: boolean) => {
+    if (!user || !profile) return;
+
+    setUpdating(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ premiumUiEnabled: checked })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setProfile(prev => prev ? { ...prev, premiumUiEnabled: checked } : null);
+      toast.success('Premium UI settings updated!');
+    } catch (error: any) {
+      console.error('Error updating premium UI settings:', error);
+      toast.error('Failed to update premium UI settings');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background pb-20">
@@ -279,12 +307,15 @@ const Profile = () => {
             {/* Username Section */}
             <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
-              <Input
-                id="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter your username"
-              />
+              <div className="flex items-center gap-2">
+                <Input
+                  id="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Enter your username"
+                />
+                {profile?.isPremium && <Badge className="bg-yellow-500 text-white">Premium</Badge>}
+              </div>
             </div>
 
             {/* Email Display */}
@@ -296,6 +327,22 @@ const Profile = () => {
                 className="bg-muted"
               />
             </div>
+
+            {profile?.isPremium && (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Star className="h-5 w-5 text-yellow-500" />
+                  <div>
+                    <p className="font-medium">Premium UI</p>
+                    <p className="text-sm text-muted-foreground">Golden finish for premium experience</p>
+                  </div>
+                </div>
+                <Switch
+                  checked={profile?.premiumUiEnabled}
+                  onCheckedChange={handleTogglePremiumUi}
+                />
+              </div>
+            )}
 
             <Button 
               onClick={updateProfile} 
@@ -333,6 +380,15 @@ const Profile = () => {
                   <HelpCircle className="h-5 w-5 text-muted-foreground" />
                   <span className="font-medium">Help</span>
                 </button>
+                {!profile?.isPremium && (
+                  <button
+                    className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-muted text-left text-yellow-600"
+                    onClick={() => navigate('/premium')}
+                  >
+                    <Star className="h-5 w-5" />
+                    <span className="font-medium">Go Premium (₹249/month)</span>
+                  </button>
+                )}
                 <button
                   className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-muted text-left"
                   onClick={() => (window.location.href = '/terms')}

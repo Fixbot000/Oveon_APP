@@ -1,5 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.42.0";
+import { checkPremiumAndScans } from "../helpers.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': 'https://lovable.dev, https://lovable.app',
@@ -8,25 +10,29 @@ const corsHeaders = {
 
 // Rate limiting helper
 async function checkRateLimit(userId: string, functionName: string): Promise<boolean> {
+  const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  if (!supabaseServiceRoleKey || !supabaseUrl) {
+    console.error("Supabase URL or key not found for rate limit check.");
+    return true; // Allow on error
+  }
+  const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+
   // Get current hour window
   const now = new Date();
   const windowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours());
   
   // Check/update usage
-  const { data, error } = await fetch(`${Deno.env.get('SUPABASE_URL')}/rest/v1/function_usage`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'resolution=merge-duplicates'
-    },
-    body: JSON.stringify({
+  const { data, error } = await supabase
+    .from('function_usage')
+    .upsert({
       user_id: userId,
       function_name: functionName,
       window_start: windowStart.toISOString(),
       count: 1
-    })
-  });
+    }, { onConflict: 'user_id,function_name,window_start' })
+    .select('count')
+    .single();
 
   if (error) {
     console.error('Rate limit check error:', error);
@@ -34,18 +40,7 @@ async function checkRateLimit(userId: string, functionName: string): Promise<boo
   }
 
   // Check if under limit (100 calls per hour)
-  const usageCheck = await fetch(`${Deno.env.get('SUPABASE_URL')}/rest/v1/function_usage?user_id=eq.${userId}&function_name=eq.${functionName}&window_start=eq.${windowStart.toISOString()}`, {
-    headers: {
-      'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-    }
-  });
-
-  if (usageCheck.ok) {
-    const usage = await usageCheck.json();
-    return usage[0]?.count <= 100;
-  }
-
-  return true; // Allow on error
+  return data?.count <= 100;
 }
 
 interface RequestBody {
@@ -93,7 +88,26 @@ serve(async (req) => {
     const payload = JSON.parse(atob(token.split('.')[1]));
     const userId = payload.sub;
 
-    // Rate limiting
+    // Premium feature check
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
+      throw new Error("Supabase URL or service role key not found");
+    }
+
+    const { allowed, error: premiumError } = await checkPremiumAndScans(userId, supabaseServiceRoleKey, supabaseUrl);
+    if (!allowed) {
+      return new Response(JSON.stringify({ 
+        error: premiumError || 'Premium feature check failed.',
+        success: false 
+      }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Rate limiting (still apply a general rate limit for premium users to prevent abuse, or remove if truly unlimited)
     const withinLimit = await checkRateLimit(userId, 'ai-helper');
     if (!withinLimit) {
       return new Response(JSON.stringify({ 

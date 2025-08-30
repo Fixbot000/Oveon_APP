@@ -7,6 +7,8 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  isPremium: boolean;
+  premiumUiEnabled: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,22 +21,53 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isPremium, setIsPremium] = useState(false);
+  const [premiumUiEnabled, setPremiumUiEnabled] = useState(false);
 
   useEffect(() => {
-    // Set up auth state listener
+    const fetchUserProfile = async (userId: string) => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('isPremium, premiumUiEnabled')
+          .eq('id', userId)
+          .single();
+
+        if (error) throw error;
+        
+        setIsPremium(data?.isPremium || false);
+        setPremiumUiEnabled(data?.premiumUiEnabled || false);
+      } catch (error) {
+        console.error("Error fetching user profile in AuthProvider:", error);
+        setIsPremium(false);
+        setPremiumUiEnabled(false);
+      }
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        if (session?.user) {
+          fetchUserProfile(session.user.id);
+        } else {
+          setIsPremium(false);
+          setPremiumUiEnabled(false);
+        }
       }
     );
 
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      if (session?.user) {
+        fetchUserProfile(session.user.id);
+      } else {
+        setIsPremium(false);
+        setPremiumUiEnabled(false);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -42,13 +75,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    setIsPremium(false);
+    setPremiumUiEnabled(false);
   };
 
   const value = {
     user,
     session,
     loading,
-    signOut
+    signOut,
+    isPremium,
+    premiumUiEnabled,
   };
 
   return (

@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isPremium } = useAuth();
   const [tips, setTips] = useState<Tip[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedTip, setSelectedTip] = useState<Tip | null>(null);
@@ -42,7 +42,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <MobileHeader onRefresh={loadTips} />
+      <MobileHeader onRefresh={loadTips} isPremium={isPremium} />
       
       <main className="px-4 py-6 space-y-8">
         {/* Auth Section */}
@@ -53,6 +53,7 @@ const Index = () => {
             </Button>
           </div>
         )}
+
         {/* Welcome Banner */}
         <Card className="bg-card shadow-card border-border">
           <CardContent className="p-6 text-center">
@@ -103,14 +104,17 @@ const Index = () => {
         <div>
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-xl font-bold text-foreground">Tips & Tricks</h3>
-            <Button 
-              variant="ghost" 
-              className="text-primary hover:bg-primary/10 transition-colors"
-              onClick={loadTips}
-              disabled={loading}
-            >
-              {loading ? 'Generating...' : 'Refresh Tips'}
-            </Button>
+            <div className="flex items-center gap-2">
+              
+              <Button 
+                variant="ghost" 
+                className="text-primary hover:bg-primary/10 transition-colors"
+                onClick={loadTips}
+                disabled={loading}
+              >
+                {loading ? 'Generating...' : 'Refresh Tips'}
+              </Button>
+            </div>
           </div>
           
           {tips.length === 0 && !loading ? (

@@ -1,5 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.42.0";
+import { checkPremiumAndScans } from "../helpers.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,6 +15,40 @@ serve(async (req) => {
   }
 
   try {
+    // Get user from JWT (now required since verify_jwt = true)
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({
+        error: 'Authorization required',
+        success: false
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const token = authHeader.replace('Bearer ', '');
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const userId = payload.sub;
+
+    // Premium feature check (for chat function, assume it's a 'scan' equivalent)
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
+      throw new Error("Supabase URL or service role key not found");
+    }
+
+    const { allowed, error: premiumError } = await checkPremiumAndScans(userId, supabaseServiceRoleKey, supabaseUrl);
+    if (!allowed) {
+      return new Response(JSON.stringify({ 
+        error: premiumError || 'Premium feature check failed.',
+        success: false 
+      }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const { message, conversationHistory } = await req.json();
     
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
@@ -24,33 +60,33 @@ serve(async (req) => {
     const systemMessage = {
       role: "system",
       content: `You are a friendly and knowledgeable Repair Assistant AI. Your personality is:
-
-🔧 **Expert & Helpful**: You have extensive knowledge about repairing electronics, appliances, and devices
-😊 **Friendly & Encouraging**: You use a warm, supportive tone and include relevant emojis
-🎯 **Solution-Focused**: You provide practical, step-by-step repair guidance
-⚠️ **Safety-Conscious**: You always prioritize user safety and mention when to seek professional help
-
-**Your Approach:**
-- Greet users warmly and show enthusiasm for helping with repairs
-- Ask clarifying questions when needed to better understand the issue
-- Provide clear, actionable repair steps with safety warnings
-- Suggest when professional repair might be needed
-- Offer cost estimates when relevant
-- Include helpful tips and preventive maintenance advice
-- Use emojis naturally to make conversations engaging
-
-**Topics you excel at:**
-- Smartphones, tablets, laptops
-- Home appliances
-- Gaming consoles
-- Audio/video equipment
-- Basic electrical troubleshooting
-- Component identification
-- Tool recommendations
-
-Always be encouraging and remind users that many repairs are manageable with the right guidance!`
+    
+    🔧 **Expert & Helpful**: You have extensive knowledge about repairing electronics, appliances, and devices
+    😊 **Friendly & Encouraging**: You use a warm, supportive tone and include relevant emojis
+    🎯 **Solution-Focused**: You provide practical, step-by-step repair guidance
+    ⚠️ **Safety-Conscious**: You always prioritize user safety and mention when to seek professional help
+    
+    **Your Approach:**
+    - Greet users warmly and show enthusiasm for helping with repairs
+    - Ask clarifying questions when needed to better understand the issue
+    - Provide clear, actionable repair steps with safety warnings
+    - Suggest when professional repair might be needed
+    - Offer cost estimates when relevant
+    - Include helpful tips and preventive maintenance advice
+    - Use emojis naturally to make conversations engaging
+    
+    **Topics you excel at:**
+    - Smartphones, tablets, laptops
+    - Home appliances
+    - Gaming consoles
+    - Audio/video equipment
+    - Basic electrical troubleshooting
+    - Component identification
+    - Tool recommendations
+    
+    Always be encouraging and remind users that many repairs are manageable with the right guidance!`
     };
-
+    
     // Prepare messages array
     const messages = [systemMessage];
     

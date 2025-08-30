@@ -93,6 +93,84 @@ All colors MUST be HSL.
     --sidebar-border: 240 15% 25%;
     --sidebar-ring: 230 80% 60%;
   }
+
+  .premium-ui {
+    --background: 40 100% 95%; /* Light golden background */
+    --foreground: 30 10% 20%; /* Darker golden text */
+
+    --card: 50 100% 98%; /* Lighter golden cards */
+    --card-foreground: 30 10% 20%;
+
+    --popover: 50 100% 98%;
+    --popover-foreground: 30 10% 20%;
+
+    --primary: 40 100% 50%; /* Golden primary color */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 40 100% 85%; /* Muted golden secondary */
+    --secondary-foreground: 30 10% 20%;
+
+    --muted: 40 100% 90%;
+    --muted-foreground: 30 10% 40%;
+
+    --accent: 40 100% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 40 100% 80%;
+    --input: 40 100% 80%;
+    --ring: 40 100% 50%;
+
+    --sidebar-background: 50 100% 98%;
+    --sidebar-foreground: 30 10% 40%;
+    --sidebar-primary: 40 100% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 40 100% 85%;
+    --sidebar-accent-foreground: 30 10% 20%;
+    --sidebar-border: 40 100% 80%;
+    --sidebar-ring: 40 100% 50%;
+  }
+
+  .dark.premium-ui {
+    --background: 30 20% 15%; /* Darker golden background */
+    --foreground: 50 100% 90%; /* Lighter golden text */
+
+    --card: 30 15% 20%;
+    --card-foreground: 50 100% 90%;
+
+    --popover: 30 15% 20%;
+    --popover-foreground: 50 100% 90%;
+
+    --primary: 40 100% 60%;
+    --primary-foreground: 30 20% 15%;
+
+    --secondary: 30 15% 30%;
+    --secondary-foreground: 50 100% 90%;
+
+    --muted: 30 15% 30%;
+    --muted-foreground: 50 10% 60%;
+
+    --accent: 40 100% 70%;
+    --accent-foreground: 30 20% 15%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 30 15% 35%;
+    --input: 30 15% 35%;
+    --ring: 40 100% 60%;
+
+    --sidebar-background: 30 15% 20%;
+    --sidebar-foreground: 50 10% 60%;
+    --sidebar-primary: 40 100% 60%;
+    --sidebar-primary-foreground: 30 20% 15%;
+    --sidebar-accent: 30 15% 30%;
+    --sidebar-accent-foreground: 50 100% 90%;
+    --sidebar-border: 30 15% 35%;
+    --sidebar-ring: 40 100% 60%;
+  }
 }
 
 @layer base {
