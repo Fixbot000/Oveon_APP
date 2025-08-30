@@ -7,6 +7,7 @@ interface Profile {
   id: string;
   username: string;
   avatar_url?: string;
+  email?: string;
 }
 
 interface PostsState {
@@ -58,37 +59,45 @@ export const useAppStore = create<PostsState & PostsActions>()(
         set({ loading: true, error: null });
 
         try {
-          // Fetch posts
+          // Fetch posts with profiles using foreign key relationship
           const { data: postsData, error: postsError } = await supabase
             .from('posts')
-            .select('*')
+            .select(`
+              *,
+              profiles (
+                id,
+                username,
+                avatar_url,
+                email
+              )
+            `)
             .order('created_at', { ascending: false });
 
           if (postsError) throw postsError;
 
-          // Fetch profiles
-          const userIds = [...new Set(postsData?.map(p => p.user_id) || [])];
-          const { data: profilesData, error: profilesError } = await supabase
-            .from('profiles')
-            .select('id, username, avatar_url')
-            .in('id', userIds);
-
-          if (profilesError) throw profilesError;
-
-          // Create profiles map
+          // Posts already include profiles from the foreign key relationship
+          const postsWithProfiles = postsData || [];
+          
+          // Transform posts to match Post interface and create profiles map
           const profilesMap: Record<string, Profile> = {};
-          profilesData?.forEach(profile => {
-            profilesMap[profile.id] = profile;
-          });
-
-          // Map profiles to posts
-          const postsWithProfiles = postsData?.map(post => ({
-            ...post,
-            profiles: profilesMap[post.user_id]
-          })) || [];
+          const transformedPosts = postsData?.map(post => {
+            let profileData = null;
+            const profilesFromQuery = post.profiles as any;
+            if (profilesFromQuery && !Array.isArray(profilesFromQuery)) {
+              profileData = {
+                username: profilesFromQuery.username,
+                avatar_url: profilesFromQuery.avatar_url
+              };
+              profilesMap[profilesFromQuery.id] = profilesFromQuery;
+            }
+            return {
+              ...post,
+              profiles: profileData
+            };
+          }) || [];
 
           // Fetch likes
-          const postIds = postsWithProfiles.map(p => p.id);
+          const postIds = transformedPosts.map(p => p.id);
           const { data: likesData, error: likesError } = await supabase
             .from('post_likes')
             .select('post_id, like_type, user_id')
@@ -108,10 +117,18 @@ export const useAppStore = create<PostsState & PostsActions>()(
             }
           });
 
-          // Fetch comments
+          // Fetch comments with profiles using foreign key relationship
           const { data: commentsData, error: commentsError } = await supabase
             .from('post_comments')
-            .select('*, profiles(username, avatar_url)')
+            .select(`
+              *,
+              profiles (
+                id,
+                username, 
+                avatar_url,
+                email
+              )
+            `)
             .in('post_id', postIds)
             .order('created_at', { ascending: true });
 
@@ -129,7 +146,7 @@ export const useAppStore = create<PostsState & PostsActions>()(
           });
 
           set({
-            posts: postsWithProfiles,
+            posts: transformedPosts,
             profiles: profilesMap,
             postLikes: likeCounts,
             userLikes: userLikeTypes,

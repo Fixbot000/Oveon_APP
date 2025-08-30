@@ -48,16 +48,16 @@ export const useGlobalData = () => {
         },
         async (payload) => {
           const newPost = payload.new as any;
-          // Fetch the profile for the new post
+          // Fetch the profile for the new post using foreign key relationship
           const { data: profile } = await supabase
             .from('profiles')
-            .select('username, avatar_url')
+            .select('id, username, avatar_url, email')
             .eq('id', newPost.user_id)
             .single();
           
           addPost({
             ...newPost,
-            profiles: profile || { username: 'Anonymous', avatar_url: null }
+            profiles: profile ? { username: profile.username, avatar_url: profile.avatar_url } : { username: 'Anonymous', avatar_url: null }
           });
         }
       )
@@ -127,16 +127,16 @@ export const useGlobalData = () => {
         },
         async (payload) => {
           const newComment = payload.new as any;
-          // Fetch the profile for the new comment
+          // Fetch the profile for the new comment using foreign key relationship
           const { data: profile } = await supabase
             .from('profiles')
-            .select('username, avatar_url')
+            .select('id, username, avatar_url, email')
             .eq('id', newComment.user_id)
             .single();
           
           addComment({
             ...newComment,
-            profiles: profile || { username: 'Anonymous', avatar_url: null }
+            profiles: profile ? { username: profile.username, avatar_url: profile.avatar_url } : { username: 'Anonymous', avatar_url: null }
           });
         }
       )
