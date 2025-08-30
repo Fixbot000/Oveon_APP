@@ -614,6 +614,8 @@ const Community = () => {
           )}
         </SheetContent>
       </Sheet>
+      
+      <BottomNavigation />
       </div>
     </PullToRefresh>
   );
