@@ -15,6 +15,7 @@ import Profile from "./pages/Profile";
 import NotFound from "././pages/NotFound";
 import OnboardingTutorial from "@/components/OnboardingTutorial";
 import { useEffect } from "react";
+import History from "./pages/History";
 import Premium from "./pages/Premium";
 
 const queryClient = new QueryClient();
@@ -49,7 +50,7 @@ const AppContent = () => {
           } />
           <Route path="/history" element={
             <AuthGuard>
-              <Profile />
+              <History />
             </AuthGuard>
           } />
           <Route path="/profile" element={
