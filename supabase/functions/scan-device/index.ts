@@ -49,7 +49,7 @@ serve(async (req) => {
     // Check user profile and scan limits
     const { data: userProfile, error: profileError } = await supabase
       .from('profiles')
-      .select('isPremium, remainingScans, lastScanReset')
+      .select('ispremium, remainingscans, lastscanreset')
       .eq('id', userId)
       .single();
 
@@ -64,25 +64,25 @@ serve(async (req) => {
       });
     }
 
-    let { isPremium, remainingScans, lastScanReset } = userProfile;
+    let { ispremium, remainingscans, lastscanreset } = userProfile;
 
     // Check and reset scan limits for free users
-    if (!isPremium) {
+    if (!ispremium) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const lastResetDate = lastScanReset ? new Date(lastScanReset) : null;
+      const lastResetDate = lastscanreset ? new Date(lastscanreset) : null;
 
       if (!lastResetDate || lastResetDate.toDateString() !== today.toDateString()) {
-        remainingScans = 3;
-        lastScanReset = today.toISOString().split('T')[0];
+        remainingscans = 3;
+        lastscanreset = today.toISOString().split('T')[0];
 
         await supabase
           .from('profiles')
-          .update({ remainingScans, lastScanReset })
+          .update({ remainingscans, lastscanreset })
           .eq('id', userId);
       }
 
-      if (remainingScans <= 0) {
+      if (remainingscans <= 0) {
         return new Response(JSON.stringify({
           success: false,
           error: 'Daily scan limit exceeded. Please upgrade to premium for unlimited scans.'
@@ -171,17 +171,18 @@ Format:
     }
 
     // Decrement scan count for free users
-    if (!isPremium) {
+    if (!ispremium) {
       await supabase
         .from('profiles')
-        .update({ remainingScans: remainingScans - 1 })
+        .update({ remainingscans: remainingscans - 1 })
         .eq('id', userId);
     }
 
     return new Response(JSON.stringify({
       success: true,
-      result: result,
-      remainingScans: isPremium ? null : remainingScans - 1
+      analysis: result,
+      deviceName: deviceName || 'Unknown Device',
+      remainingScans: ispremium ? null : remainingscans - 1
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

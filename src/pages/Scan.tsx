@@ -106,7 +106,7 @@ const Scan = () => {
       }
 
       if (data.success) {
-        setAnalysisResult(data.result);
+        setAnalysisResult(data.analysis);
         if (!isPremium && data.remainingScans !== undefined) {
           setRemainingScans(data.remainingScans);
         }
