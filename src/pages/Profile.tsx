@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
-import { Upload, User, FileText, Wrench, Calendar, Sun, Moon, LogOut, HelpCircle, Star } from 'lucide-react';
+import { Upload, User, FileText, Wrench, Calendar, Sun, Moon, LogOut, HelpCircle, Star, Clock } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -19,8 +19,8 @@ interface Profile {
   id: string;
   username: string;
   avatar_url?: string;
-  isPremium?: boolean;
-  premiumUiEnabled?: boolean;
+  ispremium?: boolean;
+  premiumuienabled?: boolean;
 }
 
 interface DiagnosticSession {
@@ -109,8 +109,8 @@ const Profile = () => {
       const newProfile = {
         id: user.id,
         username: user.email?.split('@')[0] || 'user',
-        isPremium: false,
-        premiumUiEnabled: false,
+        ispremium: false,
+        premiumuienabled: false,
       };
 
       const { error } = await supabase
@@ -212,12 +212,12 @@ const Profile = () => {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ premiumUiEnabled: checked })
+        .update({ premiumuienabled: checked })
         .eq('id', user.id);
 
       if (error) throw error;
 
-      setProfile(prev => prev ? { ...prev, premiumUiEnabled: checked } : null);
+      setProfile(prev => prev ? { ...prev, premiumuienabled: checked } : null);
       toast.success('Premium UI settings updated!');
     } catch (error: any) {
       console.error('Error updating premium UI settings:', error);
@@ -314,7 +314,7 @@ const Profile = () => {
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="Enter your username"
                 />
-                {profile?.isPremium && <Badge className="bg-yellow-500 text-white">Premium</Badge>}
+                {profile?.ispremium && <Badge className="bg-yellow-500 text-white">Premium</Badge>}
               </div>
             </div>
 
@@ -328,7 +328,7 @@ const Profile = () => {
               />
             </div>
 
-            {profile?.isPremium && (
+            {profile?.ispremium && (
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Star className="h-5 w-5 text-yellow-500" />
@@ -338,7 +338,7 @@ const Profile = () => {
                   </div>
                 </div>
                 <Switch
-                  checked={profile?.premiumUiEnabled}
+                  checked={profile?.premiumuienabled}
                   onCheckedChange={handleTogglePremiumUi}
                 />
               </div>
@@ -380,7 +380,14 @@ const Profile = () => {
                   <HelpCircle className="h-5 w-5 text-muted-foreground" />
                   <span className="font-medium">Help</span>
                 </button>
-                {!profile?.isPremium && (
+                <button
+                  className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-muted text-left"
+                  onClick={() => navigate('/history')}
+                >
+                  <Clock className="h-5 w-5 text-muted-foreground" />
+                  <span className="font-medium">Scan History</span>
+                </button>
+                {!profile?.ispremium && (
                   <button
                     className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-muted text-left text-yellow-600"
                     onClick={() => navigate('/premium')}

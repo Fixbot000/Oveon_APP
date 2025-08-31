@@ -13,7 +13,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 export const updatePremiumUiEnabled = async (userId: string, premiumUiEnabled: boolean) => {
   const { data, error } = await supabase
     .from('profiles')
-    .update({ premiumUiEnabled })
+    .update({ premiumuienabled: premiumUiEnabled })
     .eq('id', userId);
 
   if (error) {

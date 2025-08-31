@@ -29,14 +29,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('isPremium, premiumUiEnabled')
+          .select('ispremium, premiumuienabled')
           .eq('id', userId)
           .single();
 
         if (error) throw error;
         
-        setIsPremium(data?.isPremium || false);
-        setPremiumUiEnabled(data?.premiumUiEnabled || false);
+        setIsPremium(data?.ispremium || false);
+        setPremiumUiEnabled(data?.premiumuienabled || false);
       } catch (error) {
         console.error("Error fetching user profile in AuthProvider:", error);
         setIsPremium(false);

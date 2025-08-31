@@ -562,6 +562,10 @@ export type Database = {
           created_at: string | null
           email: string | null
           id: string
+          ispremium: boolean | null
+          lastscanreset: string | null
+          premiumuienabled: boolean | null
+          remainingscans: number | null
           username: string
         }
         Insert: {
@@ -569,10 +573,10 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           id?: string
-          isPremium?: boolean
-          premiumUiEnabled?: boolean
-          remainingScans?: number
-          lastScanReset?: string | null
+          ispremium?: boolean | null
+          lastscanreset?: string | null
+          premiumuienabled?: boolean | null
+          remainingscans?: number | null
           username: string
         }
         Update: {
@@ -580,10 +584,10 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           id?: string
-          isPremium?: boolean
-          premiumUiEnabled?: boolean
-          remainingScans?: number
-          lastScanReset?: string | null
+          ispremium?: boolean | null
+          lastscanreset?: string | null
+          premiumuienabled?: boolean | null
+          remainingscans?: number | null
           username?: string
         }
         Relationships: []
@@ -623,6 +627,41 @@ export type Database = {
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scans: {
+        Row: {
+          created_at: string
+          device_name: string
+          id: string
+          result: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_name: string
+          id?: string
+          result: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_name?: string
+          id?: string
+          result?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scans_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

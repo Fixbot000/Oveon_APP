@@ -1,271 +1,175 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Clock, FileText, Calendar, ChevronRight } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import MobileHeader from '@/components/MobileHeader';
 import BottomNavigation from '@/components/BottomNavigation';
-import { formatDistanceToNow } from 'date-fns';
-import { toast } from 'sonner';
-import { ChevronDown, ChevronUp } from 'lucide-react';
-import { ImageWithSignedUrl } from '@/components/ImageWithSignedUrl';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 
-interface Post {
+interface Scan {
   id: string;
-  title: string | null;
-  content: string | null;
-  image_urls: string[] | null;
+  device_name: string;
+  result: string;
   created_at: string;
-  user_id: string;
-  profiles?: {
-    username: string;
-    avatar_url: string | null;
-  };
-}
-
-interface DiagnosticSession {
-  id: string;
-  created_at: string;
-  device_category: string | null;
-  symptoms_text: string | null;
-  ai_analysis: any | null; // Adjust this type as per your JSONB structure
-  repair_guidance: any | null; // Adjust this type as per your JSONB structure
-  image_urls: string[] | null;
-  user_id: string;
+  updated_at: string;
 }
 
 const History = () => {
   const { user } = useAuth();
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [diagnosticSessions, setDiagnosticSessions] = useState<DiagnosticSession[]>([]);
+  const navigate = useNavigate();
+  const [scans, setScans] = useState<Scan[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [openSessions, setOpenSessions] = useState<Set<string>>(new Set());
+  const [selectedScan, setSelectedScan] = useState<Scan | null>(null);
 
   useEffect(() => {
-    if (!user) {
-      setLoading(false);
-      setError('Please log in to view your history.');
-      return;
+    if (user) {
+      fetchScans();
+    } else {
+      navigate('/auth');
     }
+  }, [user, navigate]);
 
-    const fetchHistory = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+  const fetchScans = async () => {
+    if (!user) return;
 
-        // Fetch user's posts without join to avoid relation issues
-        const { data: postsData, error: postsError } = await supabase
-          .from('posts')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('scans')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false });
 
-        if (postsError) throw postsError;
-        
-        // Get user profile separately
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('username, avatar_url')
-          .eq('id', user.id)
-          .single();
-
-        setPosts((postsData || []).map(post => ({ 
-          ...post, 
-          title: post.content?.substring(0, 50) + '...' || 'Untitled Post',
-          profiles: profileData || { username: 'Unknown User', avatar_url: null }
-        })) as Post[]);
-
-        // Fetch diagnostic sessions
-        const { data: sessionsData, error: sessionsError } = await supabase
-          .from('diagnostic_sessions')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
-
-        if (sessionsError) throw sessionsError;
-        setDiagnosticSessions(sessionsData as DiagnosticSession[] || []);
-
-      } catch (err: any) {
-        console.error('Error fetching history:', err);
-        setError('Failed to load history: ' + err.message);
-        toast.error('Failed to load history');
-      } finally {
-        setLoading(false);
+      if (error) {
+        console.error('Error fetching scans:', error);
+      } else {
+        setScans(data || []);
       }
-    };
+    } catch (error) {
+      console.error('Error fetching scans:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchHistory();
-  }, [user]);
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
-  if (loading) {
-    return (
-      <div className="flex flex-col min-h-screen bg-gray-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
-        <MobileHeader />
-        <main className="flex-1 overflow-y-auto p-4 pb-20">
-          <p>Loading history...</p>
-        </main>
-        <BottomNavigation />
-      </div>
-    );
-  }
+  const getResultPreview = (result: string) => {
+    const lines = result.split('\n').filter(line => line.trim());
+    const firstIssue = lines.find(line => line.includes('•') || line.includes('-'));
+    if (firstIssue) {
+      return firstIssue.replace(/[•-]\s*/, '').slice(0, 60) + '...';
+    }
+    return result.slice(0, 60) + '...';
+  };
 
-  if (error) {
-    return (
-      <div className="flex flex-col min-h-screen bg-gray-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
-        <MobileHeader />
-        <main className="flex-1 overflow-y-auto p-4 pb-20">
-          <p className="text-red-500">Error: {error}</p>
-        </main>
-        <BottomNavigation />
-      </div>
-    );
+  if (!user) {
+    return null;
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
-      <MobileHeader />
-      <main className="flex-1 overflow-y-auto p-4 pb-20">
-        <h2 className="text-2xl font-bold mb-4">My Posts</h2>
-        {posts.length === 0 ? (
-          <p className="text-zinc-600 dark:text-zinc-400">No posts found.</p>
-        ) : (
-          <div className="space-y-4">
-            {posts.map(post => (
-              <Card key={post.id} className="w-full max-w-2xl mx-auto">
-                <CardContent className="p-4">
-                  <div className="flex items-center space-x-2 mb-4">
-                    <Avatar>
-                      <AvatarFallback>
-                        {post.profiles?.username ? post.profiles.username[0].toUpperCase() : 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-semibold">{post.profiles?.username || 'Unknown User'}</p>
-                      <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                        {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
-                      </p>
-                    </div>
-                  </div>
-                  {post.title && <h3 className="text-lg font-semibold mb-2">{post.title}</h3>}
-                  {post.content && <p className="mb-4">{post.content}</p>}
-                  {post.image_urls && post.image_urls.length > 0 && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-4">
-                      {post.image_urls.map((url, index) => (
-                        <img
-                          key={index}
-                          src={url}
-                          alt={`Post image ${index + 1}`}
-                          className="w-full h-32 object-cover rounded-md"
-                        />
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-
-        <h2 className="text-2xl font-bold mb-4 mt-8">My Diagnostic Sessions</h2>
-        {diagnosticSessions.length === 0 ? (
-          <p className="text-zinc-600 dark:text-zinc-400">No diagnostic sessions found.</p>
-        ) : (
-          <div className="space-y-4">
-            {diagnosticSessions.map(session => {
-              const isOpen = openSessions.has(session.id);
-              return (
-                <Card key={session.id} className="w-full max-w-2xl mx-auto">
-                  <CardHeader className="pb-3">
+    <div className="min-h-screen bg-background pb-20">
+      <MobileHeader showSearch={false} onRefresh={() => window.location.reload()} />
+      
+      <main className="px-4 py-6">
+        <div className="max-w-2xl mx-auto">
+          <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
+            <Clock className="w-6 h-6" />
+            Scan History
+          </h1>
+          
+          {loading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardContent className="p-4">
+                    <div className="h-4 bg-muted rounded w-1/3 mb-2"></div>
+                    <div className="h-3 bg-muted rounded w-2/3"></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : scans.length === 0 ? (
+            <Card>
+              <CardHeader className="text-center">
+                <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <CardTitle>No scan history yet</CardTitle>
+                <CardDescription>
+                  Your device scans will appear here once you start using the scanner.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button 
+                  onClick={() => navigate('/scan')} 
+                  className="w-full"
+                >
+                  Start Your First Scan
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {scans.map((scan) => (
+                <Card 
+                  key={scan.id} 
+                  className="cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => setSelectedScan(scan)}
+                >
+                  <CardContent className="p-4">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="text-lg">Device: {session.device_category || 'N/A'}</CardTitle>
-                        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                          {formatDistanceToNow(new Date(session.created_at), { addSuffix: true })}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-semibold">{scan.device_name}</h3>
+                          <Badge variant="outline" className="text-xs">
+                            <Calendar className="w-3 h-3 mr-1" />
+                            {formatDate(scan.updated_at)}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {getResultPreview(scan.result)}
                         </p>
                       </div>
-                      <Collapsible 
-                        open={isOpen} 
-                        onOpenChange={(open) => {
-                          const newOpenSessions = new Set(openSessions);
-                          if (open) {
-                            newOpenSessions.add(session.id);
-                          } else {
-                            newOpenSessions.delete(session.id);
-                          }
-                          setOpenSessions(newOpenSessions);
-                        }}
-                      >
-                        <CollapsibleTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            {isOpen ? <ChevronUp /> : <ChevronDown />}
-                            {isOpen ? 'Hide Details' : 'View Details'}
-                          </Button>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent className="mt-4">
-                          <CardContent className="pt-0">
-                            {session.symptoms_text && (
-                              <div className="mb-4">
-                                <h4 className="font-semibold mb-2">Symptoms:</h4>
-                                <p className="text-sm bg-muted p-3 rounded-lg">{session.symptoms_text}</p>
-                              </div>
-                            )}
-                            
-                            {session.ai_analysis && (
-                              <div className="mb-4">
-                                <h4 className="font-semibold mb-2">AI Analysis:</h4>
-                                <div className="bg-muted p-3 rounded-lg">
-                                  {session.ai_analysis.problem && (
-                                    <div className="mb-3">
-                                      <h5 className="font-medium text-sm text-red-600 dark:text-red-400">Problem:</h5>
-                                      <p className="text-sm mt-1">{session.ai_analysis.problem}</p>
-                                    </div>
-                                  )}
-                                  {session.ai_analysis.reason && (
-                                    <div className="mb-3">
-                                      <h5 className="font-medium text-sm text-orange-600 dark:text-orange-400">Reason:</h5>
-                                      <p className="text-sm mt-1">{session.ai_analysis.reason}</p>
-                                    </div>
-                                  )}
-                                  {session.ai_analysis.finalSolution && (
-                                    <div>
-                                      <h5 className="font-medium text-sm text-green-600 dark:text-green-400">Solution:</h5>
-                                      <div className="text-sm mt-1 whitespace-pre-wrap">{session.ai_analysis.finalSolution}</div>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-
-                  {session.image_urls && session.image_urls.length > 0 && (
-                    <div>
-                      <h4 className="font-semibold mb-2">Images:</h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                        {session.image_urls.map((path, index) => (
-                          <ImageWithSignedUrl
-                            key={index}
-                            bucket="device-images"
-                            path={path}
-                            alt={`Diagnostic image ${index + 1}`}
-                            className="w-full h-32 object-cover rounded-md"
-                          />
-                        ))}
-                      </div>
+                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
                     </div>
-                  )}
-                          </CardContent>
-                        </CollapsibleContent>
-                      </Collapsible>
-                    </div>
-                  </CardHeader>
+                  </CardContent>
                 </Card>
-              );
-            })}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </main>
+
+      <Dialog open={!!selectedScan} onOpenChange={() => setSelectedScan(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              {selectedScan?.device_name}
+            </DialogTitle>
+            <DialogDescription>
+              Scanned on {selectedScan && formatDate(selectedScan.updated_at)}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4">
+            <div className="prose prose-sm max-w-none">
+              <div className="whitespace-pre-wrap">{selectedScan?.result}</div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <BottomNavigation />
     </div>
   );
