@@ -1,9 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.42.0";
 
 interface UserProfile {
-  isPremium: boolean;
-  remainingScans: number;
-  lastScanReset: string | null;
+  ispremium: boolean;
+  remainingscans: number;
+  lastscanreset: string | null;
 }
 
 export async function checkPremiumAndScans(userId: string, supabaseServiceRoleKey: string, supabaseUrl: string): Promise<{ allowed: boolean; error?: string }> {
@@ -11,7 +11,7 @@ export async function checkPremiumAndScans(userId: string, supabaseServiceRoleKe
 
   const { data: userProfile, error: profileError } = await supabase
     .from('profiles')
-    .select('isPremium, remainingScans, lastScanReset')
+    .select('ispremium, remainingscans, lastscanreset')
     .eq('id', userId)
     .single();
 
@@ -20,35 +20,35 @@ export async function checkPremiumAndScans(userId: string, supabaseServiceRoleKe
     return { allowed: false, error: 'Failed to retrieve user profile for scan check.' };
   }
 
-  let { isPremium, remainingScans, lastScanReset } = userProfile;
+  let { ispremium, remainingscans, lastscanreset } = userProfile;
 
-  if (isPremium) {
+  if (ispremium) {
     return { allowed: true }; // Premium users have unlimited scans
   }
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const lastResetDate = lastScanReset ? new Date(lastScanReset) : null;
+  const lastResetDate = lastscanreset ? new Date(lastscanreset) : null;
 
   if (!lastResetDate || lastResetDate.toDateString() < today.toDateString()) {
-    remainingScans = 3; // Reset scans daily
-    lastScanReset = today.toISOString().split('T')[0]; // Store as YYYY-MM-DD
+    remainingscans = 3; // Reset scans daily
+    lastscanreset = today.toISOString().split('T')[0]; // Store as YYYY-MM-DD
 
     await supabase
       .from('profiles')
-      .update({ remainingScans, lastScanReset })
+      .update({ remainingscans, lastscanreset })
       .eq('id', userId);
   }
 
-  if (remainingScans <= 0) {
+  if (remainingscans <= 0) {
     return { allowed: false, error: 'Scan limit exceeded. Please upgrade to premium for unlimited scans.' };
   }
 
   // Decrement scan count for free users
-  remainingScans--;
+  remainingscans--;
   await supabase
     .from('profiles')
-    .update({ remainingScans })
+    .update({ remainingscans })
     .eq('id', userId);
 
   return { allowed: true };
