@@ -1,10 +1,11 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Upload, Image, FileText, AlertCircle } from 'lucide-react';
+import { Camera, Upload, Image, FileText, AlertCircle, CheckCircle, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import MobileHeader from '@/components/MobileHeader';
 import BottomNavigation from '@/components/BottomNavigation';
@@ -12,17 +13,33 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 
+interface DiagnosticQuestion {
+  id: string;
+  question: string;
+  answer: string;
+}
+
+interface FinalDiagnosis {
+  problem: string;
+  reason: string;
+  solution: string[];
+  tools_required: string[];
+  estimated_cost: string;
+  tip: string;
+}
+
 const Scan = () => {
+  const [step, setStep] = useState(1);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [deviceName, setDeviceName] = useState('');
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<any | null>(null);
+  const [imageAnalysis, setImageAnalysis] = useState('');
+  const [userDescription, setUserDescription] = useState('');
+  const [descriptionAnalysis, setDescriptionAnalysis] = useState('');
+  const [diagnosticQuestions, setDiagnosticQuestions] = useState<DiagnosticQuestion[]>([]);
+  const [finalDiagnosis, setFinalDiagnosis] = useState<FinalDiagnosis | null>(null);
+  const [alternativeSolutions, setAlternativeSolutions] = useState<FinalDiagnosis[]>([]);
   const [remainingScans, setRemainingScans] = useState<number | null>(null);
-  const [step, setStep] = useState(1); // New state for current step
-  const [description, setDescription] = useState(''); // New state for detailed description
-  const [diagnosticQuestions, setDiagnosticQuestions] = useState<string[]>([]); // New state for diagnostic questions
-  const [questionAnswers, setQuestionAnswers] = useState<Record<string, string>>({}); // New state for question answers
-  const [finalReport, setFinalReport] = useState<any | null>(null); // New state for final report
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user, isPremium } = useAuth();
@@ -54,7 +71,7 @@ const Scan = () => {
     if (file) {
       if (file.type.startsWith('image/')) {
         setSelectedImage(file);
-        setAnalysisResult(null);
+        setImageAnalysis('');
       } else {
         toast({
           title: "Invalid file type",
@@ -74,7 +91,8 @@ const Scan = () => {
     });
   };
 
-  const handleScan = async () => {
+  // Step 1: Image & Device Analysis
+  const handleImageAnalysis = async () => {
     if (!selectedImage || !deviceName.trim()) {
       toast({
         title: "Missing information",
@@ -111,15 +129,14 @@ const Scan = () => {
       }
 
       if (data.success) {
-        // setAnalysisResult(data.analysis);
-        setAnalysisResult(JSON.stringify({ device_name: deviceName, image_analysis: data.analysis }, null, 2));
+        setImageAnalysis(data.analysis);
         setStep(2);
         if (!isPremium && data.remainingScans !== undefined) {
           setRemainingScans(data.remainingScans);
         }
         toast({
-          title: "Analysis complete",
-          description: "Your device has been analyzed successfully.",
+          title: "Image analysis complete",
+          description: "Device image has been analyzed successfully.",
         });
       } else {
         throw new Error(data.error || 'Analysis failed');
@@ -127,7 +144,7 @@ const Scan = () => {
     } catch (error: any) {
       console.error('Scan error:', error);
       toast({
-        title: "Scan failed",
+        title: "Analysis failed",
         description: error.message || 'Failed to analyze the image. Please try again.',
         variant: "destructive",
       });
@@ -136,94 +153,9 @@ const Scan = () => {
     }
   };
 
-  const handleNewScan = () => {
-    setSelectedImage(null);
-    setDeviceName('');
-    setAnalysisResult(null);
-    setStep(1); // Reset step to 1
-    setDescription(''); // Reset description
-    setDiagnosticQuestions([]); // Reset questions
-    setQuestionAnswers({}); // Reset answers
-    setFinalReport(null); // Reset final report
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const handleAnswerChange = (question: string, answer: string) => {
-    setQuestionAnswers(prev => ({ ...prev, [question]: answer }));
-  };
-
-  const handleSubmitQuestions = async () => {
-    if (!user) {
-      toast({
-        title: "Authentication required",
-        description: "Please sign in to submit diagnostic questions.",
-        variant: "destructive",
-      });
-      navigate('/auth');
-      return;
-    }
-
-    if (diagnosticQuestions.length > 0 && Object.values(questionAnswers).some(answer => !answer.trim() || answer.trim().toLowerCase() === 'skip')) {
-      toast({
-        title: "Missing answers",
-        description: "Please provide answers to all diagnostic questions or explicitly type 'skip'.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsAnalyzing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('gemini-generate-report', {
-        body: {
-          deviceName: deviceName,
-          imageAnalysis: analysisResult.image_analysis,
-          description: description,
-          questionAnswers: questionAnswers,
-          language: 'en' // Assuming English for now
-        },
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      if (data.report) {
-        setFinalReport(data.report);
-        setStep(4); // Move to Step 4: Final Report
-        toast({
-          title: "Report generated",
-          description: "The final repair report has been generated.",
-        });
-      } else {
-        throw new Error(data.error || 'Failed to generate report');
-      }
-    } catch (error: any) {
-      console.error('Report generation error:', error);
-      toast({
-        title: "Report generation failed",
-        description: error.message || 'Failed to generate report. Please try again.',
-        variant: "destructive",
-      });
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
+  // Step 2: Generate clarification questions
   const handleDescriptionSubmit = async () => {
-    if (!user) {
-      toast({
-        title: "Authentication required",
-        description: "Please sign in to submit a detailed description.",
-        variant: "destructive",
-      });
-      navigate('/auth');
-      return;
-    }
-
-    if (!description.trim()) {
+    if (!userDescription.trim()) {
       toast({
         title: "Missing description",
         description: "Please provide a detailed description of the issue.",
@@ -232,31 +164,35 @@ const Scan = () => {
       return;
     }
 
-    setIsAnalyzing(true); // Reuse isAnalyzing for this step
+    setIsAnalyzing(true);
     try {
       const { data, error } = await supabase.functions.invoke('gemini-analyze-description', {
         body: {
-          description: description.trim(),
-          previousAnalysis: analysisResult.image_analysis, // Pass the initial image analysis
+          description: userDescription.trim(),
+          previousAnalysis: imageAnalysis,
           questionAnswers: {},
-          language: 'en' // Assuming English for now, can be dynamic
-        },
+          language: 'en'
+        }
       });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       if (data.analysis && data.questions) {
-        setAnalysisResult(data.analysis); // Store the refined analysis
-        setDiagnosticQuestions(data.questions); // Store the diagnostic questions
-        setStep(3); // Move to Step 3: Diagnostic Questions
+        setDescriptionAnalysis(data.analysis);
+        // Generate at least 5 targeted questions
+        const questions = data.questions.slice(0, 5).map((q: string, index: number) => ({
+          id: `question_${index}`,
+          question: q,
+          answer: ''
+        }));
+        setDiagnosticQuestions(questions);
+        setStep(3);
         toast({
           title: "Description analyzed",
-          description: "Your description has been analyzed and diagnostic questions generated.",
+          description: "Diagnostic questions have been generated.",
         });
       } else {
-        throw new Error(data.error || 'Failed to refine description');
+        throw new Error(data.error || 'Failed to analyze description');
       }
     } catch (error: any) {
       console.error('Description analysis error:', error);
@@ -269,6 +205,116 @@ const Scan = () => {
       setIsAnalyzing(false);
     }
   };
+
+  // Step 3: Process answers and generate final diagnosis
+  const handleQuestionsSubmit = async () => {
+    setIsAnalyzing(true);
+    try {
+      const questionAnswers = diagnosticQuestions.reduce((acc, q) => {
+        if (q.answer.trim()) {
+          acc[q.question] = q.answer;
+        }
+        return acc;
+      }, {} as Record<string, string>);
+
+      const { data, error } = await supabase.functions.invoke('gemini-generate-report', {
+        body: {
+          deviceName,
+          imageAnalysis,
+          description: userDescription,
+          questionAnswers,
+          language: 'en'
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.report) {
+        setFinalDiagnosis(data.report);
+        setStep(4);
+        toast({
+          title: "Diagnosis complete",
+          description: "Final diagnosis and solution generated.",
+        });
+      } else {
+        throw new Error(data.error || 'Failed to generate diagnosis');
+      }
+    } catch (error: any) {
+      console.error('Final diagnosis error:', error);
+      toast({
+        title: "Diagnosis failed",
+        description: error.message || 'Failed to generate final diagnosis. Please try again.',
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  // Step 5: Generate alternative solutions
+  const handleGenerateAlternatives = async () => {
+    setIsAnalyzing(true);
+    try {
+      // For now, we'll create some mock alternative solutions
+      // In a real implementation, you'd call another AI function
+      const alternatives: FinalDiagnosis[] = [
+        {
+          problem: "Alternative issue #1",
+          reason: "Secondary possible cause",
+          solution: ["Alternative step 1", "Alternative step 2"],
+          tools_required: ["Tool A", "Tool B"],
+          estimated_cost: "Medium",
+          tip: "Alternative prevention tip"
+        },
+        {
+          problem: "Alternative issue #2", 
+          reason: "Third possible cause",
+          solution: ["Different step 1", "Different step 2"],
+          tools_required: ["Tool C", "Tool D"],
+          estimated_cost: "Low",
+          tip: "Different prevention tip"
+        }
+      ];
+      
+      setAlternativeSolutions(alternatives);
+      setStep(5);
+      toast({
+        title: "Alternative solutions generated",
+        description: "Additional possible solutions have been provided.",
+      });
+    } catch (error: any) {
+      console.error('Alternative solutions error:', error);
+      toast({
+        title: "Failed to generate alternatives",
+        description: error.message || 'Failed to generate alternative solutions.',
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleNewScan = () => {
+    setStep(1);
+    setSelectedImage(null);
+    setDeviceName('');
+    setImageAnalysis('');
+    setUserDescription('');
+    setDescriptionAnalysis('');
+    setDiagnosticQuestions([]);
+    setFinalDiagnosis(null);
+    setAlternativeSolutions([]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleQuestionAnswerChange = (questionId: string, answer: string) => {
+    setDiagnosticQuestions(prev => 
+      prev.map(q => q.id === questionId ? { ...q, answer } : q)
+    );
+  };
+
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -286,20 +332,20 @@ const Scan = () => {
             )}
           </div>
 
-          {step === 1 ? (
+          {step === 1 && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Camera className="w-5 h-5" />
-                  Step 1: Scan Your Device
+                  Step 1 – Image & Device Analysis
                 </CardTitle>
                 <CardDescription>
-                  Upload an image of your device to get AI-powered analysis and repair suggestions.
+                  Upload an image of your device and provide the device name for initial analysis.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="deviceName">Device Name</Label>
+                  <Label htmlFor="deviceName">Device Name *</Label>
                   <Input
                     id="deviceName"
                     placeholder="e.g., iPhone 12, Samsung TV, Dell Laptop"
@@ -309,7 +355,7 @@ const Scan = () => {
                 </div>
 
                 <div>
-                  <Label>Select Image</Label>
+                  <Label>Select Image *</Label>
                   <input
                     type="file"
                     accept="image/jpeg,image/png"
@@ -338,143 +384,242 @@ const Scan = () => {
                 </div>
 
                 <Button 
-                  onClick={handleScan} 
+                  onClick={handleImageAnalysis} 
                   disabled={!selectedImage || !deviceName.trim() || isAnalyzing}
                   className="w-full"
                 >
-                  {isAnalyzing ? 'Analyzing...' : 'Scan Device'}
+                  {isAnalyzing ? 'Analyzing Image...' : 'Analyze Device'}
                 </Button>
               </CardContent>
             </Card>
-          ) : step === 2 ? (
+          )}
+
+          {step === 2 && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <FileText className="w-5 h-5" />
-                  Step 2: Description Refinement
+                  <CheckCircle className="w-5 h-5 text-green-500" />
+                  Step 2 – User Description Analysis
                 </CardTitle>
                 <CardDescription>
-                  Based on your input, here's what we detected. Please provide a more detailed description of the issue.
+                  Image analysis complete. Now describe the functional issues you're experiencing.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="prose prose-sm max-w-none">
-                  <h3 className="text-lg font-semibold">Device & Image Analysis:</h3>
-                  <div className="whitespace-pre-wrap rounded-md bg-muted p-4 font-mono text-sm">
-                    {JSON.stringify({ device_name: deviceName, image_analysis: analysisResult.image_analysis }, null, 2)}
-                  </div>
+                <div className="p-4 bg-muted rounded-lg">
+                  <h4 className="font-semibold mb-2">Image Analysis Results:</h4>
+                  <p className="text-sm whitespace-pre-wrap">{imageAnalysis}</p>
                 </div>
+                
                 <div>
-                  <Label htmlFor="description">Detailed Description</Label>
-                  <textarea
+                  <Label htmlFor="description">Describe the Problem *</Label>
+                  <Textarea
                     id="description"
-                    placeholder="Describe the problem in detail: when it started, what happened, any error messages, etc."
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    placeholder="Describe functional issues: when it started, what symptoms you observe, any error messages, what was happening when the problem occurred, etc."
+                    value={userDescription}
+                    onChange={(e) => setUserDescription(e.target.value)}
+                    rows={4}
                   />
                 </div>
-                <Button onClick={handleDescriptionSubmit} className="w-full" disabled={isAnalyzing}>
-                  {isAnalyzing ? 'Analyzing Description...' : 'Submit Description'}
+                
+                <Button 
+                  onClick={handleDescriptionSubmit} 
+                  disabled={!userDescription.trim() || isAnalyzing}
+                  className="w-full"
+                >
+                  {isAnalyzing ? 'Analyzing Description...' : 'Continue to Questions'}
                 </Button>
               </CardContent>
             </Card>
-          ) : step === 3 ? (
+          )}
+
+          {step === 3 && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="w-5 h-5" />
-                  Step 3: Diagnostic Questions
+                  Step 3 – Clarification Questions
                 </CardTitle>
                 <CardDescription>
-                  Please answer the following questions to help us pinpoint the issue.
+                  Based on your image and description, answer these targeted questions to narrow down the root cause.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="prose prose-sm max-w-none">
-                  <h3 className="text-lg font-semibold">Refined Analysis:</h3>
-                  <div className="whitespace-pre-wrap rounded-md bg-muted p-4 font-mono text-sm">
-                    {analysisResult}
-                  </div>
+                <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    <strong>Note:</strong> Answering these questions will help me give you the most accurate solution. 
+                    You may skip them, but your diagnosis might be less precise.
+                  </p>
                 </div>
-                {diagnosticQuestions.length > 0 ? (
-                  <div className="space-y-4">
-                    {diagnosticQuestions.map((question, index) => (
-                      <div key={index} className="space-y-2">
-                        <Label htmlFor={`question-${index}`}>{question}</Label>
-                        <Input
-                          id={`question-${index}`}
-                          placeholder="Your answer or type 'skip'"
-                          value={questionAnswers[question] || ''}
-                          onChange={(e) => handleAnswerChange(question, e.target.value)}
-                        />
-                      </div>
-                    ))}
+
+                {descriptionAnalysis && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <h4 className="font-semibold mb-2">Combined Analysis:</h4>
+                    <p className="text-sm whitespace-pre-wrap">{descriptionAnalysis}</p>
                   </div>
-                ) : (
-                  <p>No further diagnostic questions at this time. Proceed to report generation.</p>
                 )}
-                <Button onClick={handleSubmitQuestions} className="w-full" disabled={isAnalyzing || diagnosticQuestions.length === 0}>
-                  {isAnalyzing ? 'Submitting Answers...' : 'Generate Report'}
+
+                <div className="space-y-4">
+                  {diagnosticQuestions.map((q, index) => (
+                    <div key={q.id} className="space-y-2">
+                      <Label htmlFor={q.id}>
+                        <span className="font-medium">Question {index + 1}:</span> {q.question}
+                      </Label>
+                      <Textarea
+                        id={q.id}
+                        placeholder="Your answer (or type 'skip' to skip this question)"
+                        value={q.answer}
+                        onChange={(e) => handleQuestionAnswerChange(q.id, e.target.value)}
+                        rows={2}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <Button 
+                  onClick={handleQuestionsSubmit} 
+                  disabled={isAnalyzing}
+                  className="w-full"
+                >
+                  {isAnalyzing ? 'Generating Final Diagnosis...' : 'Get Final Diagnosis & Solution'}
                 </Button>
               </CardContent>
             </Card>
-          ) : step === 4 ? (
+          )}
+
+          {step === 4 && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <FileText className="w-5 h-5" />
-                  Step 4: Final Report
+                  <CheckCircle className="w-5 h-5 text-green-500" />
+                  Step 4 – Final Diagnosis & Solution
                 </CardTitle>
                 <CardDescription>
-                  Here is the final diagnosis and repair guide for your {deviceName}.
+                  Based on all information provided, here is the most likely main issue and solution.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {finalReport ? (
-                  <div className="prose prose-sm max-w-none space-y-4">
-                    <div>
-                      <h3 className="text-lg font-semibold">Problem:</h3>
-                      <p>{finalReport.problem}</p>
+              <CardContent className="space-y-6">
+                {finalDiagnosis && (
+                  <div className="space-y-4">
+                    <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
+                      <h4 className="font-semibold text-green-800 dark:text-green-200 mb-2">Problem:</h4>
+                      <p className="text-green-700 dark:text-green-300">{finalDiagnosis.problem}</p>
                     </div>
-                    <div>
-                      <h3 className="text-lg font-semibold">Reason:</h3>
-                      <p>{finalReport.reason}</p>
+
+                    <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">Reason:</h4>
+                      <p className="text-blue-700 dark:text-blue-300">{finalDiagnosis.reason}</p>
                     </div>
-                    <div>
-                      <h3 className="text-lg font-semibold">Solutions:</h3>
-                      <ol className="list-decimal list-inside">
-                        {finalReport.solutions.map((solution: string, index: number) => (
-                          <li key={index}>{solution}</li>
+
+                    <div className="p-4 bg-muted rounded-lg">
+                      <h4 className="font-semibold mb-3">Solution:</h4>
+                      <ol className="list-decimal list-inside space-y-2">
+                        {finalDiagnosis.solution.map((step, index) => (
+                          <li key={index} className="text-sm">{step}</li>
                         ))}
                       </ol>
                     </div>
-                    <div>
-                      <h3 className="text-lg font-semibold">Tools Required:</h3>
-                      <ul className="list-disc list-inside">
-                        {finalReport.tools_required.map((tool: string, index: number) => (
-                          <li key={index}>{tool}</li>
-                        ))}
-                      </ul >
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-4 bg-muted rounded-lg">
+                        <h4 className="font-semibold mb-2">Tools Required:</h4>
+                        <ul className="list-disc list-inside space-y-1">
+                          {finalDiagnosis.tools_required.map((tool, index) => (
+                            <li key={index} className="text-sm">{tool}</li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div className="p-4 bg-muted rounded-lg">
+                        <h4 className="font-semibold mb-2">Estimated Cost:</h4>
+                        <p className="text-sm">{finalDiagnosis.estimated_cost}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-lg font-semibold">Estimated Cost:</h3>
-                      <p>{finalReport.estimated_cost}</p>
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold">Tip to Avoid:</h3>
-                      <p>{finalReport.tip}</p>
+
+                    <div className="p-4 bg-yellow-50 dark:bg-yellow-950 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                      <h4 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-2">Tip/Trick:</h4>
+                      <p className="text-yellow-700 dark:text-yellow-300 text-sm">{finalDiagnosis.tip}</p>
                     </div>
                   </div>
-                ) : (
-                  <p>Generating final report...</p>
                 )}
+
+                <div className="space-y-2">
+                  <h4 className="font-semibold">Does this solution work for you?</h4>
+                  <div className="flex gap-2">
+                    <Button onClick={handleNewScan} variant="outline" className="flex-1">
+                      Yes, it worked!
+                    </Button>
+                    <Button onClick={handleGenerateAlternatives} variant="destructive" className="flex-1">
+                      No, need alternatives
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {step === 5 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ArrowRight className="w-5 h-5" />
+                  Step 5 – Alternative Solutions
+                </CardTitle>
+                <CardDescription>
+                  Since the first solution didn't work, here are other possible problems and solutions.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {alternativeSolutions.map((solution, index) => (
+                  <div key={index} className="border rounded-lg p-4 space-y-4">
+                    <h4 className="font-semibold text-lg">Alternative Solution #{index + 1}</h4>
+                    
+                    <div className="p-3 bg-red-50 dark:bg-red-950 rounded border border-red-200 dark:border-red-800">
+                      <h5 className="font-medium text-red-800 dark:text-red-200 mb-1">Problem:</h5>
+                      <p className="text-red-700 dark:text-red-300 text-sm">{solution.problem}</p>
+                    </div>
+
+                    <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded border border-blue-200 dark:border-blue-800">
+                      <h5 className="font-medium text-blue-800 dark:text-blue-200 mb-1">Reason:</h5>
+                      <p className="text-blue-700 dark:text-blue-300 text-sm">{solution.reason}</p>
+                    </div>
+
+                    <div className="p-3 bg-muted rounded">
+                      <h5 className="font-medium mb-2">Solution:</h5>
+                      <ol className="list-decimal list-inside space-y-1">
+                        {solution.solution.map((step, stepIndex) => (
+                          <li key={stepIndex} className="text-sm">{step}</li>
+                        ))}
+                      </ol>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                      <div>
+                        <h6 className="font-medium mb-1">Tools:</h6>
+                        <ul className="list-disc list-inside">
+                          {solution.tools_required.map((tool, toolIndex) => (
+                            <li key={toolIndex}>{tool}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div>
+                        <h6 className="font-medium mb-1">Cost:</h6>
+                        <p>{solution.estimated_cost}</p>
+                      </div>
+                      <div>
+                        <h6 className="font-medium mb-1">Prevention:</h6>
+                        <p>{solution.tip}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
                 <Button onClick={handleNewScan} className="w-full">
-                  Scan Another Device
+                  Start New Diagnosis
                 </Button>
               </CardContent>
             </Card>
-          ) : null}
+          )}
         </div>
       </main>
 
