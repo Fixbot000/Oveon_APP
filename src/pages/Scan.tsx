@@ -514,7 +514,7 @@ const Scan = () => {
                     <div className="p-4 bg-muted rounded-lg">
                       <h4 className="font-semibold mb-3">Solution:</h4>
                       <ol className="list-decimal list-inside space-y-2">
-                        {finalDiagnosis.solution.map((step, index) => (
+                        {(Array.isArray(finalDiagnosis.solution) ? finalDiagnosis.solution : [finalDiagnosis.solution]).filter(Boolean).map((step, index) => (
                           <li key={index} className="text-sm">{step}</li>
                         ))}
                       </ol>
@@ -524,7 +524,7 @@ const Scan = () => {
                       <div className="p-4 bg-muted rounded-lg">
                         <h4 className="font-semibold mb-2">Tools Required:</h4>
                         <ul className="list-disc list-inside space-y-1">
-                          {finalDiagnosis.tools_required.map((tool, index) => (
+                          {(Array.isArray(finalDiagnosis.tools_required) ? finalDiagnosis.tools_required : [finalDiagnosis.tools_required]).filter(Boolean).map((tool, index) => (
                             <li key={index} className="text-sm">{tool}</li>
                           ))}
                         </ul>
@@ -587,7 +587,7 @@ const Scan = () => {
                     <div className="p-3 bg-muted rounded">
                       <h5 className="font-medium mb-2">Solution:</h5>
                       <ol className="list-decimal list-inside space-y-1">
-                        {solution.solution.map((step, stepIndex) => (
+                        {(Array.isArray(solution.solution) ? solution.solution : [solution.solution]).filter(Boolean).map((step, stepIndex) => (
                           <li key={stepIndex} className="text-sm">{step}</li>
                         ))}
                       </ol>
@@ -597,7 +597,7 @@ const Scan = () => {
                       <div>
                         <h6 className="font-medium mb-1">Tools:</h6>
                         <ul className="list-disc list-inside">
-                          {solution.tools_required.map((tool, toolIndex) => (
+                          {(Array.isArray(solution.tools_required) ? solution.tools_required : [solution.tools_required]).filter(Boolean).map((tool, toolIndex) => (
                             <li key={toolIndex}>{tool}</li>
                           ))}
                         </ul>
