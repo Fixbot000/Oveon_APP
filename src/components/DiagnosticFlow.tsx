@@ -453,7 +453,18 @@ const DiagnosticFlow: React.FC<DiagnosticFlowProps> = ({ selectedLanguage }) => 
                   {t('repairSolutionFound')}
                 </h4>
                 <div className="prose prose-sm max-w-none text-green-700 dark:text-green-300">
-                  <pre className="whitespace-pre-wrap font-sans">{stepData.finalSolution}</pre>
+                  <div 
+                    className="whitespace-pre-wrap font-sans text-sm leading-relaxed"
+                    dangerouslySetInnerHTML={{ 
+                      __html: stepData.finalSolution
+                        .replace(/## /g, '<h3 class="font-semibold text-base mt-4 mb-2 text-green-800 dark:text-green-200">')
+                        .replace(/\n([^#\n•⚠️])/g, '</h3>\n$1')
+                        .replace(/• /g, '<br/>• ')
+                        .replace(/⚠️ /g, '<br/>⚠️ ')
+                        .replace(/\n\n/g, '<br/><br/>')
+                        .replace(/\n/g, '<br/>')
+                    }}
+                  />
                 </div>
               </div>
               <Button 

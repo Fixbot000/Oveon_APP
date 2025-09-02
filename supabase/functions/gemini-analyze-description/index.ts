@@ -115,12 +115,20 @@ Based on all this information, provide additional clarifying questions (if neede
           parts: [{
             text: `Based on this refined analysis: "${analysis}"
 
-Generate 2-4 specific follow-up questions that would help determine the exact repair steps needed. Questions should focus on:
-- Confirming the suspected root cause
-- Understanding the severity/extent of damage
-- Determining what tools or parts might be needed
-- Clarifying any remaining uncertainties
+Generate 2-4 SIMPLE questions that anyone can understand and answer. Make the questions:
+- Use everyday language, avoid technical terms
+- Ask about what the user can see, hear, or feel
+- Focus on simple observations (like "Does it make noise?", "What color is the screen?", "Is it hot?")
+- Help identify the problem without requiring technical knowledge
 - Written entirely in ${getLanguageName(language)}
+- Keep each question under 10 words
+
+Examples of GOOD questions:
+- "Does the device turn on at all?"
+- "Is there any sound when you press power?"
+- "What does the screen look like?"
+- "Does it feel hot or warm?"
+- "When did this problem first happen?"
 
 Format as a simple JSON array of strings in ${getLanguageName(language)}. If no additional questions are needed, return an empty array.`
           }]
