@@ -66,35 +66,39 @@ Question answers: ${JSON.stringify(questionAnswers)}
 Return a JSON object with the following exact fields:
 - problem: A concise summary of the issue.
 - reason: The most likely cause.
-- solutions: A step-by-step list of instructions to fix the issue.
+- solutions: A step-by-step list of instructions to fix the issue (MUST be an array with at least 1 step).
 - tools_required: A list of tools needed.
 - estimated_cost: An approximate cost for parts and labor (e.g., "$50-$100", "£20-£40").
 - tip: A short tip on how to avoid this issue in the future.
 
-IMPORTANT: 
-- Ensure all fields are populated.
-- The 'solutions' field should be an array of strings.
-- The 'tools_required' field should be an array of strings.
-- Respond entirely in ${getLanguageName(language)}.
+CRITICAL REQUIREMENTS:
+- The 'solutions' field MUST contain at least one actionable repair step
+- If the repair is dangerous, include "Stop using device and consult professional" as first step
+- Make steps specific and clear for the device type: ${deviceName}
+- Ensure all fields are populated with meaningful content
+- Respond entirely in ${getLanguageName(language)}
 
 ${context}
 
 Example JSON format:
 {
-  "problem": "[problem description]",
-  "reason": "[likely cause]",
+  "problem": "[specific problem with ${deviceName}]",
+  "reason": "[technical cause specific to ${deviceName}]",
   "solutions": [
-    "[step 1]",
-    "[step 2]"
+    "Turn off and unplug the ${deviceName} completely",
+    "Remove the outer casing using appropriate screwdriver",
+    "Clean internal components with compressed air",
+    "Check for loose connections and reseat them",
+    "Reassemble and test functionality"
   ],
   "tools_required": [
-    "[tool 1]",
-    "[tool 2]"
+    "Screwdriver set",
+    "Compressed air canister",
+    "Anti-static brush"
   ],
-  "estimated_cost": "[cost range]",
-  "tip": "[prevention tip]"
-}
-`;
+  "estimated_cost": "$20-$50",
+  "tip": "Clean your ${deviceName} every 6 months to prevent dust buildup"
+}`;
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
@@ -121,6 +125,19 @@ Example JSON format:
     try {
       const reportText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
       report = JSON.parse(reportText.replace(/```json\n?/g, '').replace(/```/g, ''));
+      
+      // Ensure solutions array exists and has at least one step
+      if (!report.solutions || !Array.isArray(report.solutions) || report.solutions.length === 0) {
+        report.solutions = ["Stop using the device and consult a professional technician for safe repair."];
+      }
+      
+      // Ensure all required fields exist
+      if (!report.problem) report.problem = "Device issue identified";
+      if (!report.reason) report.reason = "Root cause analysis needed";
+      if (!report.tools_required) report.tools_required = ["Professional consultation recommended"];
+      if (!report.estimated_cost) report.estimated_cost = "Contact professional for quote";
+      if (!report.tip) report.tip = "Follow manufacturer maintenance guidelines";
+      
     } catch (e) {
       console.error('Error parsing report:', e);
       return new Response(JSON.stringify({ 
