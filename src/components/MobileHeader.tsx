@@ -65,13 +65,13 @@ const MobileHeader = ({ showSearch = true, onRefresh, isPremium }: MobileHeaderP
   };
 
   return (
-    <header className="bg-gradient-header p-6 pb-8 rounded-b-3xl shadow-card">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
+    <header className="bg-gradient-header p-4 pb-6 rounded-b-3xl shadow-card">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
           
           <Avatar 
-            className="h-14 w-14 ring-2 ring-white/20 cursor-pointer"
-            onClick={() => navigate("/profile")} // Make avatar clickable
+            className="h-12 w-12 ring-2 ring-white/20 cursor-pointer"
+            onClick={() => navigate("/profile")}
           >
             <AvatarImage src={profile?.avatar_url || "/placeholder.svg"} />
             <AvatarFallback className="bg-white/20 text-white font-semibold text-lg">
@@ -79,25 +79,14 @@ const MobileHeader = ({ showSearch = true, onRefresh, isPremium }: MobileHeaderP
             </AvatarFallback>
           </Avatar>
           <div>
-            <h1 className="text-white text-xl font-semibold">
+            <h1 className="text-white text-lg font-semibold">
               Hi, {user ? getUserDisplayName() : 'User'}
             </h1>
-            <p className="text-white/80 text-sm">Ready to fix something?</p>
+            <p className="text-white/80 text-xs">Ready to fix something?</p>
           </div>
         </div>
         
-        <div className="flex items-center space-x-2">
-          {/* Upgrade Button - Top Right */}
-          {user && !isPremium && (
-            <Button
-              variant="secondary"
-              size="sm"
-              className="rounded-full bg-yellow-500 text-white hover:bg-yellow-600 transition-colors"
-              onClick={() => navigate('/premium')}
-            >
-              Upgrade
-            </Button>
-          )}
+        <div className="flex items-center space-x-1">
           {onRefresh && (
             <Button 
               variant="ghost" 
@@ -106,35 +95,35 @@ const MobileHeader = ({ showSearch = true, onRefresh, isPremium }: MobileHeaderP
               disabled={isRefreshing}
               className="text-white hover:bg-white/20 transition-all duration-200"
             >
-              <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
           )}
           
           {showSearch ? (
             <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 transition-all duration-200">
-              <Search className="h-6 w-6" />
+              <Search className="h-5 w-5" />
             </Button>
           ) : (
             <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 transition-all duration-200">
-              <Bell className="h-6 w-6" />
+              <Bell className="h-5 w-5" />
             </Button>
           )}
         </div>
       </div>
       
       {showSearch && (
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white/60 h-5 w-5" />
+        <div className="relative mt-4">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50 h-3 w-3" />
           <Input
             placeholder="Search repairs, tips..."
-            className="bg-white/15 backdrop-blur-sm border-white/30 text-white placeholder:text-white/70 pl-12 pr-12 h-12 rounded-2xl focus:bg-white/20 focus:border-white/40 transition-all duration-200"
+            className="bg-white/15 backdrop-blur-sm border-white/30 text-white placeholder:text-white/70 pl-9 pr-10 h-10 rounded-xl focus:bg-white/20 focus:border-white/40 transition-all duration-200"
           />
           <Button
             variant="ghost"
             size="icon"
-            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-white hover:bg-white/20 h-8 w-8 rounded-full transition-all duration-200"
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-white hover:bg-white/20 h-7 w-7 rounded-full transition-all duration-200"
           >
-            <Bell className="h-4 w-4" />
+            <Bell className="h-3 w-3" />
           </Button>
         </div>
       )}
