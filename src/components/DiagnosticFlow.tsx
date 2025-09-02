@@ -18,13 +18,22 @@ interface Question {
   answer?: string;
 }
 
+interface RepairReport {
+  problem: string;
+  reason: string;
+  solutions: string[];
+  tools_required: string[];
+  estimated_cost: string;
+  tip: string;
+}
+
 interface StepData {
   imageAnalysis?: string;
   questions1?: Question[];
   description?: string;
   descriptionAnalysis?: string;
   questions2?: Question[];
-  finalSolution?: string;
+  finalSolution?: RepairReport;
 }
 
 interface DiagnosticFlowProps {
@@ -216,18 +225,19 @@ const DiagnosticFlow: React.FC<DiagnosticFlowProps> = ({ selectedLanguage }) => 
         description: stepData.description
       };
 
-      const { data, error } = await supabase.functions.invoke('gemini-web-search-solution', {
+      const { data, error } = await supabase.functions.invoke('gemini-generate-report', {
         body: {
-          finalAnalysis: stepData.descriptionAnalysis || stepData.imageAnalysis,
-          allAnswers,
-          deviceType: deviceName,
+          deviceName,
+          imageAnalysis: stepData.imageAnalysis,
+          description: stepData.description,
+          questionAnswers: allAnswers,
           language: selectedLanguage
         }
       });
 
       if (error) throw error;
 
-      setStepData(prev => ({ ...prev, finalSolution: data.solution }));
+      setStepData(prev => ({ ...prev, finalSolution: data.report }));
       setCurrentStep(6);
 
       // Save repair session to database
@@ -240,10 +250,10 @@ const DiagnosticFlow: React.FC<DiagnosticFlowProps> = ({ selectedLanguage }) => 
               device_category: deviceName,
               symptoms_text: stepData.description,
               image_urls: uploadedPublicUrls, // Save uploaded image public URLs
-              ai_analysis: JSON.parse(JSON.stringify({
-                finalSolution: data.solution,
-                deviceName
-              })),
+               ai_analysis: JSON.parse(JSON.stringify({
+                 finalSolution: data.report,
+                 deviceName
+               })),
               status: 'completed'
             });
         } catch (dbError) {
@@ -452,19 +462,56 @@ const DiagnosticFlow: React.FC<DiagnosticFlowProps> = ({ selectedLanguage }) => 
                 <h4 className="font-medium text-green-800 dark:text-green-200 mb-2">
                   {t('repairSolutionFound')}
                 </h4>
-                <div className="prose prose-sm max-w-none text-green-700 dark:text-green-300">
-                  <div 
-                    className="whitespace-pre-wrap font-sans text-sm leading-relaxed"
-                    dangerouslySetInnerHTML={{ 
-                      __html: stepData.finalSolution
-                        .replace(/## /g, '<h3 class="font-semibold text-base mt-4 mb-2 text-green-800 dark:text-green-200">')
-                        .replace(/\n([^#\n•⚠️])/g, '</h3>\n$1')
-                        .replace(/• /g, '<br/>• ')
-                        .replace(/⚠️ /g, '<br/>⚠️ ')
-                        .replace(/\n\n/g, '<br/><br/>')
-                        .replace(/\n/g, '<br/>')
-                    }}
-                  />
+                <div className="space-y-4 text-green-700 dark:text-green-300">
+                  <div className="space-y-2">
+                    <h5 className="font-semibold text-green-800 dark:text-green-200">{t('problem')}</h5>
+                    <p className="text-sm">{stepData.finalSolution.problem || 'Problem identification needed'}</p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <h5 className="font-semibold text-green-800 dark:text-green-200">{t('reason')}</h5>
+                    <p className="text-sm">{stepData.finalSolution.reason || 'Root cause analysis needed'}</p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <h5 className="font-semibold text-green-800 dark:text-green-200">{t('solution')}</h5>
+                    <div className="text-sm">
+                      {Array.isArray(stepData.finalSolution.solutions) && stepData.finalSolution.solutions.length > 0 ? (
+                        <ol className="list-decimal list-inside space-y-1">
+                          {stepData.finalSolution.solutions.map((step, index) => (
+                            <li key={index}>{step}</li>
+                          ))}
+                        </ol>
+                      ) : (
+                        <p>Stop using the device and seek professional help immediately.</p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <h5 className="font-semibold text-green-800 dark:text-green-200">{t('toolsRequired')}</h5>
+                    <div className="text-sm">
+                      {Array.isArray(stepData.finalSolution.tools_required) && stepData.finalSolution.tools_required.length > 0 ? (
+                        <ul className="list-disc list-inside space-y-1">
+                          {stepData.finalSolution.tools_required.map((tool, index) => (
+                            <li key={index}>{tool}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p>No tools specified</p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <h5 className="font-semibold text-green-800 dark:text-green-200">{t('estimatedCost')}</h5>
+                    <p className="text-sm">{stepData.finalSolution.estimated_cost || 'Cost estimate unavailable'}</p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <h5 className="font-semibold text-green-800 dark:text-green-200">{t('tip')}</h5>
+                    <p className="text-sm">{stepData.finalSolution.tip || 'Follow manufacturer guidelines for maintenance'}</p>
+                  </div>
                 </div>
               </div>
               <Button 
