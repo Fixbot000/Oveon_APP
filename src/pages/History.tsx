@@ -19,7 +19,7 @@ interface Scan {
 }
 
 const History = () => {
-  const { user } = useAuth();
+  const { user, isPremium } = useAuth(); // Destructure isPremium
   const navigate = useNavigate();
   const [scans, setScans] = useState<Scan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,7 +81,7 @@ const History = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <MobileHeader showSearch={false} onRefresh={() => window.location.reload()} />
+      <MobileHeader showSearch={false} onRefresh={() => window.location.reload()} isPremium={isPremium} />
       
       <main className="px-4 py-6">
         <div className="max-w-2xl mx-auto">

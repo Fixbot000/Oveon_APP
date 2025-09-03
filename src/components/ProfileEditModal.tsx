@@ -14,10 +14,11 @@ interface ProfileEditModalProps {
   onClose: () => void;
   currentProfile: any; // You might want to define a more specific type here
   onProfileUpdated: () => void;
+  isPremium: boolean; // Add isPremium prop
 }
 
 const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
-  isOpen, onClose, currentProfile, onProfileUpdated
+  isOpen, onClose, currentProfile, onProfileUpdated, isPremium
 }) => {
   const { user } = useAuth();
   const [displayName, setDisplayName] = useState('');
@@ -105,7 +106,7 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           <div className="flex justify-center mb-4">
-            <Avatar className="h-24 w-24 ring-2 ring-white/20">
+            <Avatar className={`h-24 w-24 ring-2 cursor-pointer ${isPremium ? 'ring-amber-400' : 'ring-white/20'}`}>
               <AvatarImage src={selectedAvatarUrl || currentProfile?.avatar_url || "/placeholder.svg"} />
               <AvatarFallback className="bg-white/20 text-white font-semibold text-xl">
                 {(displayName || user?.email?.[0] || 'U').toUpperCase()}

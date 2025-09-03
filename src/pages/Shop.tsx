@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import MobileHeader from '@/components/MobileHeader';
 import BottomNavigation from '@/components/BottomNavigation';
 import { Cpu, Zap, Battery, Wrench, Calculator, Cable } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth'; // Import useAuth
 
 const Shop = () => {
   const categories = [
@@ -35,9 +36,11 @@ const Shop = () => {
     },
   ];
 
+  const { isPremium } = useAuth(); // Destructure isPremium from useAuth
+
   return (
     <div className="min-h-screen bg-background pb-20">
-      <MobileHeader onRefresh={() => window.location.reload()} />
+      <MobileHeader onRefresh={() => window.location.reload()} isPremium={isPremium} />
       
       <main className="px-4 py-6 space-y-6">
         {/* Categories */}

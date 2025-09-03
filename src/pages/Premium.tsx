@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import MobileHeader from '@/components/MobileHeader';
 import BottomNavigation from '@/components/BottomNavigation';
 import { CheckCircle, Crown, ShieldCheck, DollarSign } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth'; // Import useAuth
 
 const Premium = () => {
   const handleUpgrade = () => {
@@ -14,9 +15,11 @@ const Premium = () => {
     // In a real application, you would redirect to a payment checkout flow
   };
 
+  const { isPremium } = useAuth(); // Destructure isPremium from useAuth
+
   return (
     <div className="min-h-screen bg-background pb-20">
-      <MobileHeader onRefresh={() => {}} />
+      <MobileHeader onRefresh={() => {}} isPremium={isPremium} />
       <main className="px-4 py-6 space-y-8">
         <h1 className="text-3xl font-bold text-center">Go Premium with ByteFixer!</h1>
 

@@ -230,7 +230,7 @@ const Profile = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background pb-20">
-        <MobileHeader onRefresh={fetchProfile} />
+        <MobileHeader onRefresh={fetchProfile} isPremium={profile?.ispremium || false} />
         <main className="px-4 py-6">
           <div className="animate-pulse space-y-4">
             <div className="h-32 bg-muted rounded-lg"></div>
@@ -245,7 +245,7 @@ const Profile = () => {
   if (!user) {
     return (
       <div className="min-h-screen bg-background pb-20">
-        <MobileHeader onRefresh={() => window.location.reload()} />
+        <MobileHeader onRefresh={() => window.location.reload()} isPremium={profile?.ispremium || false} />
         <main className="px-4 py-6">
           <Card className="text-center py-8">
             <CardContent>
@@ -267,7 +267,7 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <MobileHeader onRefresh={fetchProfile} />
+      <MobileHeader onRefresh={fetchProfile} isPremium={profile?.ispremium || false} />
       <main className="px-4 py-6 space-y-6">
         <div className="space-y-6">
           <h1 className="text-3xl font-bold">Profile Settings</h1>
@@ -282,7 +282,7 @@ const Profile = () => {
           <CardContent className="space-y-6">
             {/* Avatar Section */}
             <div className="flex flex-col items-center space-y-4">
-              <Avatar className="h-24 w-24 ring-2 ring-primary/20">
+              <Avatar className={`h-24 w-24 ring-2 cursor-pointer ${profile?.ispremium ? 'ring-amber-400' : 'ring-primary/20'}`}>
                 <AvatarImage src={profile?.avatar_url} />
                 <AvatarFallback className="text-2xl">
                   {username.charAt(0).toUpperCase()}

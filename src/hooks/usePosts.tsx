@@ -13,6 +13,7 @@ export interface Post {
   profiles?: {
     username: string;
     avatar_url?: string;
+    ispremium?: boolean; // Add isPremium to profile
   };
 }
 
@@ -58,7 +59,7 @@ export const usePosts = (showMyPosts = false) => {
       const userIds = [...new Set(postsData?.map(p => p.user_id) || [])];
       const { data: profilesData } = await supabase
         .from('profiles')
-        .select('id, username, avatar_url')
+        .select('id, username, avatar_url, ispremium') // Select ispremium
         .in('id', userIds);
 
       return postsData?.map(post => ({

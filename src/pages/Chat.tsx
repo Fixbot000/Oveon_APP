@@ -9,6 +9,7 @@ import MobileHeader from '@/components/MobileHeader';
 import BottomNavigation from '@/components/BottomNavigation';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth'; // Import useAuth
 
 interface Message {
   id: number;
@@ -22,6 +23,7 @@ interface Message {
 
 const Chat = () => {
   const navigate = useNavigate();
+  const { isPremium } = useAuth(); // Destructure isPremium
   const [message, setMessage] = useState('');
   const [detailedDescription, setDetailedDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -188,7 +190,7 @@ Just describe your problem and I'll guide you through the repair process. Let's 
 
   return (
     <div className="min-h-screen bg-background pb-20">
-              <MobileHeader showSearch={false} onRefresh={() => window.location.reload()} />
+              <MobileHeader showSearch={false} onRefresh={() => window.location.reload()} isPremium={isPremium} />
       
       <main className="px-4 py-6 space-y-4 pb-32">
         <div className="space-y-4">

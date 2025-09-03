@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import ProfileEditModal from './ProfileEditModal'; // Import ProfileEditModal
 
 interface MobileHeaderProps {
   showSearch?: boolean;
@@ -18,6 +19,7 @@ const MobileHeader = ({ showSearch = true, onRefresh, isPremium }: MobileHeaderP
   const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false); // State for modal visibility
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -70,8 +72,8 @@ const MobileHeader = ({ showSearch = true, onRefresh, isPremium }: MobileHeaderP
         <div className="flex items-center gap-3">
           
           <Avatar 
-            className="h-12 w-12 ring-2 ring-white/20 cursor-pointer"
-            onClick={() => navigate("/profile")}
+            className={`h-12 w-12 ring-2 cursor-pointer ${isPremium ? 'ring-amber-400' : 'ring-white/20'}`}
+            onClick={() => setIsEditModalOpen(true)} // Open modal on avatar click
           >
             <AvatarImage src={profile?.avatar_url || "/placeholder.svg"} />
             <AvatarFallback className="bg-white/20 text-white font-semibold text-lg">
@@ -129,12 +131,13 @@ const MobileHeader = ({ showSearch = true, onRefresh, isPremium }: MobileHeaderP
       )}
 
       {/* Profile Edit Modal */}
-      {/* <ProfileEditModal
+      <ProfileEditModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         currentProfile={profile}
         onProfileUpdated={fetchProfile}
-      /> */}
+        isPremium={isPremium}
+      />
     </header>
   );
 };
