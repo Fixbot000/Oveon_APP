@@ -328,22 +328,6 @@ const Profile = () => {
               />
             </div>
 
-            {profile?.ispremium && (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Star className="h-5 w-5 text-yellow-500" />
-                  <div>
-                    <p className="font-medium">Premium UI</p>
-                    <p className="text-sm text-muted-foreground">Golden finish for premium experience</p>
-                  </div>
-                </div>
-                <Switch
-                  checked={profile?.premiumuienabled}
-                  onCheckedChange={handleTogglePremiumUi}
-                />
-              </div>
-            )}
-
             <Button 
               onClick={updateProfile} 
               disabled={updating || username.trim() === ''}
@@ -372,6 +356,22 @@ const Profile = () => {
                 <Switch checked={isDarkMode} onCheckedChange={handleToggleTheme} />
               </div>
 
+              {profile?.ispremium && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Star className="h-5 w-5 text-yellow-500" />
+                    <div>
+                      <p className="font-medium">Premium UI</p>
+                      <p className="text-sm text-muted-foreground">Golden finish for premium experience</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={profile?.premiumuienabled}
+                    onCheckedChange={handleTogglePremiumUi}
+                  />
+                </div>
+              )}
+
               <div className="grid gap-2">
                 <button
                   className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-muted text-left"
@@ -387,6 +387,24 @@ const Profile = () => {
                   <Clock className="h-5 w-5 text-muted-foreground" />
                   <span className="font-medium">Scan History</span>
                 </button>
+                {profile?.ispremium && (
+                  <button
+                    className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-muted text-left"
+                    onClick={() => navigate('/plans')}
+                  >
+                    <Star className="h-5 w-5 text-indigo-500" />
+                    <span className="font-medium">My Plans</span>
+                  </button>
+                )}
+                {!profile?.ispremium && (
+                  <button
+                    className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-muted text-left text-yellow-600"
+                    onClick={() => navigate('/premium')}
+                  >
+                    <Star className="h-5 w-5" />
+                    <span className="font-medium">Upgrade to Premium</span>
+                  </button>
+                )}
                 {!profile?.ispremium && (
                   <button
                     className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-muted text-left text-yellow-600"

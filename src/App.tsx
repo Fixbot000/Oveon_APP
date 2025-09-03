@@ -17,6 +17,7 @@ import OnboardingTutorial from "@/components/OnboardingTutorial";
 import { useEffect } from "react";
 import History from "./pages/History";
 import Premium from "./pages/Premium";
+import Plans from "./pages/Plans";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +60,11 @@ const AppContent = () => {
             </AuthGuard>
           } />
           <Route path="/premium" element={<Premium />} />
+          <Route path="/plans" element={
+            <AuthGuard>
+              <Plans />
+            </AuthGuard>
+          } />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
