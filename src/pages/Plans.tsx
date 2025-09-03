@@ -7,11 +7,8 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 
 const Plans = () => {
-  const { user } = useAuth();
-  const isPremiumUser = user?.user_metadata?.isPremium || false;
-
-  console.log('Current user:', user);
-  console.log('Is premium user:', isPremiumUser);
+  const { user, isPremium: isPremiumUser } = useAuth();
+  // const isPremiumUser = user?.user_metadata?.isPremium || false; // This line is no longer needed
 
   // This would ideally fetch actual plan data from an API
   const plans = [
