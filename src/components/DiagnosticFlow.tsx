@@ -1,556 +1,635 @@
-import React, { useState, useRef } from 'react';
-import { Camera, Upload, Loader2, CheckCircle, SkipForward } from 'lucide-react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
-import { useToast } from '@/components/ui/use-toast';
-import { useAuth } from '@/hooks/useAuth';
+import { Badge } from '@/components/ui/badge';
+import { CheckCircle, Upload, Camera, AlertCircle, Wrench, DollarSign, Lightbulb } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { getTranslation } from '@/lib/translations';
-import { ImageWithSignedUrl } from '@/components/ImageWithSignedUrl';
 
-interface Question {
+interface NameAnalysisResult {
+  commonProblems: string[];
+  deviceCategory: string;
+}
+
+interface PhotoAnalysisResult {
+  visibleDamage: string[];
+  damageAssessment: string;
+}
+
+interface DescriptionAnalysisResult {
+  prioritizedProblems: string[];
+  matchedKeywords: string[];
+}
+
+interface ClarifyingQuestion {
   id: string;
   question: string;
-  answer?: string;
+  category: string;
 }
 
-interface RepairReport {
-  problem: string;
+interface FinalSolutionReport {
+  likelyProblem: string;
   reason: string;
-  solutions: string[];
-  tools_required: string[];
-  estimated_cost: string;
-  tip: string;
-}
-
-interface StepData {
-  imageAnalysis?: string;
-  questions1?: Question[];
-  description?: string;
-  descriptionAnalysis?: string;
-  questions2?: Question[];
-  finalSolution?: RepairReport;
+  repairSolution: string[];
+  toolsNeeded: string[];
+  estimatedCost: string;
+  extraTip: string;
+  alternativeProblems?: Array<{
+    problem: string;
+    reasoning: string;
+  }>;
 }
 
 interface DiagnosticFlowProps {
   selectedLanguage: string;
 }
 
-const DiagnosticFlow: React.FC<DiagnosticFlowProps> = ({ selectedLanguage }) => {
+export default function DiagnosticFlow({ selectedLanguage }: DiagnosticFlowProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [stepData, setStepData] = useState<StepData>({});
-  const [uploadedImages, setUploadedImages] = useState<string[]>([]); // To store base64 for display
-  const [uploadedPublicUrls, setUploadedPublicUrls] = useState<string[]>([]); // To store public URLs for database
-  const [deviceName, setDeviceName] = useState<string>('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
-  const { user } = useAuth();
+  
+  // Step 1 data
+  const [deviceName, setDeviceName] = useState('');
+  const [devicePhoto, setDevicePhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [nameAnalysis, setNameAnalysis] = useState<NameAnalysisResult | null>(null);
+  const [photoAnalysis, setPhotoAnalysis] = useState<PhotoAnalysisResult | null>(null);
+  
+  // Step 2 data
+  const [userDescription, setUserDescription] = useState('');
+  const [descriptionAnalysis, setDescriptionAnalysis] = useState<DescriptionAnalysisResult | null>(null);
+  
+  // Step 3 data
+  const [clarifyingQuestions, setClarifyingQuestions] = useState<ClarifyingQuestion[]>([]);
+  const [questionAnswers, setQuestionAnswers] = useState<Record<string, string>>({});
+  
+  // Step 4 data
+  const [finalReport, setFinalReport] = useState<FinalSolutionReport | null>(null);
+  
+  // Step 5 data
+  const [issueResolved, setIssueResolved] = useState<boolean | null>(null);
+  const [alternativeSolutions, setAlternativeSolutions] = useState<string | null>(null);
 
-  const t = (key: string) => getTranslation(selectedLanguage, key);
+  const handlePhotoSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setDevicePhoto(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPhotoPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
-  const steps = [
-    { number: 1, title: t('uploadImage'), description: t('uploadImageDesc') },
-    { number: 2, title: t('aiAnalysis'), description: t('aiAnalysisDesc') },
-    { number: 3, title: t('questions'), description: t('questionsDesc') },
-    { number: 4, title: t('description'), description: t('descriptionDesc') },
-    { number: 5, title: t('finalQuestions'), description: t('finalQuestionsDesc') },
-    { number: 6, title: t('solution'), description: t('solutionDesc') }
-  ];
-
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    if (files.length === 0) return;
-
-    if (!user) {
-      toast({
-        title: t('authRequired'),
-        description: t('authRequiredDesc'),
-        variant: "destructive",
-      });
+  const handleStep1Analysis = async () => {
+    if (!deviceName.trim() || !devicePhoto) {
+      toast.error(getTranslation('pleaseProvideDeviceNameAndPhoto', selectedLanguage));
       return;
     }
 
     setLoading(true);
-    const newUploadedBase64s: string[] = [];
-    const newPublicUrls: string[] = [];
-
     try {
-      const uploadPromises = files.map(async (file, index) => {
-        // Read file as Base64 for AI analysis and temporary display
-        const base64: string = await new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onload = (e) => resolve(e.target?.result as string);
-          reader.readAsDataURL(file);
-        });
-        newUploadedBase64s.push(base64);
-
-        // Upload to Supabase Storage
-        const now = Date.now();
-        const extension = file.name.split('.').pop() || 'jpg';
-        const objectPath = `${user.id}/${now}_${index}.${extension}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('device-images')
-          .upload(objectPath, file, { 
-            upsert: true, 
-            cacheControl: '3600',
-            contentType: file.type
-          });
-
-        if (uploadError) {
-          console.error('Storage upload error:', uploadError);
-          toast({
-            title: t('uploadError'),
-            description: `${t('failedUpload')} ${file.name}: ${uploadError.message}`,
-            variant: "destructive"
-          });
-          return null;
-        }
-
-        // Store the object path instead of public URL for security
-        newPublicUrls.push(objectPath);
-        return objectPath;
+      // Convert photo to base64
+      const base64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(devicePhoto);
       });
 
-      await Promise.allSettled(uploadPromises);
+      // Step 1a: Name Analysis
+      const { data: nameData, error: nameError } = await supabase.functions.invoke('analyze-device-name', {
+        body: { deviceName, language: selectedLanguage }
+      });
 
-      setUploadedImages(newUploadedBase64s);
-      setUploadedPublicUrls(newPublicUrls);
+      if (nameError) throw nameError;
+      setNameAnalysis(nameData);
 
-      // Only send the first image for AI analysis
-      if (newUploadedBase64s.length > 0) {
-        const { data, error } = await supabase.functions.invoke('gemini-analyze-image', {
-          body: { imageBase64: newUploadedBase64s[0], deviceName, language: selectedLanguage }
+      // Step 1b: Photo Analysis
+      const { data: photoData, error: photoError } = await supabase.functions.invoke('analyze-device-photo', {
+        body: { 
+          imageBase64: base64.split(',')[1], 
+          deviceName,
+          commonProblems: nameData.commonProblems,
+          language: selectedLanguage 
+        }
+      });
+
+      if (photoError) throw photoError;
+      setPhotoAnalysis(photoData);
+
+      setCurrentStep(2);
+    } catch (error) {
+      console.error('Step 1 analysis error:', error);
+      toast.error(getTranslation('analysisError', selectedLanguage));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStep2Analysis = async () => {
+    if (!userDescription.trim()) {
+      toast.error(getTranslation('pleaseProvideDescription', selectedLanguage));
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-description', {
+        body: {
+          description: userDescription,
+          nameAnalysis,
+          photoAnalysis,
+          language: selectedLanguage
+        }
+      });
+
+      if (error) throw error;
+      setDescriptionAnalysis(data);
+      setCurrentStep(3);
+    } catch (error) {
+      console.error('Step 2 analysis error:', error);
+      toast.error(getTranslation('analysisError', selectedLanguage));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStep3Questions = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-questions', {
+        body: {
+          nameAnalysis,
+          photoAnalysis,
+          descriptionAnalysis,
+          language: selectedLanguage
+        }
+      });
+
+      if (error) throw error;
+      setClarifyingQuestions(data.questions);
+      setCurrentStep(4);
+    } catch (error) {
+      console.error('Step 3 questions error:', error);
+      toast.error(getTranslation('analysisError', selectedLanguage));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStep4FinalReport = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-final-report', {
+        body: {
+          deviceName,
+          nameAnalysis,
+          photoAnalysis,
+          descriptionAnalysis,
+          questionAnswers,
+          language: selectedLanguage
+        }
+      });
+
+      if (error) throw error;
+      setFinalReport(data);
+      setCurrentStep(5);
+    } catch (error) {
+      console.error('Step 4 final report error:', error);
+      toast.error(getTranslation('analysisError', selectedLanguage));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStep5Confirmation = async (resolved: boolean) => {
+    setIssueResolved(resolved);
+    
+    if (!resolved) {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('generate-alternatives', {
+          body: {
+            deviceName,
+            nameAnalysis,
+            photoAnalysis,
+            descriptionAnalysis,
+            questionAnswers,
+            currentSolution: finalReport,
+            language: selectedLanguage
+          }
         });
 
         if (error) throw error;
-
-        setStepData(prev => ({
-          ...prev,
-          imageAnalysis: data.analysis,
-          questions1: data.questions.map((q: string, i: number) => ({ id: `q1_${i}`, question: q }))
-        }));
-        setCurrentStep(3);
-      } else {
-        toast({
-          title: t('noImagesUploaded'),
-          description: t('noImagesUploadedDesc'),
-          variant: "destructive"
-        });
+        setAlternativeSolutions(data.alternatives);
+      } catch (error) {
+        console.error('Alternative solutions error:', error);
+        toast.error(getTranslation('analysisError', selectedLanguage));
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error during image handling:', error);
-      toast({
-        title: t('imageProcessingError'),
-        description: t('imageProcessingErrorDesc'),
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
     }
   };
 
-  const handleQuestionAnswer = (questionId: string, answer: string, questionSet: 'questions1' | 'questions2') => {
-    setStepData(prev => ({
-      ...prev,
-      [questionSet]: prev[questionSet]?.map(q => 
-        q.id === questionId ? { ...q, answer } : q
-      )
-    }));
+  const resetDiagnostic = () => {
+    setCurrentStep(1);
+    setDeviceName('');
+    setDevicePhoto(null);
+    setPhotoPreview(null);
+    setNameAnalysis(null);
+    setPhotoAnalysis(null);
+    setUserDescription('');
+    setDescriptionAnalysis(null);
+    setClarifyingQuestions([]);
+    setQuestionAnswers({});
+    setFinalReport(null);
+    setIssueResolved(null);
+    setAlternativeSolutions(null);
   };
 
-  const handleDescriptionSubmit = async () => {
-    if (!stepData.description?.trim()) {
-      toast({
-        title: t('descriptionRequired'),
-        description: t('descriptionRequiredDesc'),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const answers1 = stepData.questions1?.reduce((acc, q) => {
-        if (q.answer) acc[q.question] = q.answer;
-        return acc;
-      }, {} as Record<string, string>) || {};
-
-      const { data, error } = await supabase.functions.invoke('gemini-analyze-description', {
-        body: {
-          description: stepData.description,
-          previousAnalysis: stepData.imageAnalysis,
-          questionAnswers: answers1,
-          language: selectedLanguage
-        }
-      });
-
-      if (error) throw error;
-
-      setStepData(prev => ({
-        ...prev,
-        descriptionAnalysis: data.analysis,
-        questions2: data.questions.map((q: string, i: number) => ({ id: `q2_${i}`, question: q }))
-      }));
-      setCurrentStep(5);
-    } catch (error) {
-      console.error('Error analyzing description:', error);
-      toast({
-        title: t('analysisError'),
-        description: t('analysisErrorDesc'),
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
+  const getStepTitle = (step: number) => {
+    const titles = [
+      '',
+      getTranslation('deviceInput', selectedLanguage),
+      getTranslation('descriptionAnalysis', selectedLanguage),
+      getTranslation('clarifyingQuestions', selectedLanguage),
+      getTranslation('finalSolution', selectedLanguage),
+      getTranslation('confirmation', selectedLanguage)
+    ];
+    return titles[step] || '';
   };
-
-  const handleFinalDiagnosis = async () => {
-    setLoading(true);
-    try {
-      const allAnswers = {
-        questions1: stepData.questions1?.reduce((acc, q) => {
-          if (q.answer) acc[q.question] = q.answer;
-          return acc;
-        }, {} as Record<string, string>) || {},
-        questions2: stepData.questions2?.reduce((acc, q) => {
-          if (q.answer) acc[q.question] = q.answer;
-          return acc;
-        }, {} as Record<string, string>) || {},
-        description: stepData.description
-      };
-
-      const { data, error } = await supabase.functions.invoke('gemini-generate-report', {
-        body: {
-          deviceName,
-          imageAnalysis: stepData.imageAnalysis,
-          description: stepData.description,
-          questionAnswers: allAnswers,
-          language: selectedLanguage
-        }
-      });
-
-      if (error) throw error;
-
-      setStepData(prev => ({ ...prev, finalSolution: data.report }));
-      setCurrentStep(6);
-
-      // Save repair session to database
-      if (user) {
-        try {
-          await supabase
-            .from('diagnostic_sessions')
-            .insert({
-              user_id: user.id,
-              device_category: deviceName,
-              symptoms_text: stepData.description,
-              image_urls: uploadedPublicUrls, // Save uploaded image public URLs
-               ai_analysis: JSON.parse(JSON.stringify({
-                 finalSolution: data.report,
-                 deviceName
-               })),
-              status: 'completed'
-            });
-        } catch (dbError) {
-          console.error('Error saving diagnostic session:', dbError);
-          // Don't show error to user as the main function worked
-        }
-      }
-    } catch (error) {
-      console.error('Error getting final solution:', error);
-      toast({
-        title: t('solutionError'),
-        description: t('solutionErrorDesc'),
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const progress = (currentStep / steps.length) * 100;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto p-4 space-y-6">
+      {/* Progress Bar */}
       <div className="space-y-2">
         <div className="flex justify-between text-sm text-muted-foreground">
-          <span>{t('step')} {currentStep} {t('of')} {steps.length}</span>
-          <span>{Math.round(progress)}% {t('complete')}</span>
+          <span>{getTranslation('step', selectedLanguage)} {currentStep} {getTranslation('of', selectedLanguage)} 5</span>
+          <span>{Math.round((currentStep / 5) * 100)}%</span>
         </div>
-        <Progress value={progress} className="w-full" />
+        <Progress value={(currentStep / 5) * 100} className="h-2" />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            {currentStep === 6 && <CheckCircle className="h-5 w-5 text-green-500" />}
-            {steps[currentStep - 1]?.title}
-          </CardTitle>
-          <CardDescription>{steps[currentStep - 1]?.description}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {currentStep === 1 && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="deviceName">{t('deviceName')} *</Label>
-                <Input
-                  id="deviceName"
-                  value={deviceName}
-                  onChange={(e) => setDeviceName(e.target.value)}
-                  placeholder={t('deviceNamePlaceholder')}
-                  required
-                />
-              </div>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                ref={fileInputRef}
-                className="hidden"
-              />
-              <Button 
-                onClick={() => {
-                  if (!deviceName.trim()) {
-                    toast({
-                      title: t('deviceNameRequired'),
-                      description: t('deviceNameRequiredDesc'),
-                      variant: "destructive"
-                    });
-                    return;
-                  }
-                  fileInputRef.current?.click();
-                }}
-                className="w-full h-32 border-2 border-dashed border-border hover:border-primary"
-                variant="outline"
-                disabled={loading}
-              >
-                <div className="text-center">
-                  {loading ? (
-                    <Loader2 className="h-8 w-8 mx-auto mb-2 animate-spin" />
-                  ) : (
-                    <Camera className="h-8 w-8 mx-auto mb-2" />
-                  )}
-                  <p>{loading ? t('analyzing') : t('uploadImageButton')}</p>
-                </div>
-              </Button>
-            </div>
-          )}
-
-          {currentStep === 2 && (
-            <div className="text-center space-y-4">
-              <Loader2 className="h-8 w-8 mx-auto animate-spin" />
-              <p>{t('aiAnalyzing')}</p>
-            </div>
-          )}
-
-          {currentStep === 3 && stepData.questions1 && (
-            <div className="space-y-4">
-              <div className="p-4 bg-muted rounded-lg">
-                <h4 className="font-medium mb-2">{t('initialAnalysis')}</h4>
-                <p className="text-sm">{stepData.imageAnalysis}</p>
-              </div>
-              
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium">{t('helpUnderstand')}</h4>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setCurrentStep(4)}
-                    className="flex items-center gap-1"
-                  >
-                    <SkipForward className="h-4 w-4" />
-                    {t('skip')}
-                  </Button>
-                </div>
-                {stepData.questions1.map((q) => (
-                  <div key={q.id} className="space-y-2">
-                    <Label>{q.question}</Label>
-                    <Textarea
-                      value={q.answer || ''}
-                      onChange={(e) => handleQuestionAnswer(q.id, e.target.value, 'questions1')}
-                      placeholder={t('yourAnswer')}
-                      rows={2}
-                    />
-                  </div>
-                ))}
-                <Button onClick={() => setCurrentStep(4)} className="w-full">
-                  {t('continue')}
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {currentStep === 4 && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="description">{t('describeProblemo')} *</Label>
-                <Textarea
-                  id="description"
-                  value={stepData.description || ''}
-                  onChange={(e) => setStepData(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder={t('describeProblemPlaceholder')}
-                  rows={4}
-                  required
-                />
-              </div>
-              <Button 
-                onClick={handleDescriptionSubmit} 
-                disabled={loading || !stepData.description?.trim()}
-                className="w-full"
-              >
-                {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                {t('analyzeDescription')}
-              </Button>
-            </div>
-          )}
-
-          {currentStep === 5 && stepData.questions2 && (
-            <div className="space-y-4">
-              <div className="p-4 bg-muted rounded-lg">
-                <h4 className="font-medium mb-2">{t('updatedAnalysis')}</h4>
-                <p className="text-sm">{stepData.descriptionAnalysis}</p>
-              </div>
-
-              {stepData.questions2.length > 0 ? (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium">{t('finalClarifications')}</h4>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={handleFinalDiagnosis}
-                      className="flex items-center gap-1"
-                    >
-                      <SkipForward className="h-4 w-4" />
-                      {t('skipToSolution')}
-                    </Button>
-                  </div>
-                  {stepData.questions2.map((q) => (
-                    <div key={q.id} className="space-y-2">
-                      <Label>{q.question}</Label>
-                      <Textarea
-                        value={q.answer || ''}
-                        onChange={(e) => handleQuestionAnswer(q.id, e.target.value, 'questions2')}
-                        placeholder={t('yourAnswer')}
-                        rows={2}
-                      />
-                    </div>
-                  ))}
-                  <Button onClick={handleFinalDiagnosis} disabled={loading} className="w-full">
-                    {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                    {t('getRepairSolution')}
-                  </Button>
-                </div>
-              ) : (
-                <Button onClick={handleFinalDiagnosis} disabled={loading} className="w-full">
-                  {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                  {t('getRepairSolution')}
-                </Button>
-              )}
-            </div>
-          )}
-
-          {currentStep === 6 && stepData.finalSolution && (
-            <div className="space-y-4">
-              <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
-                <h4 className="font-medium text-green-800 dark:text-green-200 mb-2">
-                  {t('repairSolutionFound')}
-                </h4>
-                <div className="space-y-4 text-green-700 dark:text-green-300">
-                  <div className="space-y-2">
-                    <h5 className="font-semibold text-green-800 dark:text-green-200">{t('problem')}</h5>
-                    <p className="text-sm">{stepData.finalSolution.problem || 'Problem identification needed'}</p>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <h5 className="font-semibold text-green-800 dark:text-green-200">{t('reason')}</h5>
-                    <p className="text-sm">{stepData.finalSolution.reason || 'Root cause analysis needed'}</p>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <h5 className="font-semibold text-green-800 dark:text-green-200">{t('solution')}</h5>
-                    <div className="text-sm">
-                      {Array.isArray(stepData.finalSolution.solutions) && stepData.finalSolution.solutions.length > 0 ? (
-                        <ol className="list-decimal list-inside space-y-1">
-                          {stepData.finalSolution.solutions.map((step, index) => (
-                            <li key={index}>{step}</li>
-                          ))}
-                        </ol>
-                      ) : (
-                        <p>Stop using the device and seek professional help immediately.</p>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <h5 className="font-semibold text-green-800 dark:text-green-200">{t('toolsRequired')}</h5>
-                    <div className="text-sm">
-                      {Array.isArray(stepData.finalSolution.tools_required) && stepData.finalSolution.tools_required.length > 0 ? (
-                        <ul className="list-disc list-inside space-y-1">
-                          {stepData.finalSolution.tools_required.map((tool, index) => (
-                            <li key={index}>{tool}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p>No tools specified</p>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <h5 className="font-semibold text-green-800 dark:text-green-200">{t('estimatedCost')}</h5>
-                    <p className="text-sm">{stepData.finalSolution.estimated_cost || 'Cost estimate unavailable'}</p>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <h5 className="font-semibold text-green-800 dark:text-green-200">{t('tip')}</h5>
-                    <p className="text-sm">{stepData.finalSolution.tip || 'Follow manufacturer guidelines for maintenance'}</p>
-                  </div>
-                </div>
-              </div>
-              <Button 
-                onClick={() => {
-                  setCurrentStep(1);
-                  setStepData({});
-                  setUploadedImages([]);
-                  setUploadedPublicUrls([]);
-                  setDeviceName('');
-                }}
-                variant="outline"
-                className="w-full"
-              >
-                {t('startNewDiagnosis')}
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {uploadedImages.length > 0 && (
+      {/* Step 1: Device Input */}
+      {currentStep === 1 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">{t('uploadedImages')}</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Camera className="h-5 w-5" />
+              {getStepTitle(1)}
+            </CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-            {uploadedImages.map((image, index) => (
-              <img
-                key={index}
-                src={image}
-                alt={`Uploaded device ${index + 1}`}
-                className="w-full h-24 object-cover rounded-lg"
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="deviceName">{getTranslation('deviceName', selectedLanguage)}</Label>
+              <Input
+                id="deviceName"
+                value={deviceName}
+                onChange={(e) => setDeviceName(e.target.value)}
+                placeholder={getTranslation('enterDeviceName', selectedLanguage)}
               />
+            </div>
+            
+            <div>
+              <Label htmlFor="devicePhoto">{getTranslation('devicePhoto', selectedLanguage)}</Label>
+              <Input
+                id="devicePhoto"
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoSelect}
+              />
+              {photoPreview && (
+                <img 
+                  src={photoPreview} 
+                  alt="Device preview" 
+                  className="mt-2 max-w-full h-48 object-cover rounded-lg"
+                />
+              )}
+            </div>
+
+            {nameAnalysis && (
+              <div className="bg-muted p-4 rounded-lg">
+                <h4 className="font-semibold mb-2">{getTranslation('nameAnalysis', selectedLanguage)}</h4>
+                <p><strong>{getTranslation('deviceCategory', selectedLanguage)}:</strong> {nameAnalysis.deviceCategory}</p>
+                <p><strong>{getTranslation('commonProblems', selectedLanguage)}:</strong></p>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {nameAnalysis.commonProblems.map((problem, index) => (
+                    <Badge key={index} variant="secondary">{problem}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {photoAnalysis && (
+              <div className="bg-muted p-4 rounded-lg">
+                <h4 className="font-semibold mb-2">{getTranslation('photoAnalysis', selectedLanguage)}</h4>
+                <p><strong>{getTranslation('damageAssessment', selectedLanguage)}:</strong> {photoAnalysis.damageAssessment}</p>
+                {photoAnalysis.visibleDamage.length > 0 && (
+                  <>
+                    <p><strong>{getTranslation('visibleDamage', selectedLanguage)}:</strong></p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {photoAnalysis.visibleDamage.map((damage, index) => (
+                        <Badge key={index} variant="destructive">{damage}</Badge>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            <Button 
+              onClick={handleStep1Analysis}
+              disabled={loading || !deviceName.trim() || !devicePhoto}
+              className="w-full"
+            >
+              {loading ? getTranslation('analyzing', selectedLanguage) : getTranslation('analyzeDevice', selectedLanguage)}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Step 2: Description Analysis */}
+      {currentStep === 2 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5" />
+              {getStepTitle(2)}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="description">{getTranslation('describeIssue', selectedLanguage)}</Label>
+              <Textarea
+                id="description"
+                value={userDescription}
+                onChange={(e) => setUserDescription(e.target.value)}
+                placeholder={getTranslation('describeIssuePlaceholder', selectedLanguage)}
+                rows={4}
+              />
+            </div>
+
+            {descriptionAnalysis && (
+              <div className="bg-muted p-4 rounded-lg">
+                <h4 className="font-semibold mb-2">{getTranslation('analysisResults', selectedLanguage)}</h4>
+                <p><strong>{getTranslation('prioritizedProblems', selectedLanguage)}:</strong></p>
+                <div className="flex flex-wrap gap-1 mt-1 mb-2">
+                  {descriptionAnalysis.prioritizedProblems.map((problem, index) => (
+                    <Badge key={index} variant="default">{problem}</Badge>
+                  ))}
+                </div>
+                <p><strong>{getTranslation('matchedKeywords', selectedLanguage)}:</strong></p>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {descriptionAnalysis.matchedKeywords.map((keyword, index) => (
+                    <Badge key={index} variant="outline">{keyword}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <Button 
+              onClick={handleStep2Analysis}
+              disabled={loading || !userDescription.trim()}
+              className="w-full"
+            >
+              {loading ? getTranslation('analyzing', selectedLanguage) : getTranslation('analyzeDescription', selectedLanguage)}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Step 3: Clarifying Questions */}
+      {currentStep === 3 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5" />
+              {getStepTitle(3)}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg">
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                {getTranslation('questionsOptionalNote', selectedLanguage)}
+              </p>
+            </div>
+
+            {clarifyingQuestions.length === 0 && (
+              <Button 
+                onClick={handleStep3Questions}
+                disabled={loading}
+                className="w-full"
+              >
+                {loading ? getTranslation('generating', selectedLanguage) : getTranslation('generateQuestions', selectedLanguage)}
+              </Button>
+            )}
+
+            {clarifyingQuestions.map((question) => (
+              <div key={question.id} className="space-y-2">
+                <Label className="text-sm font-medium">
+                  <Badge variant="outline" className="mr-2">{question.category}</Badge>
+                  {question.question}
+                </Label>
+                <Textarea
+                  value={questionAnswers[question.id] || ''}
+                  onChange={(e) => setQuestionAnswers(prev => ({
+                    ...prev,
+                    [question.id]: e.target.value
+                  }))}
+                  placeholder={getTranslation('optionalAnswer', selectedLanguage)}
+                  rows={2}
+                />
+              </div>
             ))}
+
+            {clarifyingQuestions.length > 0 && (
+              <Button 
+                onClick={handleStep4FinalReport}
+                disabled={loading}
+                className="w-full"
+              >
+                {loading ? getTranslation('generating', selectedLanguage) : getTranslation('generateSolution', selectedLanguage)}
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Step 4: Final Solution Report */}
+      {currentStep === 4 && finalReport && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Wrench className="h-5 w-5" />
+              {getStepTitle(4)}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid gap-4">
+              <div className="bg-red-50 dark:bg-red-950 p-4 rounded-lg">
+                <h4 className="font-semibold text-red-800 dark:text-red-200 mb-2">
+                  {getTranslation('likelyProblem', selectedLanguage)}
+                </h4>
+                <p className="text-red-700 dark:text-red-300">{finalReport.likelyProblem}</p>
+              </div>
+
+              <div className="bg-amber-50 dark:bg-amber-950 p-4 rounded-lg">
+                <h4 className="font-semibold text-amber-800 dark:text-amber-200 mb-2">
+                  {getTranslation('reason', selectedLanguage)}
+                </h4>
+                <p className="text-amber-700 dark:text-amber-300">{finalReport.reason}</p>
+              </div>
+
+              <div className="bg-green-50 dark:bg-green-950 p-4 rounded-lg">
+                <h4 className="font-semibold text-green-800 dark:text-green-200 mb-2 flex items-center gap-2">
+                  <Wrench className="h-4 w-4" />
+                  {getTranslation('repairSolution', selectedLanguage)}
+                </h4>
+                <ol className="text-green-700 dark:text-green-300 space-y-1">
+                  {finalReport.repairSolution.map((step, index) => (
+                    <li key={index} className="flex gap-2">
+                      <span className="font-semibold">{index + 1}.</span>
+                      <span>{step}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
+                  <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">
+                    {getTranslation('toolsNeeded', selectedLanguage)}
+                  </h4>
+                  <ul className="text-blue-700 dark:text-blue-300 space-y-1">
+                    {finalReport.toolsNeeded.map((tool, index) => (
+                      <li key={index}>• {tool}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="bg-purple-50 dark:bg-purple-950 p-4 rounded-lg">
+                  <h4 className="font-semibold text-purple-800 dark:text-purple-200 mb-2 flex items-center gap-2">
+                    <DollarSign className="h-4 w-4" />
+                    {getTranslation('estimatedCost', selectedLanguage)}
+                  </h4>
+                  <p className="text-purple-700 dark:text-purple-300">{finalReport.estimatedCost}</p>
+                </div>
+              </div>
+
+              <div className="bg-orange-50 dark:bg-orange-950 p-4 rounded-lg">
+                <h4 className="font-semibold text-orange-800 dark:text-orange-200 mb-2 flex items-center gap-2">
+                  <Lightbulb className="h-4 w-4" />
+                  {getTranslation('extraTip', selectedLanguage)}
+                </h4>
+                <p className="text-orange-700 dark:text-orange-300">{finalReport.extraTip}</p>
+              </div>
+
+              {finalReport.alternativeProblems && (
+                <div className="bg-gray-50 dark:bg-gray-950 p-4 rounded-lg">
+                  <h4 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                    {getTranslation('alternativeProblems', selectedLanguage)}
+                  </h4>
+                  {finalReport.alternativeProblems.map((alt, index) => (
+                    <div key={index} className="mb-2">
+                      <p className="font-medium text-gray-700 dark:text-gray-300">{alt.problem}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{alt.reasoning}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <Button 
+              onClick={() => setCurrentStep(5)}
+              className="w-full"
+            >
+              {getTranslation('proceedToConfirmation', selectedLanguage)}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Step 5: Confirmation Check */}
+      {currentStep === 5 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5" />
+              {getStepTitle(5)}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {issueResolved === null && (
+              <div className="space-y-4">
+                <p className="text-lg font-medium">
+                  {getTranslation('didThisSolveIssue', selectedLanguage)}
+                </p>
+                <div className="flex gap-4">
+                  <Button 
+                    onClick={() => handleStep5Confirmation(true)}
+                    variant="default"
+                    className="flex-1"
+                  >
+                    {getTranslation('yes', selectedLanguage)}
+                  </Button>
+                  <Button 
+                    onClick={() => handleStep5Confirmation(false)}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    {getTranslation('no', selectedLanguage)}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {issueResolved === true && (
+              <div className="text-center space-y-4">
+                <div className="bg-green-50 dark:bg-green-950 p-6 rounded-lg">
+                  <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-green-800 dark:text-green-200 mb-2">
+                    {getTranslation('successTitle', selectedLanguage)}
+                  </h3>
+                  <p className="text-green-700 dark:text-green-300">
+                    {getTranslation('successMessage', selectedLanguage)}
+                  </p>
+                </div>
+                <Button onClick={resetDiagnostic} variant="outline">
+                  {getTranslation('startNewDiagnostic', selectedLanguage)}
+                </Button>
+              </div>
+            )}
+
+            {issueResolved === false && (
+              <div className="space-y-4">
+                <div className="bg-amber-50 dark:bg-amber-950 p-4 rounded-lg">
+                  <h4 className="font-semibold text-amber-800 dark:text-amber-200 mb-2">
+                    {getTranslation('alternativeSolutions', selectedLanguage)}
+                  </h4>
+                  {loading ? (
+                    <p className="text-amber-700 dark:text-amber-300">
+                      {getTranslation('generatingAlternatives', selectedLanguage)}
+                    </p>
+                  ) : alternativeSolutions ? (
+                    <div className="text-amber-700 dark:text-amber-300 whitespace-pre-wrap">
+                      {alternativeSolutions}
+                    </div>
+                  ) : null}
+                </div>
+                <Button onClick={resetDiagnostic} variant="outline" className="w-full">
+                  {getTranslation('startNewDiagnostic', selectedLanguage)}
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
     </div>
   );
-};
-
-export default DiagnosticFlow;
+}
