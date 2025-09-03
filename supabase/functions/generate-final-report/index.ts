@@ -41,9 +41,9 @@ Respond in ${getLanguageName(language)} with this exact JSON format:
   "likelyProblem": "Most probable issue based on all data",
   "reason": "Why this is happening (technical explanation made simple)",
   "repairSolution": [
-    "Step 1: Clear actionable instruction",
-    "Step 2: Next step in sequence", 
-    "Step 3: Continue until complete"
+    "Step 1: Clear actionable instruction with safety tips if applicable",
+    "Step 2: Next step in sequence with safety tips if applicable", 
+    "Step 3: Continue until complete, including safety tips"
   ],
   "toolsNeeded": [
     "Tool 1",
@@ -51,7 +51,7 @@ Respond in ${getLanguageName(language)} with this exact JSON format:
     "Tool 3"
   ],
   "estimatedCost": "$20-$50 (or relevant currency)",
-  "extraTip": "Safety or prevention advice",
+  "extraTip": "Tips and tricks to avoid this problem in the future",
   "alternativeProblems": [
     {
       "problem": "If not the main issue, this could be it",
@@ -143,7 +143,7 @@ function getLanguageName(code: string): string {
     'ko': 'Korean (한국어)',
     'zh': 'Chinese (中文)',
     'ar': 'Arabic (العربية)',
-    'hi': 'Hindi (हиन्दी)'
+    'hi': 'Hindi (हिन्दी)'
   };
   return languages[code] || 'English';
 }
