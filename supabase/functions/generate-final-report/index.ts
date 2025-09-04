@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { deviceName, nameAnalysis, photoAnalysis, descriptionAnalysis, questionAnswers, language = 'en' } = await req.json();
+    const { deviceName, nameAnalysis, photoAnalysis, descriptionAnalysis, language = 'en' } = await req.json();
     const apiKey = Deno.env.get('GEMINI_API_KEY');
 
     if (!apiKey) {
@@ -27,38 +27,37 @@ Photo Assessment: ${photoAnalysis.damageAssessment}
 Visible Damage: ${photoAnalysis.visibleDamage.join(', ') || 'None detected'}
 Prioritized Problems: ${descriptionAnalysis.prioritizedProblems.join(', ')}
 Matched Keywords: ${descriptionAnalysis.matchedKeywords.join(', ')}
-Question Answers: ${JSON.stringify(questionAnswers)}
 `;
 
-    const prompt = `Based on the device name, image, and description provided, analyze and generate a repair solution report.
+    const prompt = `Analyze the device name, image, and description to provide a comprehensive repair solution.
 
 ${context}
 
-Analyze device name + photo + description together to determine the problem and solution.
+Based on device name + image + description analysis, provide exactly 3 sections:
 
 Respond in ${getLanguageName(language)} with this exact JSON format:
 {
   "problemWithReason": {
-    "problem": "Most probable issue based on analysis",
-    "reason": "Why this is happening (technical explanation made simple)"
+    "problem": "Most probable issue identified",
+    "reason": "Technical explanation of why this problem occurs"
   },
   "repairStepsWithSafety": [
-    "Step 1: Clear actionable instruction with safety tips if applicable",
-    "Step 2: Next step in sequence with safety tips if applicable", 
-    "Step 3: Continue until complete, including safety tips"
+    "Step 1: Clear repair instruction with safety tips included",
+    "Step 2: Next repair step with safety considerations",
+    "Step 3: Continue with detailed safety-conscious instructions"
   ],
   "toolsNeeded": [
-    "Tool 1",
-    "Tool 2", 
-    "Tool 3"
+    "Tool 1 required for repair",
+    "Tool 2 needed",
+    "Tool 3 necessary"
   ]
 }
 
 CRITICAL REQUIREMENTS:
-- repairStepsWithSafety MUST have at least 1 step, never be empty
+- repairStepsWithSafety MUST have at least 1 step, never empty
+- Include safety warnings in repair steps when needed
 - If repair is dangerous, start with "Stop using device and consult professional"
-- Make steps specific and clear for ${deviceName}
-- Include safety warnings when needed
+- Make steps specific for ${deviceName}
 - All fields must be meaningful and populated`;
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
@@ -92,7 +91,7 @@ CRITICAL REQUIREMENTS:
         report.repairStepsWithSafety = ["Stop using the device and consult a professional technician for safe repair."];
       }
       
-      // Ensure all required fields exist
+      // Ensure required fields exist
       if (!report.problemWithReason) {
         report.problemWithReason = {
           problem: "Device issue identified",
