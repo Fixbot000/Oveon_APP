@@ -29,11 +29,11 @@ Prioritized Problems: ${descriptionAnalysis.prioritizedProblems.join(', ')}
 Matched Keywords: ${descriptionAnalysis.matchedKeywords.join(', ')}
 `;
 
-    const prompt = `Analyze the device name, image, and description to provide a comprehensive repair solution.
+    const prompt = `Analyze the device name, image, and description to provide a repair solution.
 
 ${context}
 
-Based on device name + image + description analysis, provide exactly 3 sections:
+Based on device name + image + description analysis, provide exactly 2 sections:
 
 Respond in ${getLanguageName(language)} with this exact JSON format:
 {
@@ -41,23 +41,16 @@ Respond in ${getLanguageName(language)} with this exact JSON format:
     "problem": "Most probable issue identified",
     "reason": "Technical explanation of why this problem occurs"
   },
-  "repairStepsWithSafety": [
-    "Step 1: Clear repair instruction with safety tips included",
-    "Step 2: Next repair step with safety considerations",
-    "Step 3: Continue with detailed safety-conscious instructions"
-  ],
-  "toolsNeeded": [
-    "Tool 1 required for repair",
-    "Tool 2 needed",
-    "Tool 3 necessary"
+  "detailedRepairSteps": [
+    "Step 1: Detailed repair instruction",
+    "Step 2: Next detailed repair step",
+    "Step 3: Continue with comprehensive repair instructions"
   ]
 }
 
 CRITICAL REQUIREMENTS:
-- repairStepsWithSafety MUST have at least 1 step, never empty
-- Include safety warnings in repair steps when needed
-- If repair is dangerous, start with "Stop using device and consult professional"
-- Make steps specific for ${deviceName}
+- detailedRepairSteps MUST have at least 1 step, never empty
+- Make steps detailed and specific for ${deviceName}
 - All fields must be meaningful and populated`;
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
@@ -86,9 +79,9 @@ CRITICAL REQUIREMENTS:
       const reportText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
       report = JSON.parse(reportText.replace(/```json\n?/g, '').replace(/```/g, ''));
       
-      // Ensure repairStepsWithSafety array exists and has at least one step
-      if (!report.repairStepsWithSafety || !Array.isArray(report.repairStepsWithSafety) || report.repairStepsWithSafety.length === 0) {
-        report.repairStepsWithSafety = ["Stop using the device and consult a professional technician for safe repair."];
+      // Ensure detailedRepairSteps array exists and has at least one step
+      if (!report.detailedRepairSteps || !Array.isArray(report.detailedRepairSteps) || report.detailedRepairSteps.length === 0) {
+        report.detailedRepairSteps = ["Consult a professional technician for detailed repair guidance."];
       }
       
       // Ensure required fields exist
@@ -98,7 +91,6 @@ CRITICAL REQUIREMENTS:
           reason: "Root cause analysis needed"
         };
       }
-      if (!report.toolsNeeded) report.toolsNeeded = ["Professional consultation recommended"];
       
     } catch (e) {
       console.error('Error parsing report:', e);

@@ -37,8 +37,7 @@ interface FinalSolutionReport {
     problem: string;
     reason: string;
   };
-  repairStepsWithSafety: string[];
-  toolsNeeded: string[];
+  detailedRepairSteps: string[];
 }
 
 interface DiagnosticFlowProps {
@@ -484,32 +483,20 @@ export default function DiagnosticFlow({ selectedLanguage }: DiagnosticFlowProps
                 </div>
               </div>
 
-              {/* Repair Steps with Safety Section */}
+              {/* Detailed Repair Steps Section */}
               <div className="bg-green-50 dark:bg-green-950 p-4 rounded-lg">
                 <h4 className="font-semibold text-green-800 dark:text-green-200 mb-2 flex items-center gap-2">
                   <Wrench className="h-4 w-4" />
-                  Repair Steps with Safety Tips
+                  Detailed Repair Steps
                 </h4>
                 <ol className="text-green-700 dark:text-green-300 space-y-1">
-                  {finalReport.repairStepsWithSafety?.map((step, index) => (
+                  {finalReport.detailedRepairSteps?.map((step, index) => (
                     <li key={index} className="flex gap-2">
                       <span className="font-semibold">{index + 1}.</span>
                       <span>{step}</span>
                     </li>
                   ))}
                 </ol>
-              </div>
-
-              {/* Tools Needed Section */}
-              <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
-                <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">
-                  Tools Needed
-                </h4>
-                <ul className="text-blue-700 dark:text-blue-300 space-y-1">
-                  {finalReport.toolsNeeded?.map((tool, index) => (
-                    <li key={index}>• {tool}</li>
-                  ))}
-                </ul>
               </div>
             </div>
 
