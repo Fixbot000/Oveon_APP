@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, Upload, Camera, AlertCircle, Wrench, DollarSign, Lightbulb } from 'lucide-react';
+import { CheckCircle, Upload, Camera, AlertCircle, Wrench, DollarSign, Lightbulb, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { getTranslation } from '@/lib/translations';
@@ -33,16 +33,12 @@ interface ClarifyingQuestion {
 }
 
 interface FinalSolutionReport {
-  likelyProblem: string;
-  reason: string;
-  repairSolution: string[];
-  toolsNeeded: string[];
-  estimatedCost: string;
-  extraTip: string;
-  alternativeProblems?: Array<{
+  problemWithReason: {
     problem: string;
-    reasoning: string;
-  }>;
+    reason: string;
+  };
+  repairStepsWithSafety: string[];
+  toolsNeeded: string[];
 }
 
 interface DiagnosticFlowProps {
@@ -472,27 +468,30 @@ export default function DiagnosticFlow({ selectedLanguage }: DiagnosticFlowProps
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid gap-4">
+              {/* Problem with Reason Section */}
               <div className="bg-red-50 dark:bg-red-950 p-4 rounded-lg">
-                <h4 className="font-semibold text-red-800 dark:text-red-200 mb-2">
-                  {getTranslation('likelyProblem', selectedLanguage)}
+                <h4 className="font-semibold text-red-800 dark:text-red-200 mb-2 flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  Problem & Reason
                 </h4>
-                <p className="text-red-700 dark:text-red-300">{finalReport.likelyProblem}</p>
+                <div className="space-y-2">
+                  <p className="text-red-700 dark:text-red-300">
+                    <span className="font-semibold">Problem:</span> {finalReport.problemWithReason?.problem}
+                  </p>
+                  <p className="text-red-700 dark:text-red-300">
+                    <span className="font-semibold">Reason:</span> {finalReport.problemWithReason?.reason}
+                  </p>
+                </div>
               </div>
 
-              <div className="bg-amber-50 dark:bg-amber-950 p-4 rounded-lg">
-                <h4 className="font-semibold text-amber-800 dark:text-amber-200 mb-2">
-                  {getTranslation('reason', selectedLanguage)}
-                </h4>
-                <p className="text-amber-700 dark:text-amber-300">{finalReport.reason}</p>
-              </div>
-
+              {/* Repair Steps with Safety Section */}
               <div className="bg-green-50 dark:bg-green-950 p-4 rounded-lg">
                 <h4 className="font-semibold text-green-800 dark:text-green-200 mb-2 flex items-center gap-2">
                   <Wrench className="h-4 w-4" />
-                  {getTranslation('repairSolution', selectedLanguage)}
+                  Repair Steps with Safety Tips
                 </h4>
                 <ol className="text-green-700 dark:text-green-300 space-y-1">
-                  {finalReport.repairSolution.map((step, index) => (
+                  {finalReport.repairStepsWithSafety?.map((step, index) => (
                     <li key={index} className="flex gap-2">
                       <span className="font-semibold">{index + 1}.</span>
                       <span>{step}</span>
@@ -501,48 +500,17 @@ export default function DiagnosticFlow({ selectedLanguage }: DiagnosticFlowProps
                 </ol>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
-                  <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">
-                    {getTranslation('toolsNeeded', selectedLanguage)}
-                  </h4>
-                  <ul className="text-blue-700 dark:text-blue-300 space-y-1">
-                    {finalReport.toolsNeeded.map((tool, index) => (
-                      <li key={index}>• {tool}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="bg-purple-50 dark:bg-purple-950 p-4 rounded-lg">
-                  <h4 className="font-semibold text-purple-800 dark:text-purple-200 mb-2 flex items-center gap-2">
-                    <DollarSign className="h-4 w-4" />
-                    {getTranslation('estimatedCost', selectedLanguage)}
-                  </h4>
-                  <p className="text-purple-700 dark:text-purple-300">{finalReport.estimatedCost}</p>
-                </div>
-              </div>
-
-              <div className="bg-orange-50 dark:bg-orange-950 p-4 rounded-lg">
-                <h4 className="font-semibold text-orange-800 dark:text-orange-200 mb-2 flex items-center gap-2">
-                  <Lightbulb className="h-4 w-4" />
-                  {getTranslation('extraTip', selectedLanguage)}
+              {/* Tools Needed Section */}
+              <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
+                <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">
+                  Tools Needed
                 </h4>
-                <p className="text-orange-700 dark:text-orange-300">{finalReport.extraTip}</p>
-              </div>
-
-              {finalReport.alternativeProblems && (
-                <div className="bg-gray-50 dark:bg-gray-950 p-4 rounded-lg">
-                  <h4 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">
-                    {getTranslation('alternativeProblems', selectedLanguage)}
-                  </h4>
-                  {finalReport.alternativeProblems.map((alt, index) => (
-                    <div key={index} className="mb-2">
-                      <p className="font-medium text-gray-700 dark:text-gray-300">{alt.problem}</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{alt.reasoning}</p>
-                    </div>
+                <ul className="text-blue-700 dark:text-blue-300 space-y-1">
+                  {finalReport.toolsNeeded?.map((tool, index) => (
+                    <li key={index}>• {tool}</li>
                   ))}
-                </div>
-              )}
+                </ul>
+              </div>
             </div>
 
             <Button 

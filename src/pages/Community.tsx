@@ -546,7 +546,7 @@ const Community = () => {
                 .filter(comment => !comment.parent_comment_id) // Only show top-level comments initially
                 .map(comment => (
                   <div key={comment.id} className="flex space-x-3">
-                    <Avatar className={`h-8 w-8 ${comment.profiles?.ispremium ? 'ring-2 ring-amber-400' : ''}`}>
+                    <Avatar className="h-8 w-8">
                       <AvatarFallback className="bg-primary/10 text-primary text-xs">
                         {comment.profiles?.username?.[0]?.toUpperCase() || 'U'}
                       </AvatarFallback>
@@ -557,7 +557,7 @@ const Community = () => {
                       {/* Display replies */}
                       {comments[selectedPostIdForComments].filter(reply => reply.parent_comment_id === comment.id).map(reply => (
                         <div key={reply.id} className="flex space-x-2 mt-3 ml-6 bg-muted/30 p-2 rounded-lg">
-                          <Avatar className={`h-6 w-6 ${reply.profiles?.ispremium ? 'ring-2 ring-amber-400' : ''}`}>
+                          <Avatar className="h-6 w-6">
                             <AvatarFallback className="bg-primary/10 text-primary text-xs">
                               {reply.profiles?.username?.[0]?.toUpperCase() || 'U'}
                             </AvatarFallback>

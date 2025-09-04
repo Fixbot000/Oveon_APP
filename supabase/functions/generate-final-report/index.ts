@@ -30,43 +30,36 @@ Matched Keywords: ${descriptionAnalysis.matchedKeywords.join(', ')}
 Question Answers: ${JSON.stringify(questionAnswers)}
 `;
 
-    const prompt = `Based on ALL the provided information, generate a comprehensive final solution report.
+    const prompt = `Based on the device name, image, and description provided, analyze and generate a repair solution report.
 
 ${context}
 
-Analyze everything together: device name + photo + description + question answers to determine the most likely problem and solution.
+Analyze device name + photo + description together to determine the problem and solution.
 
 Respond in ${getLanguageName(language)} with this exact JSON format:
 {
-  "likelyProblem": "Most probable issue based on all data",
-  "reason": "Why this is happening (technical explanation made simple)",
-  "repairSolution": [
+  "problemWithReason": {
+    "problem": "Most probable issue based on analysis",
+    "reason": "Why this is happening (technical explanation made simple)"
+  },
+  "repairStepsWithSafety": [
     "Step 1: Clear actionable instruction with safety tips if applicable",
     "Step 2: Next step in sequence with safety tips if applicable", 
     "Step 3: Continue until complete, including safety tips"
   ],
   "toolsNeeded": [
     "Tool 1",
-    "Tool 2",
+    "Tool 2", 
     "Tool 3"
-  ],
-  "estimatedCost": "$20-$50 (or relevant currency)",
-  "extraTip": "Tips and tricks to avoid this problem in the future",
-  "alternativeProblems": [
-    {
-      "problem": "If not the main issue, this could be it",
-      "reasoning": "Why this alternative makes sense"
-    }
   ]
 }
 
 CRITICAL REQUIREMENTS:
-- repairSolution MUST have at least 1 step, never be empty
+- repairStepsWithSafety MUST have at least 1 step, never be empty
 - If repair is dangerous, start with "Stop using device and consult professional"
 - Make steps specific and clear for ${deviceName}
-- Ensure all fields are meaningful and populated
 - Include safety warnings when needed
-- If uncertain, include alternative problems with reasoning`;
+- All fields must be meaningful and populated`;
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
@@ -94,17 +87,19 @@ CRITICAL REQUIREMENTS:
       const reportText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
       report = JSON.parse(reportText.replace(/```json\n?/g, '').replace(/```/g, ''));
       
-      // Ensure repairSolution array exists and has at least one step
-      if (!report.repairSolution || !Array.isArray(report.repairSolution) || report.repairSolution.length === 0) {
-        report.repairSolution = ["Stop using the device and consult a professional technician for safe repair."];
+      // Ensure repairStepsWithSafety array exists and has at least one step
+      if (!report.repairStepsWithSafety || !Array.isArray(report.repairStepsWithSafety) || report.repairStepsWithSafety.length === 0) {
+        report.repairStepsWithSafety = ["Stop using the device and consult a professional technician for safe repair."];
       }
       
       // Ensure all required fields exist
-      if (!report.likelyProblem) report.likelyProblem = "Device issue identified";
-      if (!report.reason) report.reason = "Root cause analysis needed";
+      if (!report.problemWithReason) {
+        report.problemWithReason = {
+          problem: "Device issue identified",
+          reason: "Root cause analysis needed"
+        };
+      }
       if (!report.toolsNeeded) report.toolsNeeded = ["Professional consultation recommended"];
-      if (!report.estimatedCost) report.estimatedCost = "Contact professional for quote";
-      if (!report.extraTip) report.extraTip = "Follow manufacturer maintenance guidelines";
       
     } catch (e) {
       console.error('Error parsing report:', e);
