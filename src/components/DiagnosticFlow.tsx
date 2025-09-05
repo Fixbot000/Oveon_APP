@@ -10,17 +10,7 @@ import { Camera, FileText, HelpCircle, Wrench, AlertTriangle, Shield } from 'luc
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-interface Question {
-  id: string;
-  question: string;
-  category: string;
-}
-
-interface FinalDiagnosis {
-  problem: string;
-  detailedRepairSteps: string[];
-  safetyTips: string[];
-}
+import { useNavigate } from 'react-router-dom';
 
 interface DiagnosticFlowProps {
   selectedLanguage: string;
@@ -30,6 +20,8 @@ export default function DiagnosticFlow({ selectedLanguage }: DiagnosticFlowProps
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   
+  const navigate = useNavigate();
+
   // Step 1: Device name and photo
   const [deviceName, setDeviceName] = useState('');
   const [devicePhoto, setDevicePhoto] = useState<File | null>(null);
@@ -37,13 +29,9 @@ export default function DiagnosticFlow({ selectedLanguage }: DiagnosticFlowProps
   
   // Step 2: Description
   const [description, setDescription] = useState('');
-  const [questions, setQuestions] = useState<Question[]>([]);
-  
-  // Step 3: Question answers
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  
-  // Step 4: Final diagnosis
-  const [diagnosis, setDiagnosis] = useState<FinalDiagnosis | null>(null);
+  // New pipeline state
+  const [questions, setQuestions] = useState<{ q: string, a: string | null }[]>([]);
+  const [finalSolution, setFinalSolution] = useState<{ problem: string; reason: string; solution_steps: string[]; tools_required: string[]; estimated_cost: string; tip: string } | null>(null);
 
   const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -63,64 +51,6 @@ export default function DiagnosticFlow({ selectedLanguage }: DiagnosticFlowProps
     setCurrentStep(2);
   };
 
-  const handleStep2Analysis = async () => {
-    if (!description.trim()) {
-      toast.error('Please provide a description');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const base64 = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(devicePhoto!);
-      });
-
-      const { data, error } = await supabase.functions.invoke('analyze-device-and-generate-questions', {
-        body: {
-          deviceName,
-          imageBase64: base64.split(',')[1],
-          description,
-          language: selectedLanguage
-        }
-      });
-
-      if (error) throw error;
-      setQuestions(data.questions);
-      setCurrentStep(3);
-    } catch (error) {
-      console.error('Analysis error:', error);
-      toast.error('Analysis failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleStep3Diagnosis = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-repair-diagnosis', {
-        body: {
-          deviceName,
-          description,
-          questions,
-          answers,
-          language: selectedLanguage
-        }
-      });
-
-      if (error) throw error;
-      setDiagnosis(data);
-      setCurrentStep(4);
-    } catch (error) {
-      console.error('Diagnosis error:', error);
-      toast.error('Failed to generate diagnosis. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const resetFlow = () => {
     setCurrentStep(1);
     setDeviceName('');
@@ -128,8 +58,7 @@ export default function DiagnosticFlow({ selectedLanguage }: DiagnosticFlowProps
     setPhotoPreview(null);
     setDescription('');
     setQuestions([]);
-    setAnswers({});
-    setDiagnosis(null);
+    setFinalSolution(null);
   };
 
   return (
@@ -213,8 +142,37 @@ export default function DiagnosticFlow({ selectedLanguage }: DiagnosticFlowProps
             </div>
 
             <Button 
-              onClick={handleStep2Analysis}
-              disabled={loading || !description.trim()}
+              onClick={async () => {
+                if (!description.trim()) {
+                  toast.error('Please provide a description.');
+                  return;
+                }
+                setLoading(true);
+                try {
+                  const base64 = await new Promise<string>((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result as string);
+                    reader.readAsDataURL(devicePhoto!); // devicePhoto is guaranteed to be File | null, but we check for null in handleStep1Next, so it's safe to assert here
+                  });
+                  const { data, error } = await supabase.functions.invoke('gemini-analyze-description', {
+                    body: {
+                      deviceName,
+                      imageBase64: base64.split(',')[1],
+                      description,
+                      language: selectedLanguage,
+                    },
+                  });
+                  if (error) throw error;
+                  setQuestions(data.questions.map((q: string) => ({ q, a: null })));
+                  setCurrentStep(3);
+                } catch (error) {
+                  console.error('Error generating questions:', error);
+                  toast.error('Failed to generate questions. Please try again.');
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              disabled={loading || !description.trim() || !devicePhoto}
               className="w-full"
             >
               {loading ? 'Analyzing...' : 'Analyze & Generate Questions'}
@@ -239,96 +197,61 @@ export default function DiagnosticFlow({ selectedLanguage }: DiagnosticFlowProps
               </p>
             </div>
 
-            {questions.map((question) => (
-              <div key={question.id} className="space-y-2">
-                <Label className="text-sm font-medium">
-                  <Badge variant="outline" className="mr-2">{question.category}</Badge>
-                  {question.question}
+            {questions.map((question, index) => (
+              <div key={index} className="space-y-2">
+                <Label htmlFor={`question-${index}`} className="text-sm font-medium">
+                  {question.q}
                 </Label>
-                <Textarea
-                  value={answers[question.id] || ''}
-                  onChange={(e) => setAnswers(prev => ({
-                    ...prev,
-                    [question.id]: e.target.value
-                  }))}
-                  placeholder="Your answer (optional)"
-                  rows={2}
-                />
+                <div className="flex gap-2">
+                  <Textarea
+                    id={`question-${index}`}
+                    value={question.a || ''}
+                    onChange={(e) => {
+                      setQuestions(prev => prev.map((q, i) => 
+                        i === index ? { ...q, a: e.target.value } : q
+                      ));
+                    }}
+                    placeholder="Your answer (optional)"
+                    rows={2}
+                    className="flex-grow"
+                  />
+                  
+                </div>
               </div>
             ))}
 
             <Button 
-              onClick={handleStep3Diagnosis}
+              onClick={async () => {
+                setLoading(true);
+                try {
+                  const { data, error } = await supabase.functions.invoke('gemini-generate-report', {
+                    body: {
+                      deviceName,
+                      description,
+                      answers: questions.map(q => ({ question: q.q, answer: q.a })),
+                      language: selectedLanguage,
+                    },
+                  });
+                  if (error) throw error;
+                  setFinalSolution(data);
+                  navigate('/diagnosis-result', { state: { finalSolution: data } });
+                  setCurrentStep(4);
+                } catch (error) {
+                  console.error('Error generating final report:', error);
+                  toast.error('Failed to generate repair guide. Please try again.');
+                } finally {
+                  setLoading(false);
+                }
+              }}
               disabled={loading}
               className="w-full"
             >
-              {loading ? 'Generating Diagnosis...' : 'Get Repair Guide'}
+              {loading ? 'Generating Report...' : 'Get Repair Guide'}
             </Button>
           </CardContent>
         </Card>
       )}
 
-      {/* Step 4: Final Diagnosis and Repair Guide */}
-      {currentStep === 4 && diagnosis && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Wrench className="h-5 w-5" />
-              Diagnosis & Repair Guide
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Problem */}
-            <div className="bg-red-50 dark:bg-red-950 p-4 rounded-lg">
-              <h4 className="font-semibold text-red-800 dark:text-red-200 mb-2 flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4" />
-                Problem Identified
-              </h4>
-              <p className="text-red-700 dark:text-red-300">{diagnosis.problem}</p>
-            </div>
-
-            {/* Safety Tips */}
-            <div className="bg-yellow-50 dark:bg-yellow-950 p-4 rounded-lg">
-              <h4 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-2 flex items-center gap-2">
-                <Shield className="h-4 w-4" />
-                Safety Tips
-              </h4>
-              <ul className="text-yellow-700 dark:text-yellow-300 space-y-1">
-                {diagnosis.safetyTips.map((tip, index) => (
-                  <li key={index} className="flex gap-2">
-                    <span>•</span>
-                    <span>{tip}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Repair Steps */}
-            <div className="bg-green-50 dark:bg-green-950 p-4 rounded-lg">
-              <h4 className="font-semibold text-green-800 dark:text-green-200 mb-2 flex items-center gap-2">
-                <Wrench className="h-4 w-4" />
-                Detailed Repair Steps
-              </h4>
-              <ol className="text-green-700 dark:text-green-300 space-y-2">
-                {diagnosis.detailedRepairSteps.map((step, index) => (
-                  <li key={index} className="flex gap-2">
-                    <span className="font-semibold">{index + 1}.</span>
-                    <span>{step}</span>
-                  </li>
-                ))}
-              </ol>
-            </div>
-
-            <Button 
-              onClick={resetFlow}
-              variant="outline"
-              className="w-full"
-            >
-              Start New Diagnosis
-            </Button>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

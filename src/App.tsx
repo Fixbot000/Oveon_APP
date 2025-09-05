@@ -18,6 +18,7 @@ import { useEffect } from "react";
 import History from "./pages/History";
 import Premium from "./pages/Premium";
 import Plans from "./pages/Plans";
+import DiagnosisResult from "./pages/DiagnosisResult";
 
 const queryClient = new QueryClient();
 
@@ -66,6 +67,7 @@ const AppContent = () => {
             </AuthGuard>
           } />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="/diagnosis-result" element={<DiagnosisResult />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
