@@ -1,4 +1,4 @@
-import { Bell, Search, RefreshCw } from 'lucide-react';
+import { Bell, RefreshCw } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,12 +10,12 @@ import { useNavigate } from 'react-router-dom';
 import ProfileEditModal from './ProfileEditModal'; // Import ProfileEditModal
 
 interface MobileHeaderProps {
-  showSearch?: boolean;
+  // showSearch?: boolean;
   onRefresh?: () => Promise<void> | void;
   isPremium?: boolean; // Add isPremium prop
 }
 
-const MobileHeader = ({ showSearch = true, onRefresh, isPremium }: MobileHeaderProps) => {
+const MobileHeader = ({ onRefresh, isPremium }: MobileHeaderProps) => {
   const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -101,19 +101,13 @@ const MobileHeader = ({ showSearch = true, onRefresh, isPremium }: MobileHeaderP
             </Button>
           )}
           
-          {showSearch ? (
-            <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 transition-all duration-200">
-              <Search className="h-5 w-5" />
-            </Button>
-          ) : (
-            <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 transition-all duration-200">
-              <Bell className="h-5 w-5" />
-            </Button>
-          )}
+          <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 transition-all duration-200">
+            <Bell className="h-5 w-5" />
+          </Button>
         </div>
       </div>
       
-      {showSearch && (
+      {/* {showSearch && (
         <div className="relative mt-4">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50 h-3 w-3" />
           <Input
@@ -128,7 +122,7 @@ const MobileHeader = ({ showSearch = true, onRefresh, isPremium }: MobileHeaderP
             <Bell className="h-3 w-3" />
           </Button>
         </div>
-      )}
+      )} */}
 
       {/* Profile Edit Modal */}
       <ProfileEditModal
