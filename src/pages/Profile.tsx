@@ -375,7 +375,7 @@ const Profile = () => {
               <div className="grid gap-2">
                 <button
                   className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-muted text-left"
-                  onClick={() => (window.location.href = '/help')}
+                  onClick={() => navigate('/help')}
                 >
                   <HelpCircle className="h-5 w-5 text-muted-foreground" />
                   <span className="font-medium">Help</span>
