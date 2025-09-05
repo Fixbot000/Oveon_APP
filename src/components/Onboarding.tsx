@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import onboarding1 from '@/assets/onboarding1.png';
 import onboarding2 from '@/assets/onboarding2.png';
 import onboarding3 from '@/assets/onboarding3.png';
 import onboarding4 from '@/assets/onboarding4.png';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface OnboardingScreen {
   image: string;
@@ -40,6 +41,14 @@ interface OnboardingProps {
 
 export const Onboarding = ({ onComplete }: OnboardingProps) => {
   const [currentScreen, setCurrentScreen] = useState(0);
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  useEffect(() => {
+    setImageLoaded(false);
+    const img = new Image();
+    img.src = screens[currentScreen].image;
+    img.onload = () => setImageLoaded(true);
+  }, [currentScreen]);
 
   const handleNext = () => {
     if (currentScreen === screens.length - 1) {
@@ -60,17 +69,31 @@ export const Onboarding = ({ onComplete }: OnboardingProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 flex items-center justify-center p-6">
-      <div className="w-full max-w-md mx-auto">
+    <div className="flex flex-col min-h-screen w-screen items-center justify-center p-4 overflow-auto bg-gradient-to-br from-primary/10 via-background to-secondary/10">
+      <Button
+        variant="ghost"
+        onClick={onComplete}
+        className="absolute bottom-4 right-4 text-muted-foreground hover:text-foreground"
+      >
+        Skip
+      </Button>
+      <div className="relative w-full max-w-lg mx-auto flex flex-col items-center justify-center min-h-[calc(100vh-8rem)]">
         {/* Main Content */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-12 flex flex-col items-center justify-center flex-grow">
           {/* Image */}
-          <div className="mb-8 flex justify-center">
-            <div className="relative w-80 h-80 rounded-3xl overflow-hidden shadow-2xl bg-white/50 backdrop-blur-sm border border-white/20">
+          <div className="mb-8 flex justify-center w-full">
+            <div className="relative w-80 h-80 rounded-3xl overflow-hidden shadow-2xl bg-white/50 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+              {!imageLoaded && (
+                <Skeleton className="absolute inset-0 w-full h-full" />
+              )}
               <img 
                 src={screens[currentScreen].image} 
                 alt={screens[currentScreen].title}
-                className="w-full h-full object-contain p-6"
+                className={`w-full h-full object-contain p-6 transition-opacity duration-500 ${
+                  imageLoaded ? 'opacity-100' : 'opacity-0'
+                }`}
+                onLoad={() => setImageLoaded(true)}
+                loading="eager"
               />
             </div>
           </div>
