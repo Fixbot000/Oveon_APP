@@ -10,6 +10,7 @@ import BottomNavigation from '@/components/BottomNavigation';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth'; // Import useAuth
+import { useRef, useEffect } from 'react'; // Import useRef and useEffect
 
 interface Message {
   id: number;
@@ -188,6 +189,16 @@ Just describe your problem and I'll guide you through the repair process. Let's 
     }
   };
 
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isLoading]);
+
   return (
     <div className="min-h-screen bg-background pb-20">
               <MobileHeader showSearch={false} onRefresh={() => window.location.reload()} isPremium={isPremium} />
@@ -196,14 +207,9 @@ Just describe your problem and I'll guide you through the repair process. Let's 
         <div className="space-y-4">
           {messages.map((msg) => (
             <div key={msg.id} className={`flex ${msg.isBot ? 'justify-start' : 'justify-end'}`}>
-              <Card className={`max-w-[85%] ${
-                msg.isBot 
-                  ? msg.hasMatches 
-                    ? 'bg-card border-green-200' 
-                    : 'bg-primary' 
-                  : 'bg-card'
-              }`}>
-                <CardContent className="p-4">
+              <Card className={`max-w-[85%] ${msg.isBot ? 'bg-gray-100 text-gray-800 shadow-md' : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'}
+                rounded-xl px-4 py-3 my-1 mx-0`}>
+                <CardContent className="p-0">
                   <div className="flex items-start gap-2">
                     {msg.isLoading && (
                       <Loader2 className="w-4 h-4 animate-spin text-primary-foreground mt-0.5 flex-shrink-0" />
@@ -211,9 +217,7 @@ Just describe your problem and I'll guide you through the repair process. Let's 
                     {msg.hasMatches && !msg.isLoading && (
                       <AlertCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
                     )}
-                    <p className={`text-sm whitespace-pre-wrap ${
-                      msg.isBot ? 'text-primary-foreground' : 'text-foreground'
-                    }`}>
+                    <p className={`text-sm whitespace-pre-wrap ${msg.isBot ? 'text-gray-800' : 'text-white'}`}>
                       {msg.text}
                     </p>
                   </div>
@@ -221,6 +225,21 @@ Just describe your problem and I'll guide you through the repair process. Let's 
               </Card>
             </div>
           ))}
+
+          {/* Typing Indicator */}
+          {isLoading && (
+            <div className="flex justify-start">
+              <div className="bg-gray-200 text-gray-600 px-3 py-2 rounded-xl inline-flex items-center space-x-1">
+                <div className="dot-animation">
+                  <span className="dot"></span>
+                  <span className="dot"></span>
+                  <span className="dot"></span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Follow-up Questions */}
@@ -376,3 +395,39 @@ Just describe your problem and I'll guide you through the repair process. Let's 
 };
 
 export default Chat;
+
+const style = document.createElement('style');
+style.innerHTML = `
+  @keyframes dot-pulse {
+    0%, 80%, 100% {
+      transform: scale(0);
+      opacity: 0;
+    }
+    40% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  .dot-animation .dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background-color: #6B7280; /* gray-600 */
+    border-radius: 50%;
+    animation: dot-pulse 1.4s infinite ease-in-out both;
+  }
+
+  .dot-animation .dot:nth-child(1) {
+    animation-delay: -0.32s;
+  }
+
+  .dot-animation .dot:nth-child(2) {
+    animation-delay: -0.16s;
+  }
+
+  .dot-animation .dot:nth-child(3) {
+    animation-delay: 0s;
+  }
+`;
+document.head.appendChild(style);
