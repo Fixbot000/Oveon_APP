@@ -24,7 +24,7 @@ const Help = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background pb-20">
-        <MobileHeader onRefresh={() => {}} isPremium={false} />
+        <MobileHeader onRefresh={() => {}} isPremium={false} showBackButton={true} backButtonTarget="/profile" />
         <main className="px-4 py-6">
           <div className="animate-pulse space-y-4">
             <div className="h-32 bg-muted rounded-lg"></div>

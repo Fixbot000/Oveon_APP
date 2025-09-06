@@ -81,7 +81,7 @@ const MobileHeader = ({ onRefresh, isPremium, showBackButton, backButtonTarget }
             <ChevronLeft className="h-6 w-6" />
           </Button>
         )}
-        <div className={`flex items-center gap-3 ${showBackButton ? 'ml-10' : ''}`}>
+        <div className={`flex items-center gap-3 ${showBackButton ? 'pl-10' : ''}`}>
           
           <Avatar 
             className={`h-12 w-12 ring-2 cursor-pointer ${isPremium ? 'ring-amber-400' : 'ring-white/20'}`}

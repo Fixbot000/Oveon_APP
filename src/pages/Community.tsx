@@ -244,7 +244,7 @@ const Community = () => {
   return (
     <PullToRefresh onRefresh={refreshData} disabled={loading}>
       <div className="min-h-screen bg-background pb-20">
-        <MobileHeader onRefresh={() => void refreshData()} isPremium={user?.user_metadata?.isPremium} />
+        <MobileHeader onRefresh={() => void refreshData()} isPremium={user?.user_metadata?.isPremium} showBackButton={true} backButtonTarget="/"/>
         
         {error && (
           <div className="px-4 py-2">

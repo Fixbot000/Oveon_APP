@@ -201,7 +201,7 @@ Just describe your problem and I'll guide you through the repair process. Let's 
 
   return (
     <div className="min-h-screen bg-background pb-20">
-              <MobileHeader onRefresh={() => window.location.reload()} isPremium={isPremium} />
+              <MobileHeader onRefresh={() => window.location.reload()} isPremium={isPremium} showBackButton={true} backButtonTarget="/"/>
       
       <main className="px-4 py-6 space-y-4 pb-32">
         <div className="space-y-4">
