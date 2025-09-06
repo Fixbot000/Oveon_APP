@@ -247,6 +247,7 @@ export default function DiagnosticFlow({ selectedLanguage }: DiagnosticFlowProps
                   if (error) throw error;
                   
                   // Save to scans table for history
+                  console.log('Saving scan for user:', user?.id);
                   const formatDiagnosisForHistory = (diagnosis: any) => {
                     return `Device: ${deviceName}\n\n` +
                            `Problem: ${diagnosis.problem}\n\n` +
@@ -255,13 +256,16 @@ export default function DiagnosticFlow({ selectedLanguage }: DiagnosticFlowProps
                            `Prevention Tip: ${diagnosis.preventionTip}`;
                   };
 
+                  const scanToSave = {
+                    user_id: user?.id,
+                    device_name: deviceName,
+                    result: formatDiagnosisForHistory(data)
+                  };
+                  console.log('Scan data to save:', scanToSave);
+
                   const { error: saveError } = await supabase
                     .from('scans')
-                    .insert({
-                      user_id: user?.id,
-                      device_name: deviceName,
-                      result: formatDiagnosisForHistory(data)
-                    });
+                    .insert(scanToSave);
 
                   if (saveError) {
                     console.error('Error saving scan to history:', saveError);

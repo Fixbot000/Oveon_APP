@@ -34,14 +34,20 @@ const History = () => {
   }, [user, navigate]);
 
   const fetchScans = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('No user found, cannot fetch scans');
+      return;
+    }
 
+    console.log('Fetching scans for user:', user.id);
     try {
       const { data, error } = await supabase
         .from('scans')
         .select('*')
         .eq('user_id', user.id)
         .order('updated_at', { ascending: false });
+
+      console.log('Scans query result:', { data, error });
 
       if (error) {
         console.error('Error fetching scans:', error);
