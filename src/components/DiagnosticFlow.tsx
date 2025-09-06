@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Camera, FileText, HelpCircle, Wrench, AlertTriangle, Shield } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-
+import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
 interface DiagnosticFlowProps {
@@ -21,6 +21,7 @@ export default function DiagnosticFlow({ selectedLanguage }: DiagnosticFlowProps
   const [loading, setLoading] = useState(false);
   
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   // Step 1: Device name and photo
   const [deviceName, setDeviceName] = useState('');
@@ -244,6 +245,28 @@ export default function DiagnosticFlow({ selectedLanguage }: DiagnosticFlowProps
                     },
                   });
                   if (error) throw error;
+                  
+                  // Save to scans table for history
+                  const formatDiagnosisForHistory = (diagnosis: any) => {
+                    return `Device: ${deviceName}\n\n` +
+                           `Problem: ${diagnosis.problem}\n\n` +
+                           `Repair Steps:\n${diagnosis.repairSteps}\n\n` +
+                           `Tools Needed: ${diagnosis.toolsNeeded}\n\n` +
+                           `Prevention Tip: ${diagnosis.preventionTip}`;
+                  };
+
+                  const { error: saveError } = await supabase
+                    .from('scans')
+                    .insert({
+                      user_id: user?.id,
+                      device_name: deviceName,
+                      result: formatDiagnosisForHistory(data)
+                    });
+
+                  if (saveError) {
+                    console.error('Error saving scan to history:', saveError);
+                  }
+
                   setFinalDiagnosis(data);
                   navigate('/diagnosis-result', { state: { finalDiagnosis: data } });
                   setCurrentStep(4);
