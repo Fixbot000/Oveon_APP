@@ -416,7 +416,7 @@ const Profile = () => {
                 )}
                 <button
                   className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-muted text-left"
-                  onClick={() => (window.location.href = '/terms')}
+                  onClick={() => navigate('/terms-and-policies')}
                 >
                   <FileText className="h-5 w-5 text-muted-foreground" />
                   <span className="font-medium">Terms & Policies</span>
