@@ -52,7 +52,7 @@ const Help = () => {
           </div>
 
           {/* Scan Section */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+          <div>
             <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
               🔍 Scan – Detect Problems Quickly
             </h2>
@@ -65,7 +65,7 @@ const Help = () => {
           </div>
 
           {/* Repair Bot Section */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+          <div>
             <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
               🤖 Repair Bot – Your AI Repair Assistant
             </h2>
@@ -78,7 +78,7 @@ const Help = () => {
           </div>
 
           {/* Community Section */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+          <div>
             <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
               💬 Community – Learn, Share, and Connect
             </h2>
@@ -89,7 +89,7 @@ const Help = () => {
           </div>
 
           {/* Profile Section */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+          <div>
             <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
               👤 Profile – Make Oveon Yours
             </h2>
@@ -101,7 +101,7 @@ const Help = () => {
           </div>
 
           {/* Premium Experience Section */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+          <div>
             <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
               ⭐ Premium Experience – Unlock Full Power
             </h2>
@@ -113,7 +113,7 @@ const Help = () => {
           </div>
 
           {/* Safety and Best Practices Section */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+          <div>
             <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
               🛠 Safety and Best Practices
             </h2>
@@ -126,7 +126,7 @@ const Help = () => {
           </div>
 
           {/* Why Oveon? Section */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+          <div>
             <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
               🚀 Why Oveon?
             </h2>
@@ -136,7 +136,7 @@ const Help = () => {
           </div>
 
           {/* Quick Summary Section */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+          <div>
             <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
               ✅ Quick Summary
             </h2>
