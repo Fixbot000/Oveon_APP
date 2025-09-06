@@ -5,9 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, Crown, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
+// import { useNavigate } from 'react-router-dom'; // Removed
+// import { ChevronLeft } from "lucide-react"; // Removed
 
 const Plans = () => {
   const { user, isPremium: isPremiumUser } = useAuth();
+  // const navigate = useNavigate(); // Removed
   // const isPremiumUser = user?.user_metadata?.isPremium || false; // This line is no longer needed
 
   // This would ideally fetch actual plan data from an API
@@ -48,7 +51,13 @@ const Plans = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <MobileHeader onRefresh={() => {}} isPremium={isPremiumUser} />
+      {/* Removed old back button implementation */}
+      <MobileHeader 
+        onRefresh={() => {}} 
+        isPremium={isPremiumUser}
+        showBackButton={true}
+        backButtonTarget="/profile"
+      />
       <main className="px-4 py-6 space-y-6">
         <h1 className="text-3xl font-bold text-center">Our Plans</h1>
 

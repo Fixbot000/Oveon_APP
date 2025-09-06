@@ -1,4 +1,4 @@
-import { Bell, RefreshCw } from 'lucide-react';
+import { Bell, RefreshCw, ChevronLeft } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,9 +13,11 @@ interface MobileHeaderProps {
   // showSearch?: boolean;
   onRefresh?: () => Promise<void> | void;
   isPremium?: boolean; // Add isPremium prop
+  showBackButton?: boolean; // New prop for showing back button
+  backButtonTarget?: string; // New prop for back button navigation target
 }
 
-const MobileHeader = ({ onRefresh, isPremium }: MobileHeaderProps) => {
+const MobileHeader = ({ onRefresh, isPremium, showBackButton, backButtonTarget }: MobileHeaderProps) => {
   const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -68,8 +70,18 @@ const MobileHeader = ({ onRefresh, isPremium }: MobileHeaderProps) => {
 
   return (
     <header className="bg-gradient-header p-4 pb-6 rounded-b-3xl shadow-card">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between relative">
+        {showBackButton && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate(backButtonTarget || '/profile')}
+            className="text-white hover:bg-white/20 transition-all duration-200 absolute left-0 top-1/2 -translate-y-1/2"
+          >
+            <ChevronLeft className="h-6 w-6" />
+          </Button>
+        )}
+        <div className={`flex items-center gap-3 ${showBackButton ? 'ml-10' : ''}`}>
           
           <Avatar 
             className={`h-12 w-12 ring-2 cursor-pointer ${isPremium ? 'ring-amber-400' : 'ring-white/20'}`}

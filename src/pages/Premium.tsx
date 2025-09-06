@@ -19,7 +19,12 @@ const Premium = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <MobileHeader onRefresh={() => {}} isPremium={isPremium} />
+      <MobileHeader 
+        onRefresh={() => {}} 
+        isPremium={isPremium}
+        showBackButton={true}
+        backButtonTarget="/profile"
+      />
       <main className="px-4 py-6 space-y-8">
         <h1 className="text-3xl font-bold text-center">Go Premium with ByteFixer!</h1>
 

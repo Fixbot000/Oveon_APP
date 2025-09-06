@@ -38,7 +38,12 @@ const Help = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
-      <MobileHeader onRefresh={() => {}} isPremium={profile?.ispremium || false} />
+      <MobileHeader 
+        onRefresh={() => {}} 
+        isPremium={profile?.ispremium || false}
+        showBackButton={true}
+        backButtonTarget="/profile"
+      />
       <main className="px-4 py-8 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto space-y-8">
           {/* Header Section */}
