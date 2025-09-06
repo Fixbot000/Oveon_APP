@@ -24,7 +24,7 @@ serve(async (req) => {
       return `${q.category} - ${q.question}: ${answer}`;
     }).join('\n');
 
-    const prompt = `Based on all the information provided, give a final diagnosis with problem identification, detailed repair steps, and safety tips.
+    const prompt = `Based on all the information provided, analyze everything comprehensively and provide a complete diagnosis and repair guide.
 
 Device: ${deviceName}
 User Description: ${description}
@@ -32,33 +32,37 @@ User Description: ${description}
 Questions and Answers:
 ${answersText}
 
-Analyze all this information (device name, description, and answers) to provide:
-1. Problem identification
-2. Detailed repair steps (not too long, not too short, easy to understand)
-3. Safety tips
+Analyze ALL this information (device name for common problems, image for visible damage/issues, description for more problem details, and question answers for clarification) to provide:
+
+1. Problem identification with reason
+2. Detailed repair steps with safety tips integrated
+3. Tools needed for the repair
+4. Prevention tip to avoid this problem in future
 
 Respond in ${getLanguageName(language)} with this JSON format:
 {
-  "problem": "Clear identification of the specific problem",
-  "detailedRepairSteps": [
-    "Step 1: Clear, easy-to-understand repair instruction",
-    "Step 2: Next specific repair step", 
-    "Step 3: Continue with actionable instructions",
-    "Step 4: More steps as needed"
+  "problem": "Clear identification of the specific problem with explanation of why this is the issue based on the provided information",
+  "repairSteps": [
+    "Step 1: Clear, detailed repair instruction with safety considerations",
+    "Step 2: Next specific repair step with any safety warnings", 
+    "Step 3: Continue with actionable instructions including safety measures",
+    "Step 4: More steps as needed with integrated safety tips"
   ],
-  "safetyTips": [
-    "Safety tip 1: Important safety consideration",
-    "Safety tip 2: Another safety warning",
-    "Safety tip 3: Additional safety precaution"
-  ]
+  "toolsNeeded": [
+    "Tool 1: Specific tool needed for repair",
+    "Tool 2: Another required tool",
+    "Tool 3: Additional tools if needed"
+  ],
+  "preventionTip": "Practical advice on how to prevent this problem from happening again in the future"
 }
 
 Requirements:
-- Problem must be specific based on all information
-- Repair steps must be detailed, clear, and practical
-- Include 3-6 repair steps
-- Include 3+ safety tips
-- Make instructions suitable for ${deviceName}`;
+- Problem must be specific and include reasoning based on device name, image analysis, description, and answers
+- Repair steps must be detailed but not too long, easy to understand, with safety tips integrated naturally
+- Include 4-8 repair steps with safety considerations
+- List all necessary tools for the repair
+- Provide one practical prevention tip
+- Make all instructions suitable for ${deviceName}`;
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
@@ -85,43 +89,48 @@ Requirements:
       diagnosis = JSON.parse(diagnosisText.replace(/```json\n?/g, '').replace(/```/g, ''));
       
       if (!diagnosis.problem) {
-        diagnosis.problem = "Device requires professional assessment";
+        diagnosis.problem = "Device requires professional assessment due to insufficient information provided";
       }
       
-      if (!diagnosis.detailedRepairSteps || !Array.isArray(diagnosis.detailedRepairSteps) || diagnosis.detailedRepairSteps.length === 0) {
-        diagnosis.detailedRepairSteps = [
-          "Turn off the device completely and unplug from power",
-          "Check all visible connections and cables",
-          "Clean the device gently with appropriate materials",
-          "Test the device after cleaning",
+      if (!diagnosis.repairSteps || !Array.isArray(diagnosis.repairSteps) || diagnosis.repairSteps.length === 0) {
+        diagnosis.repairSteps = [
+          "Turn off the device completely and unplug from power for safety",
+          "Check all visible connections and cables for loose connections",
+          "Clean the device gently with appropriate materials (avoid moisture)",
+          "Test the device after cleaning in a safe environment",
           "If problem persists, consult a professional technician"
         ];
       }
       
-      if (!diagnosis.safetyTips || !Array.isArray(diagnosis.safetyTips) || diagnosis.safetyTips.length === 0) {
-        diagnosis.safetyTips = [
-          "Always turn off and unplug device before repairs",
-          "Avoid working on electrical devices in wet conditions",
-          "If unsure about any step, consult a professional"
+      if (!diagnosis.toolsNeeded || !Array.isArray(diagnosis.toolsNeeded) || diagnosis.toolsNeeded.length === 0) {
+        diagnosis.toolsNeeded = [
+          "Basic screwdriver set",
+          "Cleaning cloth",
+          "Multimeter (if electrical testing needed)"
         ];
+      }
+      
+      if (!diagnosis.preventionTip) {
+        diagnosis.preventionTip = "Regular maintenance and avoiding exposure to extreme conditions can prevent many device issues";
       }
       
     } catch (e) {
       console.error('Error parsing diagnosis:', e);
       diagnosis = {
-        problem: "Device requires professional assessment",
-        detailedRepairSteps: [
-          "Turn off the device completely and unplug from power",
-          "Check all visible connections and cables",
-          "Clean the device gently with appropriate materials", 
-          "Test the device after cleaning",
+        problem: "Device requires professional assessment due to insufficient information provided",
+        repairSteps: [
+          "Turn off the device completely and unplug from power for safety",
+          "Check all visible connections and cables for loose connections",
+          "Clean the device gently with appropriate materials (avoid moisture)", 
+          "Test the device after cleaning in a safe environment",
           "If problem persists, consult a professional technician"
         ],
-        safetyTips: [
-          "Always turn off and unplug device before repairs",
-          "Avoid working on electrical devices in wet conditions",
-          "If unsure about any step, consult a professional"
-        ]
+        toolsNeeded: [
+          "Basic screwdriver set",
+          "Cleaning cloth",
+          "Multimeter (if electrical testing needed)"
+        ],
+        preventionTip: "Regular maintenance and avoiding exposure to extreme conditions can prevent many device issues"
       };
     }
 

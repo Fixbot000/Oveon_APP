@@ -30,8 +30,14 @@ export default function DiagnosticFlow({ selectedLanguage }: DiagnosticFlowProps
   // Step 2: Description
   const [description, setDescription] = useState('');
   // New pipeline state
-  const [questions, setQuestions] = useState<{ q: string, a: string | null }[]>([]);
-  const [finalSolution, setFinalSolution] = useState<{ problem: string; reason: string; solution_steps: string[]; tools_required: string[]; estimated_cost: string; tip: string } | null>(null);
+  const [questions, setQuestions] = useState<{ id: string, category: string, question: string }[]>([]);
+  const [answers, setAnswers] = useState<{ [key: string]: string }>({});
+  const [finalDiagnosis, setFinalDiagnosis] = useState<{ 
+    problem: string; 
+    repairSteps: string[]; 
+    toolsNeeded: string[]; 
+    preventionTip: string; 
+  } | null>(null);
 
   const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -58,7 +64,8 @@ export default function DiagnosticFlow({ selectedLanguage }: DiagnosticFlowProps
     setPhotoPreview(null);
     setDescription('');
     setQuestions([]);
-    setFinalSolution(null);
+    setAnswers({});
+    setFinalDiagnosis(null);
   };
 
   return (
@@ -154,7 +161,7 @@ export default function DiagnosticFlow({ selectedLanguage }: DiagnosticFlowProps
                     reader.onload = () => resolve(reader.result as string);
                     reader.readAsDataURL(devicePhoto!); // devicePhoto is guaranteed to be File | null, but we check for null in handleStep1Next, so it's safe to assert here
                   });
-                  const { data, error } = await supabase.functions.invoke('gemini-analyze-description', {
+                  const { data, error } = await supabase.functions.invoke('analyze-device-and-generate-questions', {
                     body: {
                       deviceName,
                       imageBase64: base64.split(',')[1],
@@ -163,7 +170,7 @@ export default function DiagnosticFlow({ selectedLanguage }: DiagnosticFlowProps
                     },
                   });
                   if (error) throw error;
-                  setQuestions(data.questions.map((q: string) => ({ q, a: null })));
+                  setQuestions(data.questions);
                   setCurrentStep(3);
                 } catch (error) {
                   console.error('Error generating questions:', error);
@@ -198,25 +205,28 @@ export default function DiagnosticFlow({ selectedLanguage }: DiagnosticFlowProps
             </div>
 
             {questions.map((question, index) => (
-              <div key={index} className="space-y-2">
-                <Label htmlFor={`question-${index}`} className="text-sm font-medium">
-                  {question.q}
-                </Label>
-                <div className="flex gap-2">
-                  <Textarea
-                    id={`question-${index}`}
-                    value={question.a || ''}
-                    onChange={(e) => {
-                      setQuestions(prev => prev.map((q, i) => 
-                        i === index ? { ...q, a: e.target.value } : q
-                      ));
-                    }}
-                    placeholder="Your answer (optional)"
-                    rows={2}
-                    className="flex-grow"
-                  />
-                  
+              <div key={question.id} className="space-y-2">
+                <div className="flex items-center gap-2 mb-1">
+                  <Badge variant="secondary" className="text-xs">
+                    {question.category}
+                  </Badge>
                 </div>
+                <Label htmlFor={`question-${question.id}`} className="text-sm font-medium">
+                  {question.question}
+                </Label>
+                <Textarea
+                  id={`question-${question.id}`}
+                  value={answers[question.id] || ''}
+                  onChange={(e) => {
+                    setAnswers(prev => ({
+                      ...prev,
+                      [question.id]: e.target.value
+                    }));
+                  }}
+                  placeholder="Your answer (optional)"
+                  rows={2}
+                  className="w-full"
+                />
               </div>
             ))}
 
@@ -224,17 +234,18 @@ export default function DiagnosticFlow({ selectedLanguage }: DiagnosticFlowProps
               onClick={async () => {
                 setLoading(true);
                 try {
-                  const { data, error } = await supabase.functions.invoke('gemini-generate-report', {
+                  const { data, error } = await supabase.functions.invoke('generate-repair-diagnosis', {
                     body: {
                       deviceName,
                       description,
-                      answers: questions.map(q => ({ question: q.q, answer: q.a })),
+                      questions,
+                      answers,
                       language: selectedLanguage,
                     },
                   });
                   if (error) throw error;
-                  setFinalSolution(data);
-                  navigate('/diagnosis-result', { state: { finalSolution: data } });
+                  setFinalDiagnosis(data);
+                  navigate('/diagnosis-result', { state: { finalDiagnosis: data } });
                   setCurrentStep(4);
                 } catch (error) {
                   console.error('Error generating final report:', error);
