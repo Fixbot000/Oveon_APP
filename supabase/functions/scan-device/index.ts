@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.42.0";
+import { checkPremiumAndScans } from '../helpers.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -46,52 +47,39 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-    // Check user profile and scan limits
-    const { data: userProfile, error: profileError } = await supabase
+    // Check user profile and scan limits using the helper function
+    const { allowed, error: scanCheckError } = await checkPremiumAndScans(userId, supabaseServiceRoleKey, supabaseUrl);
+
+    if (!allowed) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: scanCheckError || 'Scan limit exceeded or other error.'
+      }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Fetch user profile again to get updated remainingScans after checkPremiumAndScans has run
+    const { data: userProfileAfterCheck, error: profileErrorAfterCheck } = await supabase
       .from('profiles')
-      .select('ispremium, remainingscans, lastscanreset')
+      .select('ispremium, remainingscans')
       .eq('id', userId)
       .single();
 
-    if (profileError || !userProfile) {
-      console.error('Error fetching user profile:', profileError);
+    if (profileErrorAfterCheck || !userProfileAfterCheck) {
+      console.error('Error fetching user profile after scan check:', profileErrorAfterCheck);
       return new Response(JSON.stringify({
         success: false,
-        error: 'Failed to retrieve user profile'
+        error: 'Failed to retrieve user profile after scan check.'
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    let { ispremium, remainingscans, lastscanreset } = userProfile;
+    const { ispremium, remainingscans } = userProfileAfterCheck;
 
-    // Check and reset scan limits for free users
-    if (!ispremium) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const lastResetDate = lastscanreset ? new Date(lastscanreset) : null;
-
-      if (!lastResetDate || lastResetDate.toDateString() !== today.toDateString()) {
-        remainingscans = 3;
-        lastscanreset = today.toISOString().split('T')[0];
-
-        await supabase
-          .from('profiles')
-          .update({ remainingscans, lastscanreset })
-          .eq('id', userId);
-      }
-
-      if (remainingscans <= 0) {
-        return new Response(JSON.stringify({
-          success: false,
-          error: 'Daily scan limit exceeded. Please upgrade to premium for unlimited scans.'
-        }), {
-          status: 403,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-    }
 
     // Call Gemini Vision API
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
@@ -170,19 +158,13 @@ Format:
       console.error('Error saving scan result:', scanError);
     }
 
-    // Decrement scan count for free users
-    if (!ispremium) {
-      await supabase
-        .from('profiles')
-        .update({ remainingscans: remainingscans - 1 })
-        .eq('id', userId);
-    }
+    // The scan count is already decremented by checkPremiumAndScans, no need to decrement here
 
     return new Response(JSON.stringify({
       success: true,
       analysis: result,
       deviceName: deviceName || 'Unknown Device',
-      remainingScans: ispremium ? null : remainingscans - 1
+      remainingScans: ispremium ? null : remainingscans
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
