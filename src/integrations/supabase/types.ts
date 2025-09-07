@@ -74,39 +74,48 @@ export type Database = {
             foreignKeyName: "comment_likes_comment_id_fkey"
             columns: ["comment_id"]
             isOneToOne: false
-            referencedRelation: "post_comments"
+            referencedRelation: "comments"
             referencedColumns: ["id"]
           },
         ]
       }
       comments: {
         Row: {
-          content: string
-          created_at: string | null
+          created_at: string
+          dislikes: number
           id: string
-          post_id: string | null
-          user_id: string | null
+          likes: number
+          parent_id: string | null
+          post_id: string
+          text: string
+          user_id: string
         }
         Insert: {
-          content: string
-          created_at?: string | null
+          created_at?: string
+          dislikes?: number
           id?: string
-          post_id?: string | null
-          user_id?: string | null
+          likes?: number
+          parent_id?: string | null
+          post_id: string
+          text: string
+          user_id: string
         }
         Update: {
-          content?: string
-          created_at?: string | null
+          created_at?: string
+          dislikes?: number
           id?: string
-          post_id?: string | null
-          user_id?: string | null
+          likes?: number
+          parent_id?: string | null
+          post_id?: string
+          text?: string
+          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "comments_post_id_fkey"
-            columns: ["post_id"]
+            foreignKeyName: "comments_parent_id_fkey"
+            columns: ["parent_id"]
             isOneToOne: false
-            referencedRelation: "post_with_stats"
+            referencedRelation: "comments"
             referencedColumns: ["id"]
           },
           {
@@ -235,42 +244,6 @@ export type Database = {
         }
         Relationships: []
       }
-      dislikes: {
-        Row: {
-          created_at: string | null
-          id: string
-          post_id: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          post_id?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          post_id?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "dislikes_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "post_with_stats"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dislikes_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "posts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       function_usage: {
         Row: {
           count: number
@@ -358,42 +331,6 @@ export type Database = {
         }
         Relationships: []
       }
-      likes: {
-        Row: {
-          created_at: string | null
-          id: string
-          post_id: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          post_id?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          post_id?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "likes_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "post_with_stats"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "likes_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "posts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       pcbs: {
         Row: {
           created_at: string | null
@@ -424,65 +361,6 @@ export type Database = {
         }
         Relationships: []
       }
-      post_comments: {
-        Row: {
-          content: string
-          created_at: string
-          id: string
-          parent_comment_id: string | null
-          post_id: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          content: string
-          created_at?: string
-          id?: string
-          parent_comment_id?: string | null
-          post_id: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          content?: string
-          created_at?: string
-          id?: string
-          parent_comment_id?: string | null
-          post_id?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "post_comments_parent_comment_id_fkey"
-            columns: ["parent_comment_id"]
-            isOneToOne: false
-            referencedRelation: "post_comments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "post_comments_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "post_with_stats"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "post_comments_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "posts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "post_comments_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       post_likes: {
         Row: {
           created_at: string
@@ -510,49 +388,41 @@ export type Database = {
             foreignKeyName: "post_likes_post_id_fkey"
             columns: ["post_id"]
             isOneToOne: false
-            referencedRelation: "post_with_stats"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "post_likes_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
             referencedRelation: "posts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "post_likes_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
       }
       posts: {
         Row: {
-          content: string | null
-          created_at: string | null
+          created_at: string
+          dislikes: number
           id: string
           image_url: string | null
-          image_urls: string[] | null
-          user_id: string | null
+          likes: number
+          text: string
+          user_id: string
+          views: number
         }
         Insert: {
-          content?: string | null
-          created_at?: string | null
+          created_at?: string
+          dislikes?: number
           id?: string
           image_url?: string | null
-          image_urls?: string[] | null
-          user_id?: string | null
+          likes?: number
+          text: string
+          user_id: string
+          views?: number
         }
         Update: {
-          content?: string | null
-          created_at?: string | null
+          created_at?: string
+          dislikes?: number
           id?: string
           image_url?: string | null
-          image_urls?: string[] | null
-          user_id?: string | null
+          likes?: number
+          text?: string
+          user_id?: string
+          views?: number
         }
         Relationships: []
       }
@@ -591,45 +461,6 @@ export type Database = {
           username?: string
         }
         Relationships: []
-      }
-      reactions: {
-        Row: {
-          created_at: string | null
-          id: string
-          post_id: string | null
-          reaction: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          post_id?: string | null
-          reaction?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          post_id?: string | null
-          reaction?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "reactions_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "post_with_stats"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reactions_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "posts"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       scans: {
         Row: {
@@ -689,39 +520,7 @@ export type Database = {
       }
     }
     Views: {
-      post_with_stats: {
-        Row: {
-          comment_count: number | null
-          content: string | null
-          created_at: string | null
-          dislike_count: number | null
-          id: string | null
-          image_url: string | null
-          like_count: number | null
-          user_id: string | null
-        }
-        Insert: {
-          comment_count?: never
-          content?: string | null
-          created_at?: string | null
-          dislike_count?: never
-          id?: string | null
-          image_url?: string | null
-          like_count?: never
-          user_id?: string | null
-        }
-        Update: {
-          comment_count?: never
-          content?: string | null
-          created_at?: string | null
-          dislike_count?: never
-          id?: string | null
-          image_url?: string | null
-          like_count?: never
-          user_id?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       has_role: {
