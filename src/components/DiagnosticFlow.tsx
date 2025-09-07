@@ -143,7 +143,7 @@ export default function DiagnosticFlow({ selectedLanguage }: DiagnosticFlowProps
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Problem with Code or Schematic
+              Problem with Code or Schematic?
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
