@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Camera, FileText, HelpCircle, Wrench, AlertTriangle, Shield } from 'lucide-react';
+import { Camera, FileText, HelpCircle, Wrench, AlertTriangle, Shield, Paperclip } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -27,6 +27,8 @@ export default function DiagnosticFlow({ selectedLanguage }: DiagnosticFlowProps
   const [deviceName, setDeviceName] = useState('');
   const [devicePhoto, setDevicePhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [problemDescription, setProblemDescription] = useState('');
+  const [problemFile, setProblemFile] = useState<File | null>(null);
   
   // Step 2: Description
   const [description, setDescription] = useState('');
@@ -47,6 +49,13 @@ export default function DiagnosticFlow({ selectedLanguage }: DiagnosticFlowProps
       const reader = new FileReader();
       reader.onload = (e) => setPhotoPreview(e.target?.result as string);
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleProblemFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setProblemFile(file);
     }
   };
 
@@ -124,6 +133,44 @@ export default function DiagnosticFlow({ selectedLanguage }: DiagnosticFlowProps
             >
               Next Step
             </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* New Section: Problem with Code or Schematic */}
+      {currentStep === 1 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Problem with Code or Schematic
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Textarea for description */}
+            <div className="relative">
+              <Textarea
+                value={problemDescription}
+                onChange={(e) => setProblemDescription(e.target.value)}
+                placeholder="Describe the issue with your schematic or code..."
+                className="min-h-[120px] pr-12"
+              />
+              {/* Upload Button */}
+              <input
+                id="problemFile"
+                type="file"
+                accept=".pdf,.doc,.docx,image/*"
+                onChange={handleProblemFileChange}
+                className="hidden"
+              />
+              <label
+                htmlFor="problemFile"
+                className="absolute bottom-2 right-2 p-2 bg-blue-500 text-white rounded-md cursor-pointer hover:bg-blue-600 transition-colors flex items-center gap-1"
+              >
+                <Paperclip className="h-4 w-4" />
+                Upload
+              </label>
+            </div>
           </CardContent>
         </Card>
       )}
