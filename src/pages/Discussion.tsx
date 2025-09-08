@@ -68,7 +68,7 @@ const Discussion = () => {
         .from('posts')
         .select(`
           *,
-          profiles!posts_user_id_fkey (
+          profiles (
             username,
             avatar_url,
             ispremium
@@ -107,7 +107,7 @@ const Discussion = () => {
         .from('comments')
         .select(`
           *,
-          profiles!comments_user_id_fkey (
+          profiles (
             username,
             avatar_url,
             ispremium

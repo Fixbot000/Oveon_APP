@@ -44,7 +44,7 @@ const Community = () => {
         .from('posts')
         .select(`
           *,
-          profiles!posts_user_id_fkey (
+          profiles (
             username,
             avatar_url,
             ispremium
@@ -195,12 +195,24 @@ const Community = () => {
       const currentPost = posts.find(p => p.id === postId);
       if (!currentPost) return;
 
+      // Update UI optimistically
+      setPosts(prevPosts => 
+        prevPosts.map(post => 
+          post.id === postId 
+            ? { ...post, views: post.views + 1 }
+            : post
+        )
+      );
+
+      // Update database
       await supabase
         .from('posts')
         .update({ views: currentPost.views + 1 })
         .eq('id', postId);
     } catch (error) {
       console.error('Error incrementing views:', error);
+      // Revert optimistic update on error
+      fetchPosts();
     }
   };
 
