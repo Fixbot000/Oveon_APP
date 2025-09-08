@@ -11,8 +11,8 @@ import Chat from "./pages/Chat";
 import Shop from "./pages/Shop";
 import Scan from "./pages/Scan";
 import Community from "./pages/Community";
+import Discussion from "./pages/Discussion";
 import Profile from "./pages/Profile";
-import NotFound from "././pages/NotFound";
 import OnboardingTutorial from "@/components/OnboardingTutorial";
 import { useEffect } from "react";
 import History from "./pages/History";
@@ -21,6 +21,7 @@ import Plans from "./pages/Plans";
 import Help from "./pages/Help";
 import DiagnosisResult from "./pages/DiagnosisResult";
 import TermsAndPolicies from "./pages/TermsAndPolicies";
+import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +51,11 @@ const AppContent = () => {
           <Route path="/community" element={
             <AuthGuard>
               <Community />
+            </AuthGuard>
+          } />
+          <Route path="/discussion/:postId" element={
+            <AuthGuard>
+              <Discussion />
             </AuthGuard>
           } />
           <Route path="/history" element={
