@@ -17,6 +17,9 @@ const Index = () => {
   const [loading, setLoading] = useState(false);
   const [selectedTip, setSelectedTip] = useState<Tip | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [currentTipIndex, setCurrentTipIndex] = useState(0);
+  const [touchStartX, setTouchStartX] = useState(0);
+  const [touchEndX, setTouchEndX] = useState(0);
 
   const loadTips = async () => {
     try {
@@ -24,6 +27,7 @@ const Index = () => {
       const generatedTips = await generateRepairTips();
       setTips(generatedTips);
       localStorage.setItem('repairTips', JSON.stringify(generatedTips)); // Store tips in localStorage
+      setCurrentTipIndex(0); // Reset to the first tip when new tips are loaded
     } catch (error) {
       console.error('Error loading tips:', error);
     } finally {
@@ -39,6 +43,24 @@ const Index = () => {
       loadTips();
     }
   }, []);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEndX(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartX - touchEndX > 75) { // Swiped left
+      setCurrentTipIndex((prevIndex) => (prevIndex + 1) % tips.length);
+    } else if (touchEndX - touchStartX > 75) { // Swiped right
+      setCurrentTipIndex((prevIndex) => (prevIndex - 1 + tips.length) % tips.length);
+    }
+    setTouchStartX(0);
+    setTouchEndX(0);
+  };
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -139,33 +161,94 @@ const Index = () => {
               ))}
             </div>
           ) : (
-            <div className="grid gap-3">
-              {tips.map((tip, index) => (
-                <Card 
-                  key={index} 
-                  className="bg-card shadow-card hover:shadow-elevated transition-all duration-300 group cursor-pointer border-border"
-                  onClick={() => {
-                    setSelectedTip(tip);
-                    setIsDialogOpen(true);
-                  }}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex gap-4">
-                      <div className="flex-1">
-                        <h4 className="font-semibold mb-1 group-hover:text-primary transition-colors text-sm text-foreground">{tip.title}</h4>
-                        <p className="text-xs text-muted-foreground mb-2">{tip.description}</p>
-                        <div className="flex items-center gap-2">
-                          <span className={`text-xs px-2 py-1 rounded-full ${getDifficultyColor(tip.difficulty)}`}>
-                            {tip.difficulty}
-                          </span>
-                          <Clock className="w-3 h-3 text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground">{tip.readTime}</span>
-                        </div>
+            <div 
+              className="relative h-64 mx-auto w-full max-w-sm"
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+            >
+              {tips.map((tip, index) => {
+                const isCurrent = index === currentTipIndex;
+                const isNext = index === (currentTipIndex + 1) % tips.length;
+                const isNextNext = index === (currentTipIndex + 2) % tips.length;
+                const isAfterNextNext = index === (currentTipIndex + 3) % tips.length;
+                
+                let transform = 'none';
+                let opacity = 0;
+                let zIndex = 0;
+                let scale = 1;
+
+                if (isCurrent) {
+                  transform = 'translateX(0)';
+                  opacity = 1;
+                  zIndex = 30;
+                  scale = 1;
+                } else if (isNext) {
+                  transform = 'translateX(10px) scale(0.95)';
+                  opacity = 0.7;
+                  zIndex = 20;
+                  scale = 0.95;
+                } else if (isNextNext) {
+                  transform = 'translateX(20px) scale(0.9)';
+                  opacity = 0.4;
+                  zIndex = 10;
+                  scale = 0.9;
+                } else if (isAfterNextNext) {
+                  transform = 'translateX(30px) scale(0.85)';
+                  opacity = 0.2;
+                  zIndex = 5;
+                  scale = 0.85;
+                } else {
+                  transform = 'translateX(40px) scale(0.8)'; // Further cards are even smaller and more transparent
+                  opacity = 0;
+                  zIndex = 0;
+                  scale = 0.8;
+                }
+
+                return (
+                  <div 
+                    key={index} 
+                    className="absolute w-full h-full bg-cover bg-center rounded-xl shadow-lg transition-all duration-300 ease-out"
+                    style={{
+                      backgroundImage: `url(${tip.imageUrl || 'https://via.placeholder.com/400x200?text=Repair+Tip'})`,
+                      transform,
+                      opacity,
+                      zIndex,
+                      // Ensure the image is always visible and does not scale down to 0
+                      backgroundSize: 'cover',
+                      backgroundRepeat: 'no-repeat',
+                      backgroundPosition: 'center',
+                      cursor: isCurrent ? 'pointer' : 'default',
+                    }}
+                    onClick={() => {
+                      if (isCurrent) {
+                        setSelectedTip(tip);
+                        setIsDialogOpen(true);
+                      } else {
+                        // Allow clicking on visible stacked cards to bring them to front
+                        setCurrentTipIndex(index);
+                      }
+                    }}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent rounded-xl"></div>
+                    <div className="relative p-4 h-full flex flex-col justify-end">
+                      <h4 className="font-bold text-lg text-white mb-1 text-balance">
+                        {tip.title}
+                      </h4>
+                      <p className="text-sm text-white/90 mb-2 line-clamp-2">
+                        {tip.description}
+                      </p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className={`text-xs px-2 py-1 rounded-full text-white ${getDifficultyColor(tip.difficulty)}`}>
+                          {tip.difficulty}
+                        </span>
+                        <Clock className="w-4 h-4 text-white" />
+                        <span className="text-xs text-white">{tip.readTime}</span>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
