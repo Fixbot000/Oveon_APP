@@ -171,10 +171,11 @@ const Discussion = () => {
         .select('like_type')
         .eq('user_id', user.id)
         .eq('post_id', post.id)
-        .single();
+        .maybeSingle();
 
       let likeDelta = 0;
       let dislikeDelta = 0;
+      let newUserLike: 'like' | 'dislike' | null = null;
 
       if (existingLike) {
         if (existingLike.like_type === likeType) {
@@ -186,6 +187,7 @@ const Discussion = () => {
           
           if (likeType === 'like') likeDelta = -1;
           else dislikeDelta = -1;
+          newUserLike = null;
         } else {
           await supabase
             .from('post_likes')
@@ -200,6 +202,7 @@ const Discussion = () => {
             likeDelta = -1;
             dislikeDelta = 1;
           }
+          newUserLike = likeType;
         }
       } else {
         await supabase
@@ -212,6 +215,7 @@ const Discussion = () => {
         
         if (likeType === 'like') likeDelta = 1;
         else dislikeDelta = 1;
+        newUserLike = likeType;
       }
 
       await supabase
@@ -222,10 +226,19 @@ const Discussion = () => {
         })
         .eq('id', post.id);
 
-      fetchPost();
+      // Update local state immediately
+      setPost(prevPost => prevPost ? {
+        ...prevPost,
+        likes: prevPost.likes + likeDelta,
+        dislikes: prevPost.dislikes + dislikeDelta,
+        user_like: newUserLike
+      } : null);
+
+      toast.success(likeType === 'like' ? 'Post liked!' : 'Post disliked!');
     } catch (error: any) {
       console.error('Error handling post like:', error);
       toast.error('Failed to update like');
+      fetchPost();
     }
   };
 
@@ -246,10 +259,11 @@ const Discussion = () => {
         .select('like_type')
         .eq('user_id', user.id)
         .eq('comment_id', commentId)
-        .single();
+        .maybeSingle();
 
       let likeDelta = 0;
       let dislikeDelta = 0;
+      let newUserLike: 'like' | 'dislike' | null = null;
 
       if (existingLike) {
         if (existingLike.like_type === likeType) {
@@ -261,6 +275,7 @@ const Discussion = () => {
           
           if (likeType === 'like') likeDelta = -1;
           else dislikeDelta = -1;
+          newUserLike = null;
         } else {
           await supabase
             .from('comment_likes')
@@ -275,6 +290,7 @@ const Discussion = () => {
             likeDelta = -1;
             dislikeDelta = 1;
           }
+          newUserLike = likeType;
         }
       } else {
         await supabase
@@ -287,6 +303,7 @@ const Discussion = () => {
         
         if (likeType === 'like') likeDelta = 1;
         else dislikeDelta = 1;
+        newUserLike = likeType;
       }
 
       await supabase
@@ -297,10 +314,41 @@ const Discussion = () => {
         })
         .eq('id', commentId);
 
-      fetchComments();
+      // Update local state immediately
+      setComments(prevComments => 
+        prevComments.map(c => {
+          if (c.id === commentId) {
+            return {
+              ...c,
+              likes: c.likes + likeDelta,
+              dislikes: c.dislikes + dislikeDelta,
+              user_like: newUserLike
+            };
+          }
+          if (c.replies) {
+            return {
+              ...c,
+              replies: c.replies.map(r => 
+                r.id === commentId 
+                  ? {
+                      ...r,
+                      likes: r.likes + likeDelta,
+                      dislikes: r.dislikes + dislikeDelta,
+                      user_like: newUserLike
+                    }
+                  : r
+              )
+            };
+          }
+          return c;
+        })
+      );
+
+      toast.success(likeType === 'like' ? 'Comment liked!' : 'Comment disliked!');
     } catch (error: any) {
       console.error('Error handling comment like:', error);
       toast.error('Failed to update like');
+      fetchComments();
     }
   };
 

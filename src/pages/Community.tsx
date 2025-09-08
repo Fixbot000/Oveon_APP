@@ -128,10 +128,11 @@ const Community = () => {
         .select('like_type')
         .eq('user_id', user.id)
         .eq('post_id', postId)
-        .single();
+        .maybeSingle();
 
       let likeDelta = 0;
       let dislikeDelta = 0;
+      let newUserLike: 'like' | 'dislike' | null = null;
 
       if (existingLike) {
         if (existingLike.like_type === likeType) {
@@ -144,6 +145,7 @@ const Community = () => {
           
           if (likeType === 'like') likeDelta = -1;
           else dislikeDelta = -1;
+          newUserLike = null;
         } else {
           // Switch like/dislike
           await supabase
@@ -159,6 +161,7 @@ const Community = () => {
             likeDelta = -1;
             dislikeDelta = 1;
           }
+          newUserLike = likeType;
         }
       } else {
         // Add new like/dislike
@@ -172,9 +175,10 @@ const Community = () => {
         
         if (likeType === 'like') likeDelta = 1;
         else dislikeDelta = 1;
+        newUserLike = likeType;
       }
 
-      // Update post counts
+      // Update post counts in database
       await supabase
         .from('posts')
         .update({
@@ -183,10 +187,26 @@ const Community = () => {
         })
         .eq('id', postId);
 
-      fetchPosts();
+      // Update local state immediately for better UX
+      setPosts(prevPosts => 
+        prevPosts.map(post => 
+          post.id === postId 
+            ? { 
+                ...post, 
+                likes: post.likes + likeDelta,
+                dislikes: post.dislikes + dislikeDelta,
+                user_like: newUserLike
+              }
+            : post
+        )
+      );
+
+      toast.success(likeType === 'like' ? 'Post liked!' : 'Post disliked!');
     } catch (error: any) {
       console.error('Error handling like:', error);
       toast.error('Failed to update like');
+      // Refresh data on error
+      fetchPosts();
     }
   };
 
