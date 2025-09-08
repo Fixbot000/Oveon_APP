@@ -31,18 +31,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           .from('profiles')
           .select('ispremium, premiumuienabled')
           .eq('id', userId)
-          .maybeSingle();
+          .single();
 
-        if (error) {
-          console.error("Error fetching user profile in AuthProvider:", error);
-          // Create profile if it doesn't exist
-          if (error.code === 'PGRST116') {
-            console.log("Profile not found, will be created on first profile page visit");
-          }
-          setIsPremium(false);
-          setPremiumUiEnabled(false);
-          return;
-        }
+        if (error) throw error;
         
         setIsPremium(data?.ispremium || false);
         setPremiumUiEnabled(data?.premiumuienabled || false);
