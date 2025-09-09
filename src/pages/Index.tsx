@@ -18,8 +18,11 @@ const Index = () => {
   const [selectedTip, setSelectedTip] = useState<Tip | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
-  const [touchStartX, setTouchStartX] = useState(0);
-  const [touchEndX, setTouchEndX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [startX, setStartX] = useState(0);
+  const [startY, setStartY] = useState(0);
+  const [isHorizontalDrag, setIsHorizontalDrag] = useState(false);
 
   const loadTips = async () => {
     try {
@@ -44,22 +47,61 @@ const Index = () => {
     }
   }, []);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStartX(e.targetTouches[0].clientX);
+  const handlePointerStart = (e: React.PointerEvent) => {
+    setStartX(e.clientX);
+    setStartY(e.clientY);
+    setIsDragging(false);
+    setIsHorizontalDrag(false);
+    setDragOffset(0);
   };
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    setTouchEndX(e.targetTouches[0].clientX);
-  };
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (startX === 0) return;
 
-  const handleTouchEnd = () => {
-    if (touchStartX - touchEndX > 75) { // Swiped left
-      setCurrentTipIndex((prevIndex) => (prevIndex + 1) % tips.length);
-    } else if (touchEndX - touchStartX > 75) { // Swiped right
-      setCurrentTipIndex((prevIndex) => (prevIndex - 1 + tips.length) % tips.length);
+    const deltaX = e.clientX - startX;
+    const deltaY = e.clientY - startY;
+
+    // Determine if this is a horizontal drag
+    if (!isHorizontalDrag && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
+      setIsHorizontalDrag(Math.abs(deltaX) > Math.abs(deltaY));
     }
-    setTouchStartX(0);
-    setTouchEndX(0);
+
+    if (isHorizontalDrag) {
+      e.preventDefault();
+      setIsDragging(true);
+      setDragOffset(deltaX);
+    }
+  };
+
+  const handlePointerEnd = () => {
+    if (!isDragging || !isHorizontalDrag) {
+      setDragOffset(0);
+      setStartX(0);
+      setStartY(0);
+      setIsDragging(false);
+      setIsHorizontalDrag(false);
+      return;
+    }
+
+    const cardWidth = 280; // Approximate card width
+    const threshold = Math.min(cardWidth * 0.3, 80);
+
+    if (Math.abs(dragOffset) > threshold) {
+      if (dragOffset > 0) {
+        // Swiped right - go to previous
+        setCurrentTipIndex((prevIndex) => (prevIndex - 1 + tips.length) % tips.length);
+      } else {
+        // Swiped left - go to next
+        setCurrentTipIndex((prevIndex) => (prevIndex + 1) % tips.length);
+      }
+    }
+
+    // Reset states
+    setDragOffset(0);
+    setStartX(0);
+    setStartY(0);
+    setIsDragging(false);
+    setIsHorizontalDrag(false);
   };
 
   return (
@@ -161,100 +203,81 @@ const Index = () => {
               ))}
             </div>
           ) : (
-            <div 
-              className="relative h-64 mx-auto w-full max-w-sm"
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
-            >
-              {tips.map((tip, index) => {
-                const isCurrent = index === currentTipIndex;
-                const isNext = index === (currentTipIndex + 1) % tips.length;
-                const isNextNext = index === (currentTipIndex + 2) % tips.length;
-                const isAfterNextNext = index === (currentTipIndex + 3) % tips.length;
-                
-                let transform = 'none';
-                let opacity = 0;
-                let zIndex = 0;
-                let scale = 1;
-
-                if (isCurrent) {
-                  transform = 'translateX(0)';
-                  opacity = 1;
-                  zIndex = 30;
-                  scale = 1;
-                } else if (isNext) {
-                  transform = 'translateX(10px) scale(0.95)';
-                  opacity = 0.7;
-                  zIndex = 20;
-                  scale = 0.95;
-                } else if (isNextNext) {
-                  transform = 'translateX(20px) scale(0.9)';
-                  opacity = 0.4;
-                  zIndex = 10;
-                  scale = 0.9;
-                } else if (isAfterNextNext) {
-                  transform = 'translateX(30px) scale(0.85)';
-                  opacity = 0.2;
-                  zIndex = 5;
-                  scale = 0.85;
-                } else {
-                  transform = 'translateX(40px) scale(0.8)'; // Further cards are even smaller and more transparent
-                  opacity = 0;
-                  zIndex = 0;
-                  scale = 0.8;
-                }
-
-                return (
-                  <div 
-                    key={index} 
-                    className="absolute w-full h-full bg-cover bg-center rounded-xl shadow-lg transition-all duration-300 ease-out"
-                    style={{
-                      backgroundImage: `url(${tip.imageUrl || `data:image/svg+xml;base64,${btoa(`
-                        <svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
-                          <rect width="400" height="200" fill="#f8fafc"/>
-                          <circle cx="200" cy="100" r="60" fill="#3b82f6" opacity="0.1"/>
-                          <text x="200" y="105" text-anchor="middle" font-family="Arial" font-size="14" fill="#1e40af">Repair Tip</text>
-                        </svg>
-                      `)}`})`,
-                      transform,
-                      opacity,
-                      zIndex,
-                      // Ensure the image is always visible and does not scale down to 0
-                      backgroundSize: 'cover',
-                      backgroundRepeat: 'no-repeat',
-                      backgroundPosition: 'center',
-                      cursor: isCurrent ? 'pointer' : 'default',
-                    }}
-                    onClick={() => {
-                      if (isCurrent) {
-                        setSelectedTip(tip);
-                        setIsDialogOpen(true);
-                      } else {
-                        // Allow clicking on visible stacked cards to bring them to front
-                        setCurrentTipIndex(index);
-                      }
-                    }}
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent rounded-xl"></div>
-                    <div className="relative p-4 h-full flex flex-col justify-end">
-                      <h4 className="font-bold text-lg text-white mb-1 text-balance">
-                        {tip.title}
-                      </h4>
-                      <p className="text-sm text-white/90 mb-2 line-clamp-2">
-                        {tip.description}
-                      </p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className={`text-xs px-2 py-1 rounded-full text-white ${getDifficultyColor(tip.difficulty)}`}>
-                          {tip.difficulty}
-                        </span>
-                        <Clock className="w-4 h-4 text-white" />
-                        <span className="text-xs text-white">{tip.readTime}</span>
+            <div className="overflow-hidden w-full max-w-sm mx-auto">
+              <div 
+                className="relative w-full h-64 cursor-grab active:cursor-grabbing select-none"
+                style={{ willChange: 'transform' }}
+                onPointerDown={handlePointerStart}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerEnd}
+                onPointerLeave={handlePointerEnd}
+              >
+                <div 
+                  className="flex transition-transform duration-300 ease-out h-full"
+                  style={{
+                    transform: `translateX(calc(-${currentTipIndex * 85}% + ${isDragging ? dragOffset : 0}px))`,
+                    transition: isDragging ? 'none' : 'transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+                  }}
+                >
+                  {tips.map((tip, index) => {
+                    const isCurrent = index === currentTipIndex;
+                    const distance = Math.abs(index - currentTipIndex);
+                    
+                    return (
+                      <div
+                        key={index}
+                        className="flex-shrink-0 w-full h-full relative mr-4"
+                        style={{
+                          flexBasis: '85%',
+                          zIndex: isCurrent ? 30 : Math.max(0, 20 - distance),
+                          pointerEvents: isCurrent ? 'auto' : 'none',
+                        }}
+                        onClick={() => {
+                          if (isCurrent && !isDragging) {
+                            setSelectedTip(tip);
+                            setIsDialogOpen(true);
+                          }
+                        }}
+                      >
+                        <div 
+                          className="w-full h-full bg-cover bg-center rounded-xl shadow-lg transition-all duration-300 ease-out"
+                          style={{
+                            backgroundImage: `url(${tip.imageUrl || `data:image/svg+xml;base64,${btoa(`
+                              <svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
+                                <rect width="400" height="200" fill="#f8fafc"/>
+                                <circle cx="200" cy="100" r="60" fill="#3b82f6" opacity="0.1"/>
+                                <text x="200" y="105" text-anchor="middle" font-family="Arial" font-size="14" fill="#1e40af">Repair Tip</text>
+                              </svg>
+                            `)}`})`,
+                            backgroundSize: 'cover',
+                            backgroundRepeat: 'no-repeat',
+                            backgroundPosition: 'center',
+                            opacity: isCurrent ? 1 : 0.7,
+                            transform: isCurrent ? 'scale(1)' : 'scale(0.95)',
+                          }}
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent rounded-xl"></div>
+                          <div className="relative p-4 h-full flex flex-col justify-end">
+                            <h4 className="font-bold text-lg text-white mb-1 text-balance">
+                              {tip.title}
+                            </h4>
+                            <p className="text-sm text-white/90 mb-2 line-clamp-2">
+                              {tip.description}
+                            </p>
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className={`text-xs px-2 py-1 rounded-full text-white ${getDifficultyColor(tip.difficulty)}`}>
+                                {tip.difficulty}
+                              </span>
+                              <Clock className="w-4 h-4 text-white" />
+                              <span className="text-xs text-white">{tip.readTime}</span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           )}
         </div>
