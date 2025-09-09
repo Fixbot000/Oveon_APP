@@ -210,7 +210,13 @@ const Index = () => {
                     key={index} 
                     className="absolute w-full h-full bg-cover bg-center rounded-xl shadow-lg transition-all duration-300 ease-out"
                     style={{
-                      backgroundImage: `url(${tip.imageUrl || 'https://via.placeholder.com/400x200?text=Repair+Tip'})`,
+                      backgroundImage: `url(${tip.imageUrl || `data:image/svg+xml;base64,${btoa(`
+                        <svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
+                          <rect width="400" height="200" fill="#f8fafc"/>
+                          <circle cx="200" cy="100" r="60" fill="#3b82f6" opacity="0.1"/>
+                          <text x="200" y="105" text-anchor="middle" font-family="Arial" font-size="14" fill="#1e40af">Repair Tip</text>
+                        </svg>
+                      `)}`})`,
                       transform,
                       opacity,
                       zIndex,
