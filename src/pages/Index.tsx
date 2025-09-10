@@ -240,18 +240,15 @@ const Index = () => {
                         }}
                       >
                         <div 
-                          className="w-full h-full bg-cover bg-center rounded-xl shadow-lg transition-all duration-300 ease-out"
+                          className={`w-full h-full rounded-xl shadow-lg transition-all duration-300 ease-out ${
+                            ['bg-gradient-to-br from-blue-500 to-purple-600',
+                             'bg-gradient-to-br from-green-500 to-teal-600', 
+                             'bg-gradient-to-br from-orange-500 to-red-600',
+                             'bg-gradient-to-br from-purple-500 to-pink-600',
+                             'bg-gradient-to-br from-indigo-500 to-blue-600',
+                             'bg-gradient-to-br from-emerald-500 to-cyan-600'][index % 6]
+                          }`}
                           style={{
-                            backgroundImage: `url(${tip.imageUrl || `data:image/svg+xml;base64,${btoa(`
-                              <svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
-                                <rect width="400" height="200" fill="#f8fafc"/>
-                                <circle cx="200" cy="100" r="60" fill="#3b82f6" opacity="0.1"/>
-                                <text x="200" y="105" text-anchor="middle" font-family="Arial" font-size="14" fill="#1e40af">Repair Tip</text>
-                              </svg>
-                            `)}`})`,
-                            backgroundSize: 'cover',
-                            backgroundRepeat: 'no-repeat',
-                            backgroundPosition: 'center',
                             opacity: isCurrent ? 1 : 0.7,
                             transform: isCurrent ? 'scale(1)' : 'scale(0.95)',
                           }}

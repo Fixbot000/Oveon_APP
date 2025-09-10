@@ -12,7 +12,12 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth'; // Import useAuth
 import { useRef, useEffect } from 'react'; // Import useRef and useEffect
 import ProjectsView from '@/components/ProjectsView';
-import { type Project } from '@/components/ProjectsView';
+interface Project {
+  id: string;
+  title: string;
+  description: string;
+  lastUpdated: string;
+}
 import ProjectDetail from '@/components/ProjectDetail';
 
 interface Message {

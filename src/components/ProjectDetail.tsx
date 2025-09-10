@@ -3,7 +3,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Upload, UserPlus, MessageSquare, MoreVertical } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
-import { type Project } from './ProjectsView'; // Re-using the Project interface from ProjectsView
+interface Project {
+  id: string;
+  title: string;
+  description: string;
+  lastUpdated: string;
+}
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
 
