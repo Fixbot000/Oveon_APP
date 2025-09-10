@@ -218,7 +218,8 @@ const Profile = () => {
       if (error) throw error;
 
       setProfile(prev => prev ? { ...prev, premiumuienabled: checked } : null);
-      toast.success('Premium UI settings updated!');
+      console.log('Premium UI toggled to:', checked);
+      toast.success(`Premium UI ${checked ? 'enabled' : 'disabled'}! Go to Home to see changes.`);
     } catch (error: any) {
       console.error('Error updating premium UI settings:', error);
       toast.error('Failed to update premium UI settings');
