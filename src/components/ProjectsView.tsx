@@ -1,7 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusCircle } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import CreateProjectForm from './CreateProjectForm';
 
 interface Project {
   id: string;
@@ -12,15 +20,22 @@ interface Project {
 
 interface ProjectsViewProps {
   projects: Project[];
-  onCreateProject: () => void;
   onSelectProject: (projectId: string) => void;
+  onCreateProject: (projectName: string, description: string, files: File[]) => void; // Add this prop
 }
 
-const ProjectsView: React.FC<ProjectsViewProps> = ({ projects, onCreateProject, onSelectProject }) => {
+const ProjectsView: React.FC<ProjectsViewProps> = ({ projects, onSelectProject, onCreateProject }) => {
+  const [showCreateProjectModal, setShowCreateProjectModal] = useState(false);
+
+  const handleCreateProject = (projectName: string, description: string, files: File[]) => {
+    onCreateProject(projectName, description, files);
+    setShowCreateProjectModal(false);
+  };
+
   return (
     <div className="p-4">
       <div className="flex justify-end mb-4">
-        <Button onClick={onCreateProject} className="bg-primary text-primary-foreground">
+        <Button onClick={() => setShowCreateProjectModal(true)} className="bg-primary text-primary-foreground">
           <PlusCircle className="w-4 h-4 mr-2" />
           Create Project
         </Button>
@@ -50,6 +65,21 @@ const ProjectsView: React.FC<ProjectsViewProps> = ({ projects, onCreateProject, 
           ))}
         </div>
       )}
+
+      <Dialog open={showCreateProjectModal} onOpenChange={setShowCreateProjectModal}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Create New Project</DialogTitle>
+            <DialogDescription>
+              Fill in the details for your new project.
+            </DialogDescription>
+          </DialogHeader>
+          <CreateProjectForm
+            onCancel={() => setShowCreateProjectModal(false)}
+            onCreate={handleCreateProject}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

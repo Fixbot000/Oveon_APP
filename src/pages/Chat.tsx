@@ -212,14 +212,16 @@ Just describe your problem and I'll guide you through the repair process. Let's 
     localStorage.setItem('projects', JSON.stringify(projects));
   }, [projects]);
 
-  const handleCreateProject = () => {
+  const handleCreateProject = (projectName: string, description: string, files: File[]) => {
     const newProject: Project = {
-      id: String(Date.now()), // Use a more unique ID, e.g., timestamp
-      title: `New Project ${projects.length + 1}`,
-      description: 'A newly created project.',
-      lastUpdated: new Date().toISOString().split('T')[0],
+      id: String(Date.now()), // Unique ID for the project
+      title: projectName,
+      description: description,
+      lastUpdated: new Date().toISOString().split('T')[0], // Current date
+      // Files are handled within the CreateProjectForm or uploaded separately
     };
     setProjects((prevProjects) => [...prevProjects, newProject]);
+    toast.success('Project created successfully!');
   };
 
   const selectedProject = projects.find(p => p.id === selectedProjectId);
@@ -367,8 +369,8 @@ Just describe your problem and I'll guide you through the repair process. Let's 
           ) : (
             <ProjectsView 
               projects={projects}
-              onCreateProject={handleCreateProject}
               onSelectProject={setSelectedProjectId}
+              onCreateProject={handleCreateProject}
             />
           )}
         </main>
