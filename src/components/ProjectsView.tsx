@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import CreateProjectForm from './CreateProjectForm';
 
-interface Project {
+export interface Project {
   id: string;
   title: string;
   description: string;
