@@ -35,7 +35,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
         if (error) throw error;
         
-        console.log('User profile data:', data);
         setIsPremium(data?.ispremium || false);
         setPremiumUiEnabled(data?.premiumuienabled || false);
       } catch (error) {
