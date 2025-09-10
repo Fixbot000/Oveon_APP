@@ -11,6 +11,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth'; // Import useAuth
 import { useRef, useEffect } from 'react'; // Import useRef and useEffect
+import ProjectsView from '@/components/ProjectsView';
+import { type Project } from '@/components/ProjectsView';
+import ProjectDetail from '@/components/ProjectDetail';
 
 interface Message {
   id: number;
@@ -50,6 +53,12 @@ Just describe your problem and I'll guide you through the repair process. Let's 
       isBot: true,
     }
   ]);
+  const [activeTab, setActiveTab] = useState<'repairBot' | 'projects'>('repairBot');
+  const [projects, setProjects] = useState<Project[]>(() => {
+    const storedProjects = localStorage.getItem('projects');
+    return storedProjects ? JSON.parse(storedProjects) : [];
+  });
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
   const quickActions = [
     'My phone won\'t charge',
@@ -199,117 +208,171 @@ Just describe your problem and I'll guide you through the repair process. Let's 
     scrollToBottom();
   }, [messages, isLoading]);
 
+  useEffect(() => {
+    localStorage.setItem('projects', JSON.stringify(projects));
+  }, [projects]);
+
+  const handleCreateProject = () => {
+    const newProject: Project = {
+      id: String(Date.now()), // Use a more unique ID, e.g., timestamp
+      title: `New Project ${projects.length + 1}`,
+      description: 'A newly created project.',
+      lastUpdated: new Date().toISOString().split('T')[0],
+    };
+    setProjects((prevProjects) => [...prevProjects, newProject]);
+  };
+
+  const selectedProject = projects.find(p => p.id === selectedProjectId);
+
   return (
     <div className="min-h-screen bg-background pb-20">
               <MobileHeader onRefresh={() => window.location.reload()} isPremium={isPremium} showBackButton={true} backButtonTarget="/"/>
       
-      <main className="px-4 py-6 space-y-4 pb-32">
-        <div className="space-y-4">
-          {messages.map((msg) => (
-            <div key={msg.id} className={`flex ${msg.isBot ? 'justify-start' : 'justify-end'}`}>
-              <Card className={`max-w-[85%] ${msg.isBot ? 'bg-gray-100 text-gray-800 shadow-md' : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'}
-                rounded-xl px-4 py-3 my-1 mx-0`}>
-                <CardContent className="p-0">
-                  <div className="flex items-start gap-2">
-                    {msg.isLoading && (
-                      <Loader2 className="w-4 h-4 animate-spin text-primary-foreground mt-0.5 flex-shrink-0" />
-                    )}
-                    {msg.hasMatches && !msg.isLoading && (
-                      <AlertCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    )}
-                    <p className={`text-sm whitespace-pre-wrap ${msg.isBot ? 'text-gray-800' : 'text-white'}`}>
-                      {msg.text}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          ))}
+      <div className="flex justify-center bg-card shadow-sm border-b border-border py-2 px-4">
+        <div className="flex rounded-lg overflow-hidden bg-muted p-1">
+          <Button
+            variant={activeTab === 'repairBot' ? 'default' : 'ghost'}
+            onClick={() => setActiveTab('repairBot')}
+            className="flex-1 px-6 py-2 rounded-md transition-all duration-200"
+          >
+            Repair Bot
+          </Button>
+          <Button
+            variant={activeTab === 'projects' ? 'default' : 'ghost'}
+            onClick={() => setActiveTab('projects')}
+            className="flex-1 px-6 py-2 rounded-md transition-all duration-200"
+          >
+            Projects
+          </Button>
+        </div>
+      </div>
 
-          {/* Typing Indicator */}
-          {isLoading && (
-            <div className="flex justify-start">
-              <div className="bg-gray-200 text-gray-600 px-3 py-2 rounded-xl inline-flex items-center space-x-1">
-                <div className="dot-animation">
-                  <span className="dot"></span>
-                  <span className="dot"></span>
-                  <span className="dot"></span>
+      {activeTab === 'repairBot' ? (
+        <main className="px-4 py-6 space-y-4 pb-32">
+          <div className="space-y-4">
+            {messages.map((msg) => (
+              <div key={msg.id} className={`flex ${msg.isBot ? 'justify-start' : 'justify-end'}`}>
+                <Card className={`max-w-[85%] ${msg.isBot ? 'bg-gray-100 text-gray-800 shadow-md' : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'}
+                  rounded-xl px-4 py-3 my-1 mx-0`}>
+                  <CardContent className="p-0">
+                    <div className="flex items-start gap-2">
+                      {msg.isLoading && (
+                        <Loader2 className="w-4 h-4 animate-spin text-primary-foreground mt-0.5 flex-shrink-0" />
+                      )}
+                      {msg.hasMatches && !msg.isLoading && (
+                        <AlertCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      )}
+                      <p className={`text-sm whitespace-pre-wrap ${msg.isBot ? 'text-gray-800' : 'text-white'}`}>
+                        {msg.text}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            ))}
+
+            {/* Typing Indicator */}
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="bg-gray-200 text-gray-600 px-3 py-2 rounded-xl inline-flex items-center space-x-1">
+                  <div className="dot-animation">
+                    <span className="dot"></span>
+                    <span className="dot"></span>
+                    <span className="dot"></span>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Follow-up Questions */}
+          {pendingQuestions.length > 0 && (
+            <Card className="bg-card border-blue-200">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium text-foreground">
+                    I have some follow-up questions to help you better:
+                  </CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleSkipQuestions}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Skip questions
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-2">
+                  {pendingQuestions.map((question, index) => (
+                    <Button
+                      key={index}
+                      variant="outline"
+                      className="w-full text-left justify-start h-auto p-3 bg-background/50 hover:bg-background"
+                      onClick={() => handleQuestionSelect(question)}
+                    >
+                      {question}
+                    </Button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           )}
 
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Follow-up Questions */}
-        {pendingQuestions.length > 0 && (
-          <Card className="bg-card border-blue-200">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-medium text-foreground">
-                  I have some follow-up questions to help you better:
-                </CardTitle>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleSkipQuestions}
-                  className="text-xs text-muted-foreground hover:text-foreground"
-                >
-                  Skip questions
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="space-y-2">
-                {pendingQuestions.map((question, index) => (
-                  <Button
-                    key={index}
-                    variant="outline"
-                    className="w-full text-left justify-start h-auto p-3 bg-background/50 hover:bg-background"
-                    onClick={() => handleQuestionSelect(question)}
+          {messages.length === 1 && (
+            <div className="space-y-4">
+              <Card className="bg-card shadow-card border-border">
+                <CardContent className="p-4 text-center">
+                  <p className="text-foreground font-medium mb-3">Need visual diagnosis?</p>
+                  <Button 
+                    onClick={() => navigate('/scan')}
+                    className="w-full bg-primary text-primary-foreground"
                   >
-                    {question}
+                    <Camera className="w-4 h-4 mr-2" />
+                    Take Photos for AI Analysis
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 gap-3">
+                <p className="text-sm text-muted-foreground text-center mb-2">
+                  Or try these common issues:
+                </p>
+                {quickActions.map((action) => (
+                  <Button
+                    key={action}
+                    variant="outline"
+                    className="h-auto p-4 text-left justify-start bg-card shadow-card hover:shadow-elevated transition-all border-border"
+                    onClick={() => handleQuickAction(action)}
+                  >
+                    {action}
                   </Button>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {messages.length === 1 && (
-          <div className="space-y-4">
-            <Card className="bg-card shadow-card border-border">
-              <CardContent className="p-4 text-center">
-                <p className="text-foreground font-medium mb-3">Need visual diagnosis?</p>
-                <Button 
-                  onClick={() => navigate('/scan')}
-                  className="w-full bg-primary text-primary-foreground"
-                >
-                  <Camera className="w-4 h-4 mr-2" />
-                  Take Photos for AI Analysis
-                </Button>
-              </CardContent>
-            </Card>
-
-            <div className="grid grid-cols-1 gap-3">
-              <p className="text-sm text-muted-foreground text-center mb-2">
-                Or try these common issues:
-              </p>
-              {quickActions.map((action) => (
-                <Button
-                  key={action}
-                  variant="outline"
-                  className="h-auto p-4 text-left justify-start bg-card shadow-card hover:shadow-elevated transition-all border-border"
-                  onClick={() => handleQuickAction(action)}
-                >
-                  {action}
-                </Button>
-              ))}
             </div>
-          </div>
-        )}
-      </main>
+          )}
+        </main>
+      ) : (
+        <main className="px-4 py-6 space-y-8">
+          {selectedProjectId ? (
+            selectedProject && (
+              <ProjectDetail
+                project={selectedProject}
+                onBack={() => setSelectedProjectId(null)}
+              />
+            )
+          ) : (
+            <ProjectsView 
+              projects={projects}
+              onCreateProject={handleCreateProject}
+              onSelectProject={setSelectedProjectId}
+            />
+          )}
+        </main>
+      )}
 
       <div className="fixed bottom-20 left-0 right-0 p-4 bg-background/95 backdrop-blur-sm border-t border-border">
         <div className="space-y-4 max-w-md mx-auto">
@@ -342,50 +405,53 @@ Just describe your problem and I'll guide you through the repair process. Let's 
             </Card>
           )}
 
-          <div className="flex gap-3">
-            <div className="flex-1 relative">
-              <Input
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Describe your device issue..."
-                className="pr-20 h-12 bg-card"
-                onKeyPress={handleKeyPress}
-                disabled={isLoading}
-              />
-              <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setShowDescription(!showDescription)}
-                  title="Add detailed description"
-                >
-                  <Info className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  disabled
-                  title="Voice input (coming soon)"
-                >
-                  <Mic className="h-4 w-4" />
-                </Button>
+          {/* Only show chat input if activeTab is 'repairBot' */}
+          {activeTab === 'repairBot' && (
+            <div className="flex gap-3">
+              <div className="flex-1 relative">
+                <Input
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Describe your device issue..."
+                  className="pr-20 h-12 bg-card"
+                  onKeyPress={handleKeyPress}
+                  disabled={isLoading}
+                />
+                <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setShowDescription(!showDescription)}
+                    title="Add detailed description"
+                  >
+                    <Info className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled
+                    title="Voice input (coming soon)"
+                  >
+                    <Mic className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
+              <Button 
+                onClick={handleSendClick}
+                className="h-12 w-12 bg-primary" 
+                size="icon"
+                disabled={isLoading || !message.trim()}
+              >
+                {isLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Send className="h-5 w-5" />
+                )}
+              </Button>
             </div>
-            <Button 
-              onClick={handleSendClick}
-              className="h-12 w-12 bg-primary" 
-              size="icon"
-              disabled={isLoading || !message.trim()}
-            >
-              {isLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <Send className="h-5 w-5" />
-              )}
-            </Button>
-          </div>
+          )}
         </div>
       </div>
 
