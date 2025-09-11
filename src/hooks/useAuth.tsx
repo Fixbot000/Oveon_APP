@@ -77,6 +77,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     await supabase.auth.signOut();
     setIsPremium(false);
     setPremiumUiEnabled(false);
+    window.location.href = '/'; // Redirect to home page or login page
   };
 
   const value = {
