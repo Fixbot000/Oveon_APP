@@ -1,9 +1,20 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Trash2 } from 'lucide-react';
 import BottomSheetModal from '@/components/BottomSheetModal';
 import CreateProjectForm from './CreateProjectForm';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Project {
   id: string;
@@ -16,9 +27,10 @@ interface ProjectsViewProps {
   projects: Project[];
   onSelectProject: (projectId: string) => void;
   onCreateProject: (projectName: string, description: string, files: File[]) => void; // Add this prop
+  onDeleteProject: (projectId: string) => void; // Add this prop
 }
 
-const ProjectsView: React.FC<ProjectsViewProps> = ({ projects, onSelectProject, onCreateProject }) => {
+const ProjectsView: React.FC<ProjectsViewProps> = ({ projects, onSelectProject, onCreateProject, onDeleteProject }) => {
   const [showCreateProjectModal, setShowCreateProjectModal] = useState(false);
 
   const handleCreateProject = (projectName: string, description: string, files: File[]) => {
@@ -45,13 +57,37 @@ const ProjectsView: React.FC<ProjectsViewProps> = ({ projects, onSelectProject, 
           {projects.map((project) => (
             <Card 
               key={project.id}
-              className="bg-card shadow-card border-border hover:shadow-lg transition-shadow duration-200 cursor-pointer"
-              onClick={() => onSelectProject(project.id)}
+              className="bg-card shadow-card border-border hover:shadow-lg transition-shadow duration-200 cursor-pointer relative"
+              
             >
-              <CardHeader>
-                <CardTitle className="text-foreground">{project.title}</CardTitle>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-foreground" onClick={() => onSelectProject(project.id)}>{project.title}</CardTitle>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      variant="ghost"
+                      size="sm"
+                      className="text-muted-foreground hover:text-red-500"
+                      onClick={(e) => e.stopPropagation()} // Prevent card click when deleting
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete your project.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => onDeleteProject(project.id)}>Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </CardHeader>
-              <CardContent>
+              <CardContent onClick={() => onSelectProject(project.id)}>
                 <p className="text-muted-foreground text-sm mb-2 line-clamp-2">{project.description}</p>
                 <p className="text-xs text-muted-foreground">Last Updated: {project.lastUpdated}</p>
               </CardContent>

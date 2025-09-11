@@ -243,6 +243,11 @@ Just describe your problem and I'll guide you through the repair process. Let's 
     toast.success('Project created successfully!');
   };
 
+  const handleDeleteProject = (projectId: string) => {
+    setProjects((prevProjects) => prevProjects.filter(project => project.id !== projectId));
+    toast.success('Project deleted successfully!');
+  };
+
   const selectedProject = projects.find(p => p.id === selectedProjectId);
 
   return (
@@ -390,6 +395,7 @@ Just describe your problem and I'll guide you through the repair process. Let's 
               projects={projects}
               onSelectProject={setSelectedProjectId}
               onCreateProject={handleCreateProject}
+              onDeleteProject={handleDeleteProject} // Pass the delete handler
             />
           )}
         </main>
