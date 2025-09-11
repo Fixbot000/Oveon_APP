@@ -2,13 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusCircle } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
+import BottomSheetModal from '@/components/BottomSheetModal';
 import CreateProjectForm from './CreateProjectForm';
 
 interface Project {
@@ -66,20 +60,16 @@ const ProjectsView: React.FC<ProjectsViewProps> = ({ projects, onSelectProject, 
         </div>
       )}
 
-      <Dialog open={showCreateProjectModal} onOpenChange={setShowCreateProjectModal}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Create New Project</DialogTitle>
-            <DialogDescription>
-              Fill in the details for your new project.
-            </DialogDescription>
-          </DialogHeader>
-          <CreateProjectForm
-            onCancel={() => setShowCreateProjectModal(false)}
-            onCreate={handleCreateProject}
-          />
-        </DialogContent>
-      </Dialog>
+      <BottomSheetModal
+        isOpen={showCreateProjectModal}
+        onClose={() => setShowCreateProjectModal(false)}
+        title="Create New Project"
+      >
+        <CreateProjectForm
+          onCancel={() => setShowCreateProjectModal(false)}
+          onCreate={handleCreateProject}
+        />
+      </BottomSheetModal>
     </div>
   );
 };

@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Upload } from 'lucide-react';
+import { X } from 'lucide-react';
 
 interface CreateProjectFormProps {
   onCancel: () => void;
   onCreate: (projectName: string, description: string, files: File[]) => void;
 }
 
-const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onCancel, onCreate }) => {
+const CreateProjectForm: React.FC<CreateProjectFormProps> = ({
+  onCancel, onCreate
+}) => {
   const [projectName, setProjectName] = useState('');
   const [description, setDescription] = useState('');
   const [files, setFiles] = useState<File[]>([]);
@@ -21,64 +23,71 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({ onCancel, onCreat
     }
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
-    if (projectName.trim()) {
-      onCreate(projectName, description, files);
-    } else {
-      alert('Project Name is required!');
-    }
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onCreate(projectName, description, files);
+    setProjectName('');
+    setDescription('');
+    setFiles([]);
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setFiles(files.filter((_, i) => i !== index));
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
+    <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+      <div className="grid gap-2">
         <Label htmlFor="projectName">Project Name</Label>
         <Input
           id="projectName"
-          placeholder="Enter project name"
+          placeholder="My awesome project"
           value={projectName}
           onChange={(e) => setProjectName(e.target.value)}
           required
         />
       </div>
-      <div className="space-y-2">
+      <div className="grid gap-2">
         <Label htmlFor="description">Description</Label>
         <Textarea
           id="description"
-          placeholder="Project description (optional)"
+          placeholder="A brief description of your project..."
           value={description}
           onChange={(e) => setDescription(e.target.value)}
+          rows={4}
         />
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="files" className="flex items-center space-x-2 cursor-pointer">
-          <Upload className="w-4 h-4" />
-          <span>Upload Files (PDF, DOC, Images)</span>
-        </Label>
+      <div className="grid gap-2">
+        <Label htmlFor="files">Upload Files</Label>
         <Input
           id="files"
           type="file"
           multiple
+          accept="image/*,.pdf,.doc,.docx"
           onChange={handleFileChange}
-          className="hidden"
-          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif"
         />
-        {files.length > 0 && (
-          <div className="text-sm text-muted-foreground">
-            {files.map((file, index) => (
-              <span key={index} className="block">{file.name}</span>
-            ))}
-          </div>
-        )}
+        <div className="mt-2">
+          {files.map((file, index) => (
+            <div key={index} className="flex items-center justify-between bg-gray-100 p-2 rounded-md mb-1">
+              <span className="text-sm text-gray-700">{file.name}</span>
+              <button type="button" onClick={() => handleRemoveFile(index)} className="text-red-500 hover:text-red-700">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
-      <div className="flex justify-end space-x-2">
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button type="submit">
-          Create
-        </Button>
+      {/* Add Members (optional) - Placeholder for now */}
+      <div className="grid gap-2">
+        <Label htmlFor="addMembers">Add Members (optional)</Label>
+        <Input
+          id="addMembers"
+          placeholder="Enter email or username"
+        />
+      </div>
+      <div className="flex justify-end gap-2 mt-4">
+        <Button type="button" variant="outline" onClick={onCancel}>Close</Button>
+        <Button type="submit" className="bg-primary text-primary-foreground">Save Project</Button>
       </div>
     </form>
   );
