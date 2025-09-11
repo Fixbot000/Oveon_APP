@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Camera, History, Clock, Wrench, Star, TrendingUp, Users } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import MobileHeader from '@/components/MobileHeader';
 import BottomNavigation from '@/components/BottomNavigation';
 import ActionCard from '@/components/ActionCard';
@@ -26,8 +26,10 @@ const Index = () => {
   const [isHorizontalDrag, setIsHorizontalDrag] = useState(false);
   const [longPressTimeout, setLongPressTimeout] = useState<NodeJS.Timeout | null>(null);
   const [isLongPress, setIsLongPress] = useState(false);
+  const [hasMoved, setHasMoved] = useState(false);
 
   const isMobile = useMediaQuery({ query: '(max-width: 768px)' });
+  const tipRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const loadTips = async () => {
     try {
@@ -52,12 +54,37 @@ const Index = () => {
     }
   }, []);
 
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          setCurrentTipIndex(tipRefs.current.findIndex((ref) => ref === entry.target));
+        }
+      });
+    }, {
+      root: null, // Use the viewport as the root
+      rootMargin: '0px', // No margin
+      threshold: 0.5, // Trigger when 50% of the tip is visible
+    });
+
+    tipRefs.current.forEach((ref) => {
+      if (ref) {
+        observer.observe(ref);
+      }
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [tips.length]);
+
   const handlePointerStart = (e: React.PointerEvent) => {
     setStartX(e.clientX);
     setStartY(e.clientY);
     setIsDragging(false);
     setIsHorizontalDrag(false);
     setDragOffset(0);
+    setHasMoved(false);
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
@@ -69,6 +96,7 @@ const Index = () => {
     // Determine if this is a horizontal drag
     if (!isHorizontalDrag && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
       setIsHorizontalDrag(Math.abs(deltaX) > Math.abs(deltaY));
+      setHasMoved(true);
     }
 
     if (isHorizontalDrag) {
@@ -94,10 +122,10 @@ const Index = () => {
     if (Math.abs(dragOffset) > threshold) {
       if (dragOffset > 0) {
         // Swiped right - go to previous
-        setCurrentTipIndex((prevIndex) => (prevIndex - 1 + tips.length) % tips.length);
+        
       } else {
         // Swiped left - go to next
-        setCurrentTipIndex((prevIndex) => (prevIndex + 1) % tips.length);
+        
       }
     }
 
@@ -210,101 +238,95 @@ const Index = () => {
               ))}
             </div>
           ) : (
-            <div className="overflow-hidden w-full max-w-sm mx-auto">
+            <div 
+              className="relative w-full h-64 cursor-grab active:cursor-grabbing select-none overflow-x-auto scroll-smooth snap-x snap-mandatory"
+              style={{ willChange: 'transform' }}
+            >
               <div 
-                className="relative w-full h-64 cursor-grab active:cursor-grabbing select-none"
-                style={{ willChange: 'transform' }}
-                onPointerDown={handlePointerStart}
-                onPointerMove={handlePointerMove}
-                onPointerUp={handlePointerEnd}
-                onPointerLeave={handlePointerEnd}
+                className="flex h-full"
+                style={{
+                  
+                }}
               >
-                <div 
-                  className="flex transition-transform duration-300 ease-out h-full"
-                  style={{
-                    transform: `translateX(calc(-${currentTipIndex * (isMobile ? 100 : 85)}% + ${isDragging ? dragOffset : 0}px))`,
-                    transition: isDragging ? 'none' : 'transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1)',
-                  }}
-                >
-                  {tips.map((tip, index) => {
-                    const isCurrent = index === currentTipIndex;
-                    const distance = Math.abs(index - currentTipIndex);
-                    
-                    return (
-                      <div
-                        key={index}
-                        className="flex-shrink-0 w-full h-full relative mr-4"
+                {tips.map((tip, index) => {
+                  const isCurrent = index === currentTipIndex;
+                  const distance = Math.abs(index - currentTipIndex);
+                  
+                  return (
+                    <div
+                      key={index}
+                      ref={(el) => (tipRefs.current[index] = el)}
+                      className="flex-shrink-0 w-full h-full relative mr-4 snap-center"
+                      style={{
+                        flexBasis: isMobile ? '100%' : '85%',
+                        zIndex: isCurrent ? 30 : Math.max(0, 20 - distance),
+                        pointerEvents: isCurrent ? 'auto' : 'none',
+                      }}
+                      onPointerDown={(e) => {
+                        if (isMobile) {
+                          setLongPressTimeout(setTimeout(() => {
+                            setIsLongPress(true);
+                            setSelectedTip(tip);
+                            setIsDialogOpen(true);
+                          }, 500)); // 500ms for a long press
+                        }
+                        handlePointerStart(e);
+                      }}
+                      onPointerUp={() => {
+                        if (longPressTimeout) {
+                          clearTimeout(longPressTimeout);
+                          setLongPressTimeout(null);
+                        }
+                        if (!isMobile || (isMobile && !isLongPress && !hasMoved)) {
+                          if (isCurrent && !hasMoved) {
+                            setSelectedTip(tip);
+                            setIsDialogOpen(true);
+                          }
+                        }
+                        handlePointerEnd();
+                      }}
+                      onPointerLeave={() => {
+                        if (longPressTimeout) {
+                          clearTimeout(longPressTimeout);
+                          setLongPressTimeout(null);
+                        }
+                        handlePointerEnd();
+                      }}
+                    >
+                      <div 
+                        className={`w-full h-full rounded-xl shadow-lg transition-all duration-300 ease-out ${
+                          ['bg-gradient-to-br from-blue-500 to-purple-600',
+                           'bg-gradient-to-br from-green-500 to-teal-600', 
+                           'bg-gradient-to-br from-orange-500 to-red-600',
+                           'bg-gradient-to-br from-purple-500 to-pink-600',
+                           'bg-gradient-to-br from-indigo-500 to-blue-600',
+                           'bg-gradient-to-br from-emerald-500 to-cyan-600'][index % 6]
+                        }`}
                         style={{
-                          flexBasis: isMobile ? '100%' : '85%',
-                          zIndex: isCurrent ? 30 : Math.max(0, 20 - distance),
-                          pointerEvents: isCurrent ? 'auto' : 'none',
-                        }}
-                        onPointerDown={(e) => {
-                          if (isMobile) {
-                            setLongPressTimeout(setTimeout(() => {
-                              setIsLongPress(true);
-                              setSelectedTip(tip);
-                              setIsDialogOpen(true);
-                            }, 500)); // 500ms for a long press
-                          }
-                          handlePointerStart(e);
-                        }}
-                        onPointerUp={() => {
-                          if (longPressTimeout) {
-                            clearTimeout(longPressTimeout);
-                            setLongPressTimeout(null);
-                          }
-                          if (!isMobile || (isMobile && !isLongPress && !isDragging)) {
-                            if (isCurrent && !isDragging) {
-                              setSelectedTip(tip);
-                              setIsDialogOpen(true);
-                            }
-                          }
-                          handlePointerEnd();
-                        }}
-                        onPointerLeave={() => {
-                          if (longPressTimeout) {
-                            clearTimeout(longPressTimeout);
-                            setLongPressTimeout(null);
-                          }
-                          handlePointerEnd();
+                          opacity: isCurrent ? 1 : 0.7,
+                          transform: isCurrent ? 'scale(1)' : 'scale(0.95)',
                         }}
                       >
-                        <div 
-                          className={`w-full h-full rounded-xl shadow-lg transition-all duration-300 ease-out ${
-                            ['bg-gradient-to-br from-blue-500 to-purple-600',
-                             'bg-gradient-to-br from-green-500 to-teal-600', 
-                             'bg-gradient-to-br from-orange-500 to-red-600',
-                             'bg-gradient-to-br from-purple-500 to-pink-600',
-                             'bg-gradient-to-br from-indigo-500 to-blue-600',
-                             'bg-gradient-to-br from-emerald-500 to-cyan-600'][index % 6]
-                          }`}
-                          style={{
-                            opacity: isCurrent ? 1 : 0.7,
-                            transform: isCurrent ? 'scale(1)' : 'scale(0.95)',
-                          }}
-                        >
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent rounded-xl"></div>
-                          <div className="relative p-4 h-full flex flex-col justify-end">
-                            <h4 className="font-bold text-lg text-white mb-1 text-balance">
-                              {tip.title}
-                            </h4>
-                            <p className="text-sm text-white/90 mb-2 line-clamp-2">
-                              {tip.description}
-                            </p>
-                            <div className="flex items-center gap-2 mt-2">
-                              <span className={`text-xs px-2 py-1 rounded-full text-white ${getDifficultyColor(tip.difficulty)}`}>
-                                {tip.difficulty}
-                              </span>
-                              <Clock className="w-4 h-4 text-white" />
-                              <span className="text-xs text-white">{tip.readTime}</span>
-                            </div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent rounded-xl"></div>
+                        <div className="relative p-4 h-full flex flex-col justify-end">
+                          <h4 className="font-bold text-lg text-white mb-1 text-balance">
+                            {tip.title}
+                          </h4>
+                          <p className="text-sm text-white/90 mb-2 line-clamp-2">
+                            {tip.description}
+                          </p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className={`text-xs px-2 py-1 rounded-full text-white ${getDifficultyColor(tip.difficulty)}`}>
+                              {tip.difficulty}
+                            </span>
+                            <Clock className="w-4 h-4 text-white" />
+                            <span className="text-xs text-white">{tip.readTime}</span>
                           </div>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
