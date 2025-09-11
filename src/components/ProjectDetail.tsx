@@ -40,8 +40,6 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack }) => {
     { id: 'm1', name: 'Alice Smith', role: 'Owner' },
     { id: 'm2', name: 'Bob Johnson', role: 'Collaborator' },
   ]);
-  const [progress, setProgress] = useState(60); // Dummy progress
-
   const handleUploadFile = () => {
     console.log('Upload file action');
     // Implement file upload logic here
@@ -147,20 +145,6 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack }) => {
           <span className="text-xs">Start Chat</span>
         </Button>
       </div>
-
-      {/* Progress Tracker */}
-      <Card className="bg-card shadow-card border-border">
-        <CardHeader>
-          <CardTitle className="text-foreground">Project Progress</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center space-x-2">
-            <Progress value={progress} className="flex-1" />
-            <span className="text-sm font-medium text-foreground">{progress}%</span>
-          </div>
-          <p className="text-sm text-muted-foreground mt-2">Keep up the good work!</p>
-        </CardContent>
-      </Card>
     </div>
   );
 };
