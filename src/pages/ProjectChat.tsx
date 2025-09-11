@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useNavigate } from 'react-router-dom';
 import MobileHeader from '@/components/MobileHeader';
-import BottomNavigation from '@/components/BottomNavigation';
 import { useAuth } from '@/hooks/useAuth';
 
 interface ProjectFile {
@@ -288,7 +287,6 @@ const ProjectChat = () => {
           </button>
         </footer>
       </div>
-      <BottomNavigation />
     </div>
   );
 };
