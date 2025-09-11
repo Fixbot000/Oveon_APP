@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface AuthContextType {
   user: User | null;
@@ -74,10 +75,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setIsPremium(false);
-    setPremiumUiEnabled(false);
-    window.location.href = '/'; // Redirect to home page or login page
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        throw error;
+      }
+      setIsPremium(false);
+      setPremiumUiEnabled(false);
+      window.location.href = '/'; // Redirect to home page or login page
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast.error("Failed to sign out. Please try again.");
+    }
   };
 
   const value = {
