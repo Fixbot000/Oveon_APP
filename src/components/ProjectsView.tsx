@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusCircle, Trash2 } from 'lucide-react';
@@ -28,15 +28,20 @@ interface ProjectsViewProps {
   onSelectProject: (projectId: string) => void;
   onCreateProject: (projectName: string, description: string, files: File[]) => void; // Add this prop
   onDeleteProject: (projectId: string) => void; // Add this prop
+  onModalToggle: (isOpen: boolean) => void;
 }
 
-const ProjectsView: React.FC<ProjectsViewProps> = ({ projects, onSelectProject, onCreateProject, onDeleteProject }) => {
+const ProjectsView: React.FC<ProjectsViewProps> = ({ projects, onSelectProject, onCreateProject, onDeleteProject, onModalToggle }) => {
   const [showCreateProjectModal, setShowCreateProjectModal] = useState(false);
 
   const handleCreateProject = (projectName: string, description: string, files: File[]) => {
     onCreateProject(projectName, description, files);
     setShowCreateProjectModal(false);
   };
+
+  useEffect(() => {
+    onModalToggle(showCreateProjectModal);
+  }, [showCreateProjectModal, onModalToggle]);
 
   return (
     <div className="p-4">

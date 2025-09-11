@@ -86,6 +86,7 @@ Just describe your problem and I'll guide you through the repair process. Let's 
     return storedProjects ? JSON.parse(storedProjects) : [];
   });
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false); 
 
   const handleUpdateProject = (updatedProject: Project) => {
     setProjects((prevProjects) =>
@@ -427,6 +428,7 @@ Just describe your problem and I'll guide you through the repair process. Let's 
                 onSelectProject={setSelectedProjectId}
                 onCreateProject={handleCreateProject}
                 onDeleteProject={handleDeleteProject} // Pass the delete handler
+                onModalToggle={setIsCreateProjectModalOpen} 
               />
             )
           )}
@@ -514,7 +516,7 @@ Just describe your problem and I'll guide you through the repair process. Let's 
         </div>
       </div>
 
-      <BottomNavigation />
+      <BottomNavigation isCreateProjectModalOpen={isCreateProjectModalOpen} />
     </div>
   );
 };
