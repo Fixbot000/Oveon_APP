@@ -19,6 +19,7 @@ interface Project {
   lastUpdated: string;
 }
 import ProjectDetail from '@/components/ProjectDetail';
+import { useLocation } from 'react-router-dom';
 
 interface Message {
   id: number;
@@ -64,6 +65,18 @@ Just describe your problem and I'll guide you through the repair process. Let's 
     return storedProjects ? JSON.parse(storedProjects) : [];
   });
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+
+  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab');
+    if (tab === 'projects') {
+      setActiveTab('projects');
+    } else {
+      setActiveTab('repairBot');
+    }
+  }, [location.search]);
 
   const quickActions = [
     'My phone won\'t charge',
@@ -223,6 +236,7 @@ Just describe your problem and I'll guide you through the repair process. Let's 
       title: projectName,
       description: description,
       lastUpdated: new Date().toISOString().split('T')[0], // Current date
+      chatHistory: [], // Initialize chat history for the new project
       // Files are handled within the CreateProjectForm or uploaded separately
     };
     setProjects((prevProjects) => [...prevProjects, newProject]);

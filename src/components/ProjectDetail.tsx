@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Upload, UserPlus, MessageSquare, MoreVertical } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { useNavigate } from 'react-router-dom';
 interface Project {
   id: string;
   title: string;
@@ -52,9 +53,10 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack }) => {
   };
 
   const handleStartChat = () => {
-    console.log('Start chat action');
-    // Implement chat logic here (Part 2)
+    navigate(`/project/${project.id}/chat`);
   };
+
+  const navigate = useNavigate();
 
   return (
     <div className="p-4">

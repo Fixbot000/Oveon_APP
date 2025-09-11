@@ -22,6 +22,7 @@ import Help from "./pages/Help";
 import DiagnosisResult from "./pages/DiagnosisResult";
 import TermsAndPolicies from "./pages/TermsAndPolicies";
 import NotFound from "./pages/NotFound";
+import ProjectChat from "./pages/ProjectChat";
 
 const queryClient = new QueryClient();
 
@@ -77,6 +78,11 @@ const AppContent = () => {
           <Route path="/help" element={<Help />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="/diagnosis-result" element={<DiagnosisResult />} />
+          <Route path="/project/:projectId/chat" element={
+            <AuthGuard>
+              <ProjectChat />
+            </AuthGuard>
+          } />
           <Route path="/terms-and-policies" element={<TermsAndPolicies />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
