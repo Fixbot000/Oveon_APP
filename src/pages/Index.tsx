@@ -8,7 +8,7 @@ import MobileHeader from '@/components/MobileHeader';
 import BottomNavigation from '@/components/BottomNavigation';
 import ActionCard from '@/components/ActionCard';
 import { generateRepairTips, getDifficultyColor, type Tip } from '@/lib/tipsGenerator';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import BottomSheetModal from '@/components/BottomSheetModal';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -282,24 +282,11 @@ const Index = () => {
 
       <BottomNavigation />
 
-      {selectedTip && (
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>{selectedTip.title}</DialogTitle>
-              <DialogDescription>{selectedTip.description}</DialogDescription>
-            </DialogHeader>
-            <p className="text-sm text-muted-foreground mt-2">{selectedTip.fullDescription}</p>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className={`px-2 py-1 rounded-full ${getDifficultyColor(selectedTip.difficulty)}`}>
-                {selectedTip.difficulty}
-              </span>
-              <Clock className="w-3 h-3" />
-              <span>{selectedTip.readTime}</span>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
+      <BottomSheetModal 
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        tip={selectedTip}
+      />
     </div>
   );
 };
