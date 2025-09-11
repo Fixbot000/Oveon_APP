@@ -40,6 +40,7 @@ interface Project {
 }
 import ProjectDetail from '@/components/ProjectDetail';
 import { useLocation } from 'react-router-dom';
+import PremiumUpsell from '@/components/PremiumUpsell'; // Import the new component
 
 interface Message {
   id: number;
@@ -409,21 +410,25 @@ Just describe your problem and I'll guide you through the repair process. Let's 
         </main>
       ) : (
         <main className="px-4 py-6 space-y-8">
-          {selectedProjectId ? (
-            selectedProject && (
-              <ProjectDetail
-                project={selectedProject}
-                onBack={() => setSelectedProjectId(null)}
-                onUpdateProject={handleUpdateProject}
+          {!isPremium ? (
+            <PremiumUpsell />
+          ) : (
+            selectedProjectId ? (
+              selectedProject && (
+                <ProjectDetail
+                  project={selectedProject}
+                  onBack={() => setSelectedProjectId(null)}
+                  onUpdateProject={handleUpdateProject}
+                />
+              )
+            ) : (
+              <ProjectsView 
+                projects={projects}
+                onSelectProject={setSelectedProjectId}
+                onCreateProject={handleCreateProject}
+                onDeleteProject={handleDeleteProject} // Pass the delete handler
               />
             )
-          ) : (
-            <ProjectsView 
-              projects={projects}
-              onSelectProject={setSelectedProjectId}
-              onCreateProject={handleCreateProject}
-              onDeleteProject={handleDeleteProject} // Pass the delete handler
-            />
           )}
         </main>
       )}
