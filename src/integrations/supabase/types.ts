@@ -445,9 +445,11 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string | null
+          daily_scans: number | null
           email: string | null
           id: string
           ispremium: boolean | null
+          last_scan_date: string | null
           lastscanreset: string | null
           premiumuienabled: boolean | null
           remainingscans: number | null
@@ -456,9 +458,11 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string | null
+          daily_scans?: number | null
           email?: string | null
           id?: string
           ispremium?: boolean | null
+          last_scan_date?: string | null
           lastscanreset?: string | null
           premiumuienabled?: boolean | null
           remainingscans?: number | null
@@ -467,9 +471,11 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string | null
+          daily_scans?: number | null
           email?: string | null
           id?: string
           ispremium?: boolean | null
+          last_scan_date?: string | null
           lastscanreset?: string | null
           premiumuienabled?: boolean | null
           remainingscans?: number | null

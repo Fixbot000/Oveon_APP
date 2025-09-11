@@ -14,9 +14,11 @@ import { useNavigate } from 'react-router-dom';
 
 interface DiagnosticFlowProps {
   selectedLanguage: string;
+  canScan?: boolean;
+  onScanComplete?: () => void;
 }
 
-export default function DiagnosticFlow({ selectedLanguage }: DiagnosticFlowProps) {
+export default function DiagnosticFlow({ selectedLanguage, canScan = true, onScanComplete }: DiagnosticFlowProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   
@@ -128,10 +130,10 @@ export default function DiagnosticFlow({ selectedLanguage }: DiagnosticFlowProps
 
             <Button 
               onClick={handleStep1Next}
-              disabled={!deviceName.trim() || !devicePhoto}
+              disabled={!deviceName.trim() || !devicePhoto || !canScan}
               className="w-full"
             >
-              Next Step
+              {!canScan ? 'Daily Limit Reached' : 'Next Step'}
             </Button>
           </CardContent>
         </Card>
@@ -202,6 +204,10 @@ export default function DiagnosticFlow({ selectedLanguage }: DiagnosticFlowProps
                   toast.error('Please provide a description.');
                   return;
                 }
+                if (!canScan) {
+                  toast.error('Daily scan limit reached. Upgrade to Premium for unlimited scans.');
+                  return;
+                }
                 setLoading(true);
                 try {
                   const base64 = await new Promise<string>((resolve) => {
@@ -227,10 +233,10 @@ export default function DiagnosticFlow({ selectedLanguage }: DiagnosticFlowProps
                   setLoading(false);
                 }
               }}
-              disabled={loading || !description.trim() || !devicePhoto}
+              disabled={loading || !description.trim() || !devicePhoto || !canScan}
               className="w-full"
             >
-              {loading ? 'Analyzing...' : 'Analyze & Generate Questions'}
+              {loading ? 'Analyzing...' : !canScan ? 'Daily Limit Reached' : 'Analyze & Generate Questions'}
             </Button>
           </CardContent>
         </Card>
@@ -280,6 +286,10 @@ export default function DiagnosticFlow({ selectedLanguage }: DiagnosticFlowProps
 
             <Button 
               onClick={async () => {
+                if (!canScan) {
+                  toast.error('Daily scan limit reached. Upgrade to Premium for unlimited scans.');
+                  return;
+                }
                 setLoading(true);
                 try {
                   const { data, error } = await supabase.functions.invoke('generate-repair-diagnosis', {
@@ -318,6 +328,11 @@ export default function DiagnosticFlow({ selectedLanguage }: DiagnosticFlowProps
                     console.error('Error saving scan to history:', saveError);
                   }
 
+                  // Call onScanComplete callback to update scan count
+                  if (onScanComplete) {
+                    onScanComplete();
+                  }
+
                   setFinalDiagnosis(data);
                   navigate('/diagnosis-result', { state: { finalDiagnosis: data } });
                   setCurrentStep(4);
@@ -328,10 +343,10 @@ export default function DiagnosticFlow({ selectedLanguage }: DiagnosticFlowProps
                   setLoading(false);
                 }
               }}
-              disabled={loading}
+              disabled={loading || !canScan}
               className="w-full"
             >
-              {loading ? 'Generating Report...' : 'Get Repair Guide'}
+              {loading ? 'Generating Report...' : !canScan ? 'Daily Limit Reached' : 'Get Repair Guide'}
             </Button>
           </CardContent>
         </Card>
