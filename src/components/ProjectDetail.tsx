@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Upload, UserPlus, MessageSquare, MoreVertical } from 'lucide-react';
@@ -9,6 +9,8 @@ interface Project {
   title: string;
   description: string;
   lastUpdated: string;
+  files?: ProjectFile[];
+  members?: ProjectMember[];
 }
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
@@ -29,25 +31,38 @@ interface ProjectMember {
 interface ProjectDetailProps {
   project: Project;
   onBack: () => void;
+  onUpdateProject: (updatedProject: Project) => void;
 }
 
-const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack }) => {
-  const [files, setFiles] = useState<ProjectFile[]>([
-    { id: 'f1', name: 'Schematic_v1.pdf', type: 'pdf', url: '#' },
-    { id: 'f2', name: 'Device_Photo_1.jpg', type: 'image', url: '#' },
-  ]);
-  const [members, setMembers] = useState<ProjectMember[]>([
-    { id: 'm1', name: 'Alice Smith', role: 'Owner' },
-    { id: 'm2', name: 'Bob Johnson', role: 'Collaborator' },
-  ]);
+const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdateProject }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const handleUploadFile = () => {
-    console.log('Upload file action');
-    // Implement file upload logic here
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = event.target.files;
+    if (selectedFiles && selectedFiles.length > 0) {
+      const newFiles: ProjectFile[] = Array.from(selectedFiles).map((file) => ({
+        id: `f${Date.now()}-${Math.random()}`,
+        name: file.name,
+        type: file.type,
+        url: URL.createObjectURL(file), // Create a temporary URL for display if needed
+      }));
+      const updatedFiles = project.files ? [...project.files, ...newFiles] : newFiles;
+      onUpdateProject({ ...project, files: updatedFiles });
+    }
   };
 
   const handleAddMember = () => {
-    console.log('Add member action');
-    // Implement add member logic here
+    const newMember: ProjectMember = {
+      id: `m${Date.now()}`,
+      name: `New Member ${project.members ? project.members.length + 1 : 1}`,
+      role: 'Collaborator',
+    };
+    const updatedMembers = project.members ? [...project.members, newMember] : [newMember];
+    onUpdateProject({ ...project, members: updatedMembers });
   };
 
   const handleStartChat = () => {
@@ -83,7 +98,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack }) => {
               <div>
                 <h4 className="font-semibold text-foreground">Members</h4>
                 <ul>
-                  {members.map(member => (
+                  {project.members?.map(member => (
                     <li key={member.id} className="text-sm text-muted-foreground">{member.name} ({member.role})</li>
                   ))}
                 </ul>
@@ -116,13 +131,13 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack }) => {
         <CardContent>
           <p className="text-sm text-muted-foreground mb-2">Last Updated: {project.lastUpdated}</p>
           <h4 className="font-semibold text-foreground mt-4 mb-2">Uploaded Files:</h4>
-          {files.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No files uploaded yet.</p>
+          {project.files?.length === 0 ? (
+            <p className="text-muted-foreground text-sm">No files</p>
           ) : (
             <ul className="space-y-1">
-              {files.map(file => (
-                <li key={file.id} className="flex items-center text-sm text-muted-foreground">
-                  <span className="mr-2">📄</span> {file.name}
+              {project.files?.map(file => (
+                <li key={file.id} className="text-sm text-muted-foreground">
+                   {file.name}
                 </li>
               ))}
             </ul>
@@ -136,6 +151,13 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack }) => {
           <Upload className="h-6 w-6 mb-1" />
           <span className="text-xs">Upload File</span>
         </Button>
+        <input
+          type="file"
+          ref={fileInputRef}
+          multiple
+          className="hidden"
+          onChange={handleFileChange}
+        />
         <Button onClick={handleAddMember} className="flex flex-col items-center justify-center p-4 h-auto bg-secondary text-secondary-foreground">
           <UserPlus className="h-6 w-6 mb-1" />
           <span className="text-xs">Add Member</span>

@@ -192,8 +192,8 @@ const ProjectChat = () => {
                     {project.files && project.files.length > 0 ? (
                       <ul className="space-y-1">
                         {project.files.map(file => (
-                          <li key={file.id} className="flex items-center text-sm text-muted-foreground">
-                            <span className="mr-2">📄</span> {file.name}
+                          <li key={file.id} className="text-sm text-muted-foreground">
+                             {file.name}
                           </li>
                         ))}
                       </ul>

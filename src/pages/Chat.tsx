@@ -17,6 +17,13 @@ interface Project {
   title: string;
   description: string;
   lastUpdated: string;
+  files?: ProjectFile[];
+  members?: ProjectMember[];
+  chatHistory?: {
+    id: number;
+    sender: 'user' | 'ai';
+    text: string;
+  }[];
 }
 import ProjectDetail from '@/components/ProjectDetail';
 import { useLocation } from 'react-router-dom';
@@ -65,6 +72,12 @@ Just describe your problem and I'll guide you through the repair process. Let's 
     return storedProjects ? JSON.parse(storedProjects) : [];
   });
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+
+  const handleUpdateProject = (updatedProject: Project) => {
+    setProjects((prevProjects) =>
+      prevProjects.map((p) => (p.id === updatedProject.id ? updatedProject : p))
+    );
+  };
 
   const location = useLocation();
 
@@ -388,6 +401,7 @@ Just describe your problem and I'll guide you through the repair process. Let's 
               <ProjectDetail
                 project={selectedProject}
                 onBack={() => setSelectedProjectId(null)}
+                onUpdateProject={handleUpdateProject}
               />
             )
           ) : (
