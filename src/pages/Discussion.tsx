@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, ThumbsUp, ThumbsDown, Reply, Send, Eye } from 'lucide-react';
+import { ArrowLeft, Heart, Reply, Send, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -24,7 +24,7 @@ interface Post {
     avatar_url: string | null;
     ispremium: boolean;
   };
-  user_like?: 'like' | 'dislike' | null;
+  user_like?: 'like' | null;
 }
 
 interface Comment {
@@ -41,7 +41,7 @@ interface Comment {
     avatar_url: string | null;
     ispremium: boolean;
   };
-  user_like?: 'like' | 'dislike' | null;
+  user_like?: 'like' | null;
   replies?: Comment[];
 }
 
@@ -159,90 +159,80 @@ const Discussion = () => {
     }
   };
 
-  const handlePostLike = async (likeType: 'like' | 'dislike') => {
-    if (!user || !post) {
+  const handlePostLike = async (postId: string) => {
+    if (!user) {
       toast.error('Please sign in to like posts');
       return;
     }
 
     try {
+      const currentPost = post;
+      if (!currentPost) return;
+
+      // Check if user already has a like on this post
       const { data: existingLike } = await supabase
         .from('post_likes')
         .select('like_type')
         .eq('user_id', user.id)
-        .eq('post_id', post.id)
+        .eq('post_id', postId)
+        .eq('like_type', 'like')
         .maybeSingle();
 
       let likeDelta = 0;
-      let dislikeDelta = 0;
-      let newUserLike: 'like' | 'dislike' | null = null;
+      let newUserLike: 'like' | null = null;
+      let newLikeCount = currentPost.likes;
 
       if (existingLike) {
-        if (existingLike.like_type === likeType) {
-          await supabase
-            .from('post_likes')
-            .delete()
-            .eq('user_id', user.id)
-            .eq('post_id', post.id);
-          
-          if (likeType === 'like') likeDelta = -1;
-          else dislikeDelta = -1;
-          newUserLike = null;
-        } else {
-          await supabase
-            .from('post_likes')
-            .update({ like_type: likeType })
-            .eq('user_id', user.id)
-            .eq('post_id', post.id);
-          
-          if (likeType === 'like') {
-            likeDelta = 1;
-            dislikeDelta = -1;
-          } else {
-            likeDelta = -1;
-            dislikeDelta = 1;
-          }
-          newUserLike = likeType;
-        }
+        // Remove like (toggle off)
+        await supabase
+          .from('post_likes')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('post_id', postId);
+        
+        likeDelta = -1;
+        newUserLike = null;
+        newLikeCount = Math.max(0, currentPost.likes - 1); // Ensure never goes below 0
       } else {
+        // Add new like
         await supabase
           .from('post_likes')
           .insert({
             user_id: user.id,
-            post_id: post.id,
-            like_type: likeType
+            post_id: postId,
+            like_type: 'like'
           });
         
-        if (likeType === 'like') likeDelta = 1;
-        else dislikeDelta = 1;
-        newUserLike = likeType;
+        likeDelta = 1;
+        newUserLike = 'like';
+        newLikeCount = currentPost.likes + 1;
       }
 
+      // Update post count in database
       await supabase
         .from('posts')
         .update({
-          likes: post.likes + likeDelta,
-          dislikes: post.dislikes + dislikeDelta
+          likes: newLikeCount
         })
-        .eq('id', post.id);
+        .eq('id', postId);
 
-      // Update local state immediately
+      // Update local state immediately for better UX
       setPost(prevPost => prevPost ? {
         ...prevPost,
-        likes: prevPost.likes + likeDelta,
-        dislikes: prevPost.dislikes + dislikeDelta,
+        likes: newLikeCount,
         user_like: newUserLike
       } : null);
 
-      toast.success(likeType === 'like' ? 'Post liked!' : 'Post disliked!');
+      toast.success(newUserLike ? 'Post liked!' : 'Like removed');
     } catch (error: any) {
-      console.error('Error handling post like:', error);
+      console.error('Error handling like:', error);
       toast.error('Failed to update like');
+      // Refresh data on error
       fetchPost();
     }
   };
 
-  const handleCommentLike = async (commentId: string, likeType: 'like' | 'dislike') => {
+  const handleCommentLike = async (commentId: string) => {
     if (!user) {
       toast.error('Please sign in to like comments');
       return;
@@ -254,63 +244,50 @@ const Discussion = () => {
       
       if (!comment) return;
 
+      // Check if user already has a like on this comment
       const { data: existingLike } = await supabase
         .from('comment_likes')
         .select('like_type')
         .eq('user_id', user.id)
         .eq('comment_id', commentId)
+        .eq('like_type', 'like')
         .maybeSingle();
 
       let likeDelta = 0;
-      let dislikeDelta = 0;
-      let newUserLike: 'like' | 'dislike' | null = null;
+      let newUserLike: 'like' | null = null;
+      let newLikeCount = comment.likes;
 
       if (existingLike) {
-        if (existingLike.like_type === likeType) {
-          await supabase
-            .from('comment_likes')
-            .delete()
-            .eq('user_id', user.id)
-            .eq('comment_id', commentId);
-          
-          if (likeType === 'like') likeDelta = -1;
-          else dislikeDelta = -1;
-          newUserLike = null;
-        } else {
-          await supabase
-            .from('comment_likes')
-            .update({ like_type: likeType })
-            .eq('user_id', user.id)
-            .eq('comment_id', commentId);
-          
-          if (likeType === 'like') {
-            likeDelta = 1;
-            dislikeDelta = -1;
-          } else {
-            likeDelta = -1;
-            dislikeDelta = 1;
-          }
-          newUserLike = likeType;
-        }
+        // Remove like (toggle off)
+        await supabase
+          .from('comment_likes')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('comment_id', commentId);
+        
+        likeDelta = -1;
+        newUserLike = null;
+        newLikeCount = Math.max(0, comment.likes - 1); // Ensure never goes below 0
       } else {
+        // Add new like
         await supabase
           .from('comment_likes')
           .insert({
             user_id: user.id,
             comment_id: commentId,
-            like_type: likeType
+            like_type: 'like'
           });
         
-        if (likeType === 'like') likeDelta = 1;
-        else dislikeDelta = 1;
-        newUserLike = likeType;
+        likeDelta = 1;
+        newUserLike = 'like';
+        newLikeCount = comment.likes + 1;
       }
 
+      // Update comment count in database
       await supabase
         .from('comments')
         .update({
-          likes: comment.likes + likeDelta,
-          dislikes: comment.dislikes + dislikeDelta
+          likes: newLikeCount
         })
         .eq('id', commentId);
 
@@ -320,8 +297,7 @@ const Discussion = () => {
           if (c.id === commentId) {
             return {
               ...c,
-              likes: c.likes + likeDelta,
-              dislikes: c.dislikes + dislikeDelta,
+              likes: newLikeCount,
               user_like: newUserLike
             };
           }
@@ -332,8 +308,7 @@ const Discussion = () => {
                 r.id === commentId 
                   ? {
                       ...r,
-                      likes: r.likes + likeDelta,
-                      dislikes: r.dislikes + dislikeDelta,
+                      likes: newLikeCount,
                       user_like: newUserLike
                     }
                   : r
@@ -344,7 +319,7 @@ const Discussion = () => {
         })
       );
 
-      toast.success(likeType === 'like' ? 'Comment liked!' : 'Comment disliked!');
+      toast.success(newUserLike ? 'Comment liked!' : 'Like removed');
     } catch (error: any) {
       console.error('Error handling comment like:', error);
       toast.error('Failed to update like');
@@ -456,24 +431,13 @@ const Discussion = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => handleCommentLike(comment.id, 'like')}
-                className={`flex items-center space-x-1 h-7 px-2 ${
-                  comment.user_like === 'like' ? 'text-green-600' : 'text-muted-foreground'
+                onClick={() => handleCommentLike(comment.id)}
+                className={`flex items-center space-x-1 h-7 px-2 transition-colors ${
+                  comment.user_like === 'like' ? 'text-red-500 hover:text-red-600' : 'text-muted-foreground hover:text-red-500'
                 }`}
               >
-                <ThumbsUp className="h-3 w-3" />
+                <Heart className={`h-3 w-3 ${comment.user_like === 'like' ? 'fill-current' : ''}`} />
                 <span className="text-xs">{comment.likes}</span>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleCommentLike(comment.id, 'dislike')}
-                className={`flex items-center space-x-1 h-7 px-2 ${
-                  comment.user_like === 'dislike' ? 'text-red-600' : 'text-muted-foreground'
-                }`}
-              >
-                <ThumbsDown className="h-3 w-3" />
-                <span className="text-xs">{comment.dislikes}</span>
               </Button>
             </div>
             {!isReply && user && (
@@ -624,24 +588,13 @@ const Discussion = () => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => handlePostLike('like')}
-                  className={`flex items-center space-x-1 ${
-                    post.user_like === 'like' ? 'text-green-600' : 'text-muted-foreground'
+                  onClick={() => handlePostLike(post.id)}
+                  className={`flex items-center space-x-1 transition-colors ${
+                    post.user_like === 'like' ? 'text-red-500 hover:text-red-600' : 'text-muted-foreground hover:text-red-500'
                   }`}
                 >
-                  <ThumbsUp className="h-4 w-4" />
+                  <Heart className={`h-4 w-4 ${post.user_like === 'like' ? 'fill-current' : ''}`} />
                   <span>{post.likes}</span>
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handlePostLike('dislike')}
-                  className={`flex items-center space-x-1 ${
-                    post.user_like === 'dislike' ? 'text-red-600' : 'text-muted-foreground'
-                  }`}
-                >
-                  <ThumbsDown className="h-4 w-4" />
-                  <span>{post.dislikes}</span>
                 </Button>
                 <div className="flex items-center space-x-1 text-muted-foreground">
                   <Eye className="h-4 w-4" />
