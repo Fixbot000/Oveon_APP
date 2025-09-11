@@ -12,6 +12,19 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth'; // Import useAuth
 import { useRef, useEffect } from 'react'; // Import useRef and useEffect
 import ProjectsView from '@/components/ProjectsView';
+interface ProjectFile {
+  id: string;
+  name: string;
+  type: string; // e.g., 'pdf', 'doc', 'image'
+  url: string;
+}
+
+interface ProjectMember {
+  id: string;
+  name: string;
+  role: string;
+}
+
 interface Project {
   id: string;
   title: string;

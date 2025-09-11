@@ -285,8 +285,14 @@ const Index = () => {
       <BottomSheetModal 
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
-        tip={selectedTip}
-      />
+        title={selectedTip?.title || "Tip"}
+      >
+        {selectedTip && (
+          <div className="space-y-4">
+            <p className="text-foreground leading-relaxed">{selectedTip.description}</p>
+          </div>
+        )}
+      </BottomSheetModal>
     </div>
   );
 };
