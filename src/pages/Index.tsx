@@ -9,6 +9,7 @@ import BottomNavigation from '@/components/BottomNavigation';
 import ActionCard from '@/components/ActionCard';
 import { generateRepairTips, getDifficultyColor, type Tip } from '@/lib/tipsGenerator';
 import BottomSheetModal from '@/components/BottomSheetModal';
+import { useMediaQuery } from 'react-responsive';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -23,6 +24,10 @@ const Index = () => {
   const [startX, setStartX] = useState(0);
   const [startY, setStartY] = useState(0);
   const [isHorizontalDrag, setIsHorizontalDrag] = useState(false);
+  const [longPressTimeout, setLongPressTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [isLongPress, setIsLongPress] = useState(false);
+
+  const isMobile = useMediaQuery({ query: '(max-width: 768px)' });
 
   const loadTips = async () => {
     try {
@@ -102,6 +107,8 @@ const Index = () => {
     setStartY(0);
     setIsDragging(false);
     setIsHorizontalDrag(false);
+    setLongPressTimeout(null);
+    setIsLongPress(false);
   };
 
   return (
@@ -215,7 +222,7 @@ const Index = () => {
                 <div 
                   className="flex transition-transform duration-300 ease-out h-full"
                   style={{
-                    transform: `translateX(calc(-${currentTipIndex * 85}% + ${isDragging ? dragOffset : 0}px))`,
+                    transform: `translateX(calc(-${currentTipIndex * (isMobile ? 100 : 85)}% + ${isDragging ? dragOffset : 0}px))`,
                     transition: isDragging ? 'none' : 'transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1)',
                   }}
                 >
@@ -228,15 +235,39 @@ const Index = () => {
                         key={index}
                         className="flex-shrink-0 w-full h-full relative mr-4"
                         style={{
-                          flexBasis: '85%',
+                          flexBasis: isMobile ? '100%' : '85%',
                           zIndex: isCurrent ? 30 : Math.max(0, 20 - distance),
                           pointerEvents: isCurrent ? 'auto' : 'none',
                         }}
-                        onClick={() => {
-                          if (isCurrent && !isDragging) {
-                            setSelectedTip(tip);
-                            setIsDialogOpen(true);
+                        onPointerDown={(e) => {
+                          if (isMobile) {
+                            setLongPressTimeout(setTimeout(() => {
+                              setIsLongPress(true);
+                              setSelectedTip(tip);
+                              setIsDialogOpen(true);
+                            }, 500)); // 500ms for a long press
                           }
+                          handlePointerStart(e);
+                        }}
+                        onPointerUp={() => {
+                          if (longPressTimeout) {
+                            clearTimeout(longPressTimeout);
+                            setLongPressTimeout(null);
+                          }
+                          if (!isMobile || (isMobile && !isLongPress && !isDragging)) {
+                            if (isCurrent && !isDragging) {
+                              setSelectedTip(tip);
+                              setIsDialogOpen(true);
+                            }
+                          }
+                          handlePointerEnd();
+                        }}
+                        onPointerLeave={() => {
+                          if (longPressTimeout) {
+                            clearTimeout(longPressTimeout);
+                            setLongPressTimeout(null);
+                          }
+                          handlePointerEnd();
                         }}
                       >
                         <div 
