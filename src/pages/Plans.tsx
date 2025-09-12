@@ -2,7 +2,7 @@ import React from 'react';
 import MobileHeader from "@/components/MobileHeader";
 import BottomNavigation from "@/components/BottomNavigation";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, Crown, DollarSign } from 'lucide-react';
+import { CheckCircle, Crown, DollarSign, FolderOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 // import { useNavigate } from 'react-router-dom'; // Removed
@@ -35,7 +35,8 @@ const Plans = () => {
         'Unlimited diagnostics',
         'Advanced repair tips',
         'Priority support',
-        'Premium UI options',
+        'Projects',
+        'Premium UI (Coming Soon)',
         'Exclusive community features',
       ],
       isCurrent: isPremiumUser,
