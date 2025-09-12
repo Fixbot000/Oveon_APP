@@ -26,6 +26,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [premiumUiEnabled, setPremiumUiEnabled] = useState(false);
 
   useEffect(() => {
+    const updateUserTimezone = async (userId: string) => {
+      try {
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        await supabase
+          .from('profiles')
+          .update({ timezone })
+          .eq('id', userId);
+      } catch (error) {
+        console.error("Error updating user timezone:", error);
+      }
+    };
+
     const fetchUserProfile = async (userId: string) => {
       try {
         const { data, error } = await supabase
@@ -38,6 +50,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         
         setIsPremium(data?.ispremium || false);
         setPremiumUiEnabled(data?.premiumuienabled || false);
+        
+        // Update timezone on login
+        updateUserTimezone(userId);
       } catch (error) {
         console.error("Error fetching user profile in AuthProvider:", error);
         setIsPremium(false);

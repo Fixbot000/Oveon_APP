@@ -453,6 +453,9 @@ export type Database = {
           lastscanreset: string | null
           premiumuienabled: boolean | null
           remainingscans: number | null
+          scan_count: number
+          scan_count_date: string
+          timezone: string | null
           username: string
         }
         Insert: {
@@ -466,6 +469,9 @@ export type Database = {
           lastscanreset?: string | null
           premiumuienabled?: boolean | null
           remainingscans?: number | null
+          scan_count?: number
+          scan_count_date?: string
+          timezone?: string | null
           username: string
         }
         Update: {
@@ -479,6 +485,9 @@ export type Database = {
           lastscanreset?: string | null
           premiumuienabled?: boolean | null
           remainingscans?: number | null
+          scan_count?: number
+          scan_count_date?: string
+          timezone?: string | null
           username?: string
         }
         Relationships: []
@@ -550,6 +559,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_scan_if_allowed: {
+        Args: { p_check?: boolean; p_user_id: string }
+        Returns: Json
       }
     }
     Enums: {

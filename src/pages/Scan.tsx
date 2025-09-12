@@ -11,59 +11,40 @@ import DiagnosticFlow from '@/components/DiagnosticFlow';
 
 const Scan = () => {
   const { user, isPremium } = useAuth();
-  const [dailyScans, setDailyScans] = React.useState<number>(0);
+  const [scansRemaining, setScansRemaining] = React.useState<number>(0);
   const [canScan, setCanScan] = React.useState<boolean>(true);
-  const [lastScanDate, setLastScanDate] = React.useState<string | null>(null);
   const { toast } = useToast();
-  
-  
-  // Check and reset daily scans at midnight
-  const checkAndResetDailyScans = (storedLastScanDate: string | null, storedDailyScans: number) => {
-    const today = new Date().toDateString();
-    
-    if (storedLastScanDate !== today) {
-      // Reset daily scans for new day
-      return { daily_scans: 0, last_scan_date: today };
-    }
-    
-    return { daily_scans: storedDailyScans, last_scan_date: storedLastScanDate };
-  };
 
-  // Fetch and manage scan limits
+  // Check scan status on page load
   React.useEffect(() => {
-    const fetchScanData = async () => {
+    const checkScanStatus = async () => {
       if (!user) return;
       
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('daily_scans, last_scan_date')
-        .eq('id', user.id)
-        .single();
-      
-      if (!error && data) {
-        const { daily_scans, last_scan_date } = checkAndResetDailyScans(
-          data.last_scan_date, 
-          data.daily_scans
-        );
+      try {
+        const { data, error } = await supabase.rpc('increment_scan_if_allowed', {
+          p_user_id: user.id,
+          p_check: true
+        });
         
-        // Update database if day has changed
-        if (daily_scans !== data.daily_scans || last_scan_date !== data.last_scan_date) {
-          await supabase
-            .from('profiles')
-            .update({ daily_scans, last_scan_date })
-            .eq('id', user.id);
+        if (!error && data) {
+          const result = data as { success: boolean; remaining: number };
+          if (result.remaining === -1) {
+            // Premium user
+            setScansRemaining(-1);
+            setCanScan(true);
+          } else {
+            // Free user
+            setScansRemaining(result.remaining);
+            setCanScan(result.remaining > 0);
+          }
         }
-        
-        setDailyScans(daily_scans);
-        setLastScanDate(last_scan_date);
-        
-        // Check if user can scan (free users limited to 3 per day, premium unlimited)
-        setCanScan(isPremium || daily_scans < 3);
+      } catch (error) {
+        console.error('Error checking scan status:', error);
       }
     };
     
-    fetchScanData();
-  }, [user, isPremium]);
+    checkScanStatus();
+  }, [user]);
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -73,36 +54,54 @@ const Scan = () => {
         <div className="max-w-2xl mx-auto">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold">Device Scanner</h1>
-            {!isPremium && (
-              <div className="flex flex-col items-end gap-1">
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3" />
-                  {3 - dailyScans} scans left today
-                </Badge>
-                {!canScan && (
-                  <p className="text-xs text-muted-foreground text-right">
-                    You've reached your free scan limit for today.{' '}
-                    <span className="text-primary">Upgrade to Premium for unlimited scans.</span>
-                  </p>
-                )}
-              </div>
-            )}
+            <div className="flex flex-col items-end gap-1">
+              <Badge variant="secondary" className="flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />
+                {isPremium ? "Unlimited scans" : `${scansRemaining} scans left today`}
+              </Badge>
+              {!canScan && (
+                <p className="text-xs text-muted-foreground text-right">
+                  You've reached your free scan limit for today.{' '}
+                  <span className="text-primary">Upgrade to Premium for unlimited scans.</span>
+                </p>
+              )}
+            </div>
           </div>
 
-          <DiagnosticFlow selectedLanguage="en" canScan={canScan} onScanComplete={() => {
-            if (!isPremium && user) {
-              const newDailyScans = dailyScans + 1;
-              setDailyScans(newDailyScans);
-              setCanScan(newDailyScans < 3);
+          <DiagnosticFlow selectedLanguage="en" canScan={canScan} onScanComplete={async () => {
+            if (!user) return;
+            
+            try {
+              const { data, error } = await supabase.rpc('increment_scan_if_allowed', {
+                p_user_id: user.id,
+                p_check: false
+              });
               
-              // Update database
-              supabase
-                .from('profiles')
-                .update({ 
-                  daily_scans: newDailyScans,
-                  last_scan_date: new Date().toDateString()
-                })
-                .eq('id', user.id);
+              if (!error && data) {
+                const result = data as { success: boolean; remaining: number };
+                if (result.success) {
+                  if (result.remaining === -1) {
+                    // Premium user
+                    setScansRemaining(-1);
+                    setCanScan(true);
+                  } else {
+                    // Free user
+                    setScansRemaining(result.remaining);
+                    setCanScan(result.remaining > 0);
+                  }
+                } else {
+                  // Scan limit reached
+                  setCanScan(false);
+                  setScansRemaining(0);
+                  toast({
+                    title: "Scan limit reached",
+                    description: "You've reached your free scan limit for today. Upgrade to Premium for unlimited scans.",
+                    variant: "destructive"
+                  });
+                }
+              }
+            } catch (error) {
+              console.error('Error updating scan count:', error);
             }
           }} />
         </div>

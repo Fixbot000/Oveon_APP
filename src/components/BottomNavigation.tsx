@@ -4,10 +4,10 @@ import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
 
 interface BottomNavigationProps {
-  isCreateProjectModalOpen: boolean;
+  isCreateProjectModalOpen?: boolean;
 }
 
-const BottomNavigation = ({ isCreateProjectModalOpen }: BottomNavigationProps) => {
+const BottomNavigation = ({ isCreateProjectModalOpen = false }: BottomNavigationProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isVisible, setIsVisible] = useState(true);
