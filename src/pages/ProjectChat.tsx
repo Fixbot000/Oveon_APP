@@ -7,6 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { useNavigate } from 'react-router-dom';
 import MobileHeader from '@/components/MobileHeader';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ProjectFile {
   id: string;
@@ -66,8 +67,8 @@ const ProjectChat = () => {
       if (foundProject?.chatHistory && foundProject.chatHistory.length > 0) {
         setMessages(foundProject.chatHistory);
       } else {
-        setMessages([ // Default initial message
-          { id: 1, sender: 'ai', text: "Hello! How can I help you with this project today?" },
+        setMessages([ // Default initial message with Jarvis personality
+          { id: 1, sender: 'ai', text: "Good day! I'm Jarvis, your project assistant. I'm here to help you with this project. How can I assist you today?" },
         ]);
       }
     }
@@ -84,12 +85,13 @@ const ProjectChat = () => {
     navigate(`/project/${id}/chat`);
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (inputMessage.trim() === '') return;
 
     const newUserMessage = { id: Date.now(), sender: 'user' as const, text: inputMessage };
     const updatedMessagesAfterUser = [...messages, newUserMessage];
     setMessages(updatedMessagesAfterUser);
+    const userMessage = inputMessage;
     setInputMessage('');
 
     // Update project in localStorage immediately after user sends message
@@ -98,38 +100,40 @@ const ProjectChat = () => {
         p.id === projectId ? { ...p, chatHistory: updatedMessagesAfterUser } : p
       );
       localStorage.setItem('projects', JSON.stringify(updatedProjects));
-      setAllProjects(updatedProjects); // Update allProjects state as well
+      setAllProjects(updatedProjects);
     }
 
-    // Simulate AI response
-    setTimeout(() => {
-      const thinkingMessage = { id: Date.now() + 1, sender: 'ai' as const, text: "Thinking..." };
-      const updatedMessagesWithThinking = [...updatedMessagesAfterUser, thinkingMessage];
-      setMessages(updatedMessagesWithThinking);
-      scrollToBottom();
+    // Show thinking indicator
+    const thinkingMessage = { id: Date.now() + 1, sender: 'ai' as const, text: "Thinking..." };
+    const updatedMessagesWithThinking = [...updatedMessagesAfterUser, thinkingMessage];
+    setMessages(updatedMessagesWithThinking);
+    scrollToBottom();
 
-      // Update project in localStorage after AI thinking message
-      if (project) {
-        const updatedProjectsWithThinking = allProjects.map(p =>
-          p.id === projectId ? { ...p, chatHistory: updatedMessagesWithThinking } : p
-        );
-        localStorage.setItem('projects', JSON.stringify(updatedProjectsWithThinking));
-        setAllProjects(updatedProjectsWithThinking);
-      }
-
-      setTimeout(() => {
-        const aiResponseMessage = { id: Date.now() + 2, sender: 'ai' as const, text: "I can help you with that. What kind of components are you looking for?" };
-        const finalMessages = updatedMessagesAfterUser.map((msg) =>
-          msg.id === thinkingMessage.id ? aiResponseMessage : msg
-        );
-        if (!finalMessages.some(msg => msg.id === aiResponseMessage.id)) {
-          finalMessages.push(aiResponseMessage);
+    try {
+      // Call ChatGPT with project context
+      const { data, error } = await supabase.functions.invoke('project-chat-ai', {
+        body: {
+          projectId: projectId,
+          message: userMessage,
+          projectContext: project
         }
+      });
 
+      if (error) throw error;
+
+      if (data?.success && data?.reply) {
+        // Replace thinking message with AI response
+        const aiResponseMessage = { 
+          id: Date.now() + 2, 
+          sender: 'ai' as const, 
+          text: data.reply 
+        };
+        
+        const finalMessages = [...updatedMessagesAfterUser, aiResponseMessage];
         setMessages(finalMessages);
         scrollToBottom();
 
-        // Update project in localStorage after AI final response
+        // Update project in localStorage with final messages
         if (project) {
           const finalUpdatedProjects = allProjects.map(p =>
             p.id === projectId ? { ...p, chatHistory: finalMessages } : p
@@ -137,8 +141,33 @@ const ProjectChat = () => {
           localStorage.setItem('projects', JSON.stringify(finalUpdatedProjects));
           setAllProjects(finalUpdatedProjects);
         }
-      }, 1500);
-    }, 500);
+      } else {
+        // Handle error case
+        throw new Error(data?.error || 'Failed to get AI response');
+      }
+    } catch (error) {
+      console.error('Error calling project chat AI:', error);
+      
+      // Replace thinking message with error message
+      const errorMessage = { 
+        id: Date.now() + 2, 
+        sender: 'ai' as const, 
+        text: "I apologize, but I'm having trouble connecting right now. Please try again in a moment." 
+      };
+      
+      const finalMessages = [...updatedMessagesAfterUser, errorMessage];
+      setMessages(finalMessages);
+      scrollToBottom();
+
+      // Update project in localStorage
+      if (project) {
+        const finalUpdatedProjects = allProjects.map(p =>
+          p.id === projectId ? { ...p, chatHistory: finalMessages } : p
+        );
+        localStorage.setItem('projects', JSON.stringify(finalUpdatedProjects));
+        setAllProjects(finalUpdatedProjects);
+      }
+    }
   };
 
   return (

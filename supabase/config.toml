@@ -82,6 +82,9 @@ verify_jwt = true
 [functions.ai-helper]
 verify_jwt = true
 
+[functions.project-chat-ai]
+verify_jwt = true
+
 [edge-runtime]
 enabled = true
 policy = "per_worker"
