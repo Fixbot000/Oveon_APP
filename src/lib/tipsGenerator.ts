@@ -34,12 +34,12 @@ export const generateRepairTips = async (): Promise<Tip[]> => {
 const getFallbackTips = (): Tip[] => {
   return [
     {
-      title: "Smartphone Battery Optimization",
+      title: "Battery Calibration",
       description: "Extend battery life with proper charging habits and settings",
       category: "Smartphone",
       difficulty: "Beginner",
       readTime: "3 min read",
-      fullDescription: "Learn how to optimize your smartphone's battery life through proper charging habits, power settings management, and background app control. This comprehensive guide covers battery calibration, charging cycles, and settings optimization.",
+      fullDescription: "Charge your phone to 100%, then use it until it powers off completely. Doing this once every 2–3 months recalibrates the battery meter, helping your device display accurate charge levels. This process teaches your phone where the true 0% and 100% marks are, improving battery life estimates and preventing unexpected shutdowns.",
       imageUrl: `data:image/svg+xml;base64,${btoa(`
         <svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
           <rect width="400" height="200" fill="#f8fafc"/>
@@ -49,12 +49,12 @@ const getFallbackTips = (): Tip[] => {
       `)}`
     },
     {
-      title: "Laptop Thermal Paste Replacement",
+      title: "Overheating Prevention",
       description: "Improve cooling performance with fresh thermal compound",
       category: "Laptop",
       difficulty: "Intermediate",
       readTime: "8 min read",
-      fullDescription: "Step-by-step guide to replacing thermal paste on your laptop to improve cooling performance and reduce overheating. Includes tools needed, safety precautions, and detailed instructions for disassembly and reassembly.",
+      fullDescription: "Clean your laptop's air vents monthly using compressed air to prevent dust buildup. Keep your device on hard, flat surfaces for proper airflow - never on beds or couches. If your laptop runs hot frequently, consider using a cooling pad or replacing the thermal paste every 2-3 years to maintain optimal temperatures.",
       imageUrl: `data:image/svg+xml;base64,${btoa(`
         <svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
           <rect width="400" height="200" fill="#f8fafc"/>
@@ -64,12 +64,12 @@ const getFallbackTips = (): Tip[] => {
       `)}`
     },
     {
-      title: "Audio Cable Repair Techniques",
+      title: "Audio Quality Fix",
       description: "Fix loose connections and restore audio quality",
       category: "Audio",
       difficulty: "Beginner",
       readTime: "5 min read",
-      fullDescription: "Master the art of audio cable repair with this detailed guide covering soldering techniques, cable testing, and connection troubleshooting. Perfect for fixing headphones, speakers, and audio equipment.",
+      fullDescription: "Before replacing broken headphones, try cleaning the 3.5mm jack with a dry cotton swab to remove lint and debris. Gently wiggle the cable near the plug while playing audio to identify loose connections. For wireless earbuds, reset them by holding the pairing button for 10-15 seconds to resolve most connectivity issues.",
       imageUrl: `data:image/svg+xml;base64,${btoa(`
         <svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
           <rect width="400" height="200" fill="#f8fafc"/>
@@ -79,12 +79,12 @@ const getFallbackTips = (): Tip[] => {
       `)}`
     },
     {
-      title: "Gaming Controller Maintenance",
+      title: "Controller Drift Fix",
       description: "Clean and lubricate for smooth button response",
       category: "Gaming",
       difficulty: "Beginner",
       readTime: "4 min read",
-      fullDescription: "Keep your gaming controllers in perfect condition with proper cleaning and maintenance techniques. Learn how to clean buttons, joysticks, and internal mechanisms for optimal gaming performance.",
+      fullDescription: "Fix analog stick drift by lifting the rubber skirt around the joystick and spraying compressed air underneath to remove debris. For persistent drift, try recalibrating in your console's settings menu. Clean sticky buttons by dampening a cotton swab with isopropyl alcohol and gently cleaning around each button's edges.",
       imageUrl: `data:image/svg+xml;base64,${btoa(`
         <svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
           <rect width="400" height="200" fill="#f8fafc"/>
@@ -94,12 +94,12 @@ const getFallbackTips = (): Tip[] => {
       `)}`
     },
     {
-      title: "ESD Safety Best Practices",
+      title: "Storage Cleaning",
       description: "Protect sensitive electronics from static damage",
-      category: "Safety",
+      category: "Storage",
       difficulty: "Beginner",
       readTime: "3 min read",
-      fullDescription: "Essential guide to electrostatic discharge (ESD) safety when working with sensitive electronic components. Learn about grounding techniques, anti-static tools, and safe handling procedures.",
+      fullDescription: "Free up device storage by clearing app caches monthly through Settings > Storage. Delete old downloads, screenshots, and videos you no longer need. For photos, enable cloud backup before deleting originals. Uninstall apps you haven't used in 3+ months to maintain optimal device performance and prevent slowdowns.",
       imageUrl: `data:image/svg+xml;base64,${btoa(`
         <svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
           <rect width="400" height="200" fill="#f8fafc"/>
@@ -109,12 +109,12 @@ const getFallbackTips = (): Tip[] => {
       `)}`
     },
     {
-      title: "Multimeter Circuit Testing",
+      title: "Charging Care",
       description: "Master essential electrical measurement techniques",
-      category: "Tools",
+      category: "Maintenance",
       difficulty: "Intermediate",
       readTime: "6 min read",
-      fullDescription: "Comprehensive guide to using multimeters for circuit testing and electrical troubleshooting. Covers voltage, current, and resistance measurements, along with safety tips and best practices.",
+      fullDescription: "Avoid charging devices overnight to prevent battery stress from prolonged 100% charge states. Use original chargers when possible, as third-party chargers may deliver incorrect voltage. Keep charging ports clean by gently removing lint with a toothpick. Replace charging cables when you notice fraying to prevent damage to your device's charging circuit.",
       imageUrl: `data:image/svg+xml;base64,${btoa(`
         <svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
           <rect width="400" height="200" fill="#f8fafc"/>

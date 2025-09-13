@@ -342,7 +342,13 @@ const Index = () => {
       >
         {selectedTip && (
           <div className="space-y-4">
-            <p className="text-foreground leading-relaxed">{selectedTip.description}</p>
+            <div className="flex items-center gap-2 mb-4">
+              <span className={`text-xs px-2 py-1 rounded-full ${getDifficultyColor(selectedTip.difficulty)}`}>
+                {selectedTip.difficulty}
+              </span>
+              <span className="text-xs text-muted-foreground">{selectedTip.readTime}</span>
+            </div>
+            <p className="text-foreground leading-relaxed text-base">{selectedTip.fullDescription}</p>
           </div>
         )}
       </BottomSheetModal>
