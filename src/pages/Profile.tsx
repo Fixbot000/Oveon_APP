@@ -361,7 +361,7 @@ const Profile = () => {
                   <div className="flex items-center gap-3">
                     <Star className="h-5 w-5 text-yellow-500" />
                     <div>
-                      <p className="font-medium">Premium UI</p>
+                      <p className="font-medium">Premium UI [Coming Soon]</p>
                       <p className="text-sm text-muted-foreground">Golden finish for premium experience</p>
                     </div>
                   </div>
