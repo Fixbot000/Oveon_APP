@@ -24,7 +24,6 @@ const Premium = () => {
         isPremium={isPremium}
         showBackButton={true}
         backButtonTarget="/profile"
-        title="Upgrade to Oveon Premium"
       />
 
       <main className="px-4 py-6 space-y-8">

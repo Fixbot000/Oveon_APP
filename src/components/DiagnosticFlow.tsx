@@ -31,6 +31,12 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [problemDescription, setProblemDescription] = useState('');
   const [problemFile, setProblemFile] = useState<File | null>(null);
+  const [codeAnalysisResult, setCodeAnalysisResult] = useState<{
+    problems: string[];
+    suggestions: string[];
+    correctedCode?: string;
+  } | null>(null);
+  const [showCodeSolutions, setShowCodeSolutions] = useState(false);
   
   // Step 2: Description
   const [description, setDescription] = useState('');
@@ -57,7 +63,81 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
   const handleProblemFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      const supportedTypes = ['.txt', '.c', '.cpp', '.py', '.ino', '.json', '.xml', '.pdf'];
+      const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+      
+      if (!supportedTypes.includes(fileExtension)) {
+        toast.error('Unsupported file format. Supported: .txt, .c, .cpp, .py, .ino, .json, .xml, .pdf');
+        return;
+      }
+      
       setProblemFile(file);
+    }
+  };
+
+  const analyzeCodeProblem = async () => {
+    if (!problemDescription.trim() && !problemFile) {
+      toast.error('Please provide either a description or upload a file.');
+      return;
+    }
+
+    if (!canScan) {
+      toast.error('Daily scan limit reached. Upgrade to Premium for unlimited scans.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      let fileContent = '';
+      let fileName = '';
+
+      if (problemFile) {
+        fileName = problemFile.name;
+        if (problemFile.name.endsWith('.pdf')) {
+          // For PDF files, we'll just use the filename
+          fileContent = `PDF file: ${problemFile.name}`;
+        } else {
+          // For text-based files, read the content
+          fileContent = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsText(problemFile);
+          });
+        }
+      }
+
+      const { data, error } = await supabase.functions.invoke('analyze-code-problem', {
+        body: {
+          text: problemDescription || undefined,
+          fileContent: fileContent || undefined,
+          fileName: fileName || undefined,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        setCodeAnalysisResult({
+          problems: data.problems,
+          suggestions: data.suggestions,
+          correctedCode: data.correctedCode,
+        });
+        
+        // Call onScanComplete callback to update scan count
+        if (onScanComplete) {
+          onScanComplete();
+        }
+
+        toast.success('Code analysis completed!');
+      } else {
+        throw new Error(data.error || 'Analysis failed');
+      }
+    } catch (error) {
+      console.error('Error analyzing code:', error);
+      toast.error('Unable to analyze, please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -78,6 +158,10 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
     setQuestions([]);
     setAnswers({});
     setFinalDiagnosis(null);
+    setProblemDescription('');
+    setProblemFile(null);
+    setCodeAnalysisResult(null);
+    setShowCodeSolutions(false);
   };
 
   return (
@@ -161,7 +245,7 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
               <input
                 id="problemFile"
                 type="file"
-                accept=".pdf,.doc,.docx,image/*"
+                accept=".txt,.c,.cpp,.py,.ino,.json,.xml,.pdf"
                 onChange={handleProblemFileChange}
                 className="hidden"
               />
@@ -173,6 +257,70 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
                 Upload
               </label>
             </div>
+
+            {problemFile && (
+              <div className="text-sm text-muted-foreground">
+                Selected file: {problemFile.name}
+              </div>
+            )}
+
+            <Button 
+              onClick={analyzeCodeProblem}
+              disabled={loading || (!problemDescription.trim() && !problemFile) || !canScan}
+              className="w-full"
+            >
+              {loading ? 'Analyzing...' : !canScan ? 'Daily Limit Reached' : 'Analyze Code/Schematic'}
+            </Button>
+
+            {/* Code Analysis Results */}
+            {codeAnalysisResult && !showCodeSolutions && (
+              <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">Problems Found:</h4>
+                <ul className="list-disc list-inside space-y-1 text-sm text-blue-700 dark:text-blue-300">
+                  {codeAnalysisResult.problems.map((problem, index) => (
+                    <li key={index}>{problem}</li>
+                  ))}
+                </ul>
+                <Button 
+                  onClick={() => setShowCodeSolutions(true)}
+                  className="mt-3"
+                  variant="secondary"
+                >
+                  View Solutions
+                </Button>
+              </div>
+            )}
+
+            {/* Solutions View */}
+            {showCodeSolutions && codeAnalysisResult && (
+              <div className="mt-4 space-y-4">
+                <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg">
+                  <h4 className="font-semibold text-green-800 dark:text-green-200 mb-2">Suggested Fixes:</h4>
+                  <ul className="list-disc list-inside space-y-1 text-sm text-green-700 dark:text-green-300">
+                    {codeAnalysisResult.suggestions.map((suggestion, index) => (
+                      <li key={index}>{suggestion}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                {codeAnalysisResult.correctedCode && (
+                  <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                    <h4 className="font-semibold mb-2">Corrected Code:</h4>
+                    <pre className="text-sm bg-black text-green-400 p-3 rounded overflow-x-auto whitespace-pre-wrap">
+                      {codeAnalysisResult.correctedCode}
+                    </pre>
+                  </div>
+                )}
+
+                <Button 
+                  onClick={() => setShowCodeSolutions(false)}
+                  variant="outline"
+                  className="w-full"
+                >
+                  Back to Problems
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
