@@ -48,7 +48,11 @@ const AppContent = () => {
           <Route path="/auth" element={<Auth />} />
           <Route path="/chat" element={<Chat />} />
           <Route path="/shop" element={<Shop />} />
-          <Route path="/scan" element={<Scan />} />
+          <Route path="/scan" element={
+            <AuthGuard>
+              <Scan />
+            </AuthGuard>
+          } />
           <Route path="/community" element={
             <AuthGuard>
               <Community />
