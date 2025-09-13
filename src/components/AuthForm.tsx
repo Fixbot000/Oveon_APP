@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { EyeIcon, EyeOffIcon } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface AuthFormProps {
   onSuccess?: () => void;
@@ -18,6 +19,7 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const checkPasswordBreach = async (password: string): Promise<boolean> => {
     try {
@@ -50,6 +52,13 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
         
         if (isBreached) {
           toast.error('This password has been found in data breaches. Please choose a stronger, unique password for your security.');
+          setLoading(false);
+          return;
+        }
+
+        // Terms of Service and Privacy Policy agreement check
+        if (!agreedToTerms) {
+          toast.error('You must agree to the Terms of Service and Privacy Policy to continue.');
           setLoading(false);
           return;
         }
@@ -154,10 +163,23 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
             </div>
           </div>
 
+          {isSignUp && (
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="terms"
+                checked={agreedToTerms}
+                onCheckedChange={(checked) => setAgreedToTerms(!!checked)}
+              />
+              <Label htmlFor="terms" className="text-sm font-normal">
+                I agree to the <a href="/terms-and-policies" className="underline">Terms and Conditions</a> and <a href="/terms-and-policies" className="underline">Privacy Policy</a>.
+              </Label>
+            </div>
+          )}
+
           <Button 
             type="submit" 
             className="w-full" 
-            disabled={loading}
+            disabled={loading || (isSignUp && !agreedToTerms)}
           >
             {loading ? 'Please wait...' : (isSignUp ? 'Create Account' : 'Sign In')}
           </Button>

@@ -20,7 +20,7 @@ import Premium from "./pages/Premium";
 import Plans from "./pages/Plans";
 import Help from "./pages/Help";
 import DiagnosisResult from "./pages/DiagnosisResult";
-import TermsAndPolicies from "./pages/TermsAndPolicies";
+import TermsPage from "./pages/TermsPage";
 import NotFound from "./pages/NotFound";
 import ProjectChat from "./pages/ProjectChat";
 
@@ -83,7 +83,7 @@ const AppContent = () => {
               <ProjectChat />
             </AuthGuard>
           } />
-          <Route path="/terms-and-policies" element={<TermsAndPolicies />} />
+          <Route path="/terms-and-policies" element={<TermsPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
