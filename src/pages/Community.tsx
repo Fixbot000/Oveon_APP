@@ -32,7 +32,7 @@ const Community = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [newPostText, setNewPostText] = useState('');
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const { user, isPremium } = useAuth();
   const navigate = useNavigate();
 
   const fetchPosts = async () => {
@@ -229,7 +229,7 @@ const Community = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background pb-20">
-        <MobileHeader onRefresh={fetchPosts} isPremium={user?.user_metadata?.isPremium} showBackButton={false} backButtonTarget="/" />
+        <MobileHeader onRefresh={fetchPosts} isPremium={isPremium} showBackButton={false} backButtonTarget="/" />
         <div className="px-4 py-6">
           <div className="space-y-4">
             {[1, 2, 3].map(i => (
@@ -251,7 +251,7 @@ const Community = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <MobileHeader onRefresh={fetchPosts} isPremium={user?.user_metadata?.isPremium} showBackButton={false} backButtonTarget="/" />
+      <MobileHeader onRefresh={fetchPosts} isPremium={isPremium} showBackButton={false} backButtonTarget="/" />
       
       <main className="px-4 py-6 space-y-6">
         <div className="flex items-center justify-between mb-8">
