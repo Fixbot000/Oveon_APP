@@ -153,17 +153,13 @@ const Index = () => {
           </div>
         )}
 
-        {/* Welcome Banner */}
+        {/* Ad Banner Container */}
         <Card className="bg-card shadow-card border-border">
           <CardContent className="p-6 text-center">
             <div className="relative z-10">
-              <h2 className="text-xl font-bold mb-2 text-foreground">Effortlessly fix your devices!</h2>
-              <p className="text-muted-foreground mb-4">
-                Get AI-powered repair guidance in seconds
-              </p>
-              <Button className="bg-primary text-primary-foreground rounded-full px-6 shadow-lg hover:shadow-elevated transition-all duration-200">
-                Learn more
-              </Button>
+              <div className="flex items-center justify-center h-20 bg-muted/30 rounded-lg border-2 border-dashed border-muted-foreground/20">
+                <span className="text-muted-foreground text-sm">Ad will appear here</span>
+              </div>
             </div>
           </CardContent>
         </Card>
