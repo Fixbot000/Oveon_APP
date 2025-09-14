@@ -23,11 +23,13 @@ import DiagnosisResult from "./pages/DiagnosisResult";
 import TermsPage from "./pages/TermsPage";
 import NotFound from "./pages/NotFound";
 import ProjectChat from "./pages/ProjectChat";
+import { useTheme } from "@/hooks/useTheme"; // Import useTheme hook
 
 const queryClient = new QueryClient();
 
 const AppContent = () => {
   const { user } = useAuth();
+  useTheme(); // Initialize theme handling
 
   useEffect(() => {
     if (user?.user_metadata?.isPremium && user?.user_metadata?.premiumUiEnabled) {

@@ -14,6 +14,7 @@ interface Project {
 }
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
+import { Info, Users, FileText, ListChecks, MessageSquareMore } from 'lucide-react'; // Import new icons
 
 interface ProjectFile {
   id: string;
@@ -84,49 +85,49 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onUpdate
               <MoreVertical className="h-5 w-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-72 bg-blue-900 text-white border-r-0 rounded-r-xl shadow-lg">
-            <SheetHeader className="pb-4">
-              <SheetTitle className="text-white text-2xl font-bold">Project Details</SheetTitle>
+          <SheetContent side="left" className="w-72 bg-card text-foreground border-r-0 rounded-r-xl shadow-lg">
+            <SheetHeader className="pb-4 pt-6 px-4">
+              <SheetTitle className="text-foreground text-3xl font-bold tracking-tight">Project Details</SheetTitle>
             </SheetHeader>
             <div className="mt-4 space-y-6">
-              <div>
-                <h4 className="font-semibold text-blue-300 mb-1 flex items-center gap-2">
-                  <span className="h-5 w-5 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-info"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span>
+              <div className="px-4">
+                <h4 className="font-semibold text-primary mb-2 flex items-center gap-2">
+                  <span className="h-5 w-5 flex items-center justify-center"><Info className="h-5 w-5"/></span>
                   Project Info
                 </h4>
-                <p className="text-sm text-blue-100">{project.description}</p>
-                <p className="text-xs text-blue-200">Last Updated: {project.lastUpdated}</p>
+                <p className="text-sm text-muted-foreground">{project.description}</p>
+                <p className="text-xs text-muted-foreground">Last Updated: {project.lastUpdated}</p>
               </div>
-              <Separator className="bg-blue-700" />
-              <div>
-                <h4 className="font-semibold text-blue-300 mb-1 flex items-center gap-2">
-                  <span className="h-5 w-5 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+              <Separator className="bg-border" />
+              <div className="px-4">
+                <h4 className="font-semibold text-primary mb-2 flex items-center gap-2">
+                  <span className="h-5 w-5 flex items-center justify-center"><Users className="h-5 w-5"/></span>
                   Members
                 </h4>
                 <ul>
                   {project.members?.map(member => (
-                    <li key={member.id} className="text-sm text-blue-100">{member.name} ({member.role})</li>
+                    <li key={member.id} className="text-sm text-muted-foreground">{member.name} ({member.role})</li>
                   ))}
                 </ul>
               </div>
-              <Separator className="bg-blue-700" />
-              <div>
-                <h4 className="font-semibold text-blue-300 mb-1 flex items-center gap-2">
-                  <span className="h-5 w-5 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-list-checks"><path d="m3 16 2 2 4-4"/><path d="m3 12 2 2 4-4"/><path d="m3 8 2 2 4-4"/><path d="M11 4h9"/><path d="M11 8h9"/><path d="M11 12h9"/><path d="M11 16h9"/></svg></span>
+              <Separator className="bg-border" />
+              <div className="px-4">
+                <h4 className="font-semibold text-primary mb-2 flex items-center gap-2">
+                  <span className="h-5 w-5 flex items-center justify-center"><ListChecks className="h-5 w-5"/></span>
                   To-Do Checklist
                 </h4>
-                <p className="text-sm text-blue-100">Task 1: Complete (✅)</p>
-                <p className="text-sm text-blue-100">Task 2: In Progress (⏳)</p>
+                <p className="text-sm text-muted-foreground">Task 1: Complete (✅)</p>
+                <p className="text-sm text-muted-foreground">Task 2: In Progress (⏳)</p>
                 {/* Placeholder for dynamic to-do list */}
               </div>
-              <Separator className="bg-blue-700" />
-              <div>
-                <h4 className="font-semibold text-blue-300 mb-1 flex items-center gap-2">
-                  <span className="h-5 w-5 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-folder-git-2"><path d="M3 3a1 1 0 0 1 1-1h7.414a1 1 0 0 1 .707.293L15 5h6a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 13v-1"/><path d="M14 17v-1"/><circle cx="14" cy="15" r="2"/><path d="M12 15h-2"/></svg></span>
+              <Separator className="bg-border" />
+              <div className="px-4">
+                <h4 className="font-semibold text-primary mb-2 flex items-center gap-2">
+                  <span className="h-5 w-5 flex items-center justify-center"><MessageSquareMore className="h-5 w-5"/></span>
                   Other Projects
                 </h4>
-                <p className="text-sm text-blue-100">Project A</p>
-                <p className="text-sm text-blue-100">Project B</p>
+                <p className="text-sm text-muted-foreground">Project A</p>
+                <p className="text-sm text-muted-foreground">Project B</p>
                 {/* Placeholder for dynamic other projects list */}
               </div>
             </div>

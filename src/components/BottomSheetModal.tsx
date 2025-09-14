@@ -24,7 +24,7 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
 
       {/* Bottom Sheet Content */}
       <div
-        className={`relative w-full max-w-md bg-white rounded-t-3xl shadow-lg flex flex-col
+        className={`relative w-full max-w-md bg-card rounded-t-3xl shadow-lg flex flex-col
                     transform transition-transform duration-300 ease-out pointer-events-auto
                     ${isOpen ? 'translate-y-0' : 'translate-y-full'}`}
         style={{ height: '70vh' }}
@@ -32,13 +32,13 @@ const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors z-10"
+          className="absolute top-4 right-4 p-2 rounded-full bg-muted hover:bg-muted-foreground/20 transition-colors z-10"
         >
-          <X className="w-5 h-5 text-gray-600" />
+          <X className="w-5 h-5 text-muted-foreground" />
         </button>
 
         {/* Title */}
-        <div className="py-4 px-6 border-b border-gray-200 text-center">
+        <div className="py-4 px-6 border-b border-border text-center">
           <h3 className="text-xl font-bold text-foreground">{title}</h3>
         </div>
 

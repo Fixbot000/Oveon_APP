@@ -78,16 +78,16 @@ const ProjectsView: React.FC<ProjectsViewProps> = ({ projects, onSelectProject, 
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent>
+                  <AlertDialogContent className="bg-card text-foreground border-border">
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
+                      <AlertDialogTitle className="text-foreground">Are you absolutely sure?</AlertDialogTitle>
+                      <AlertDialogDescription className="text-muted-foreground">
                         This action cannot be undone. This will permanently delete your project.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => onDeleteProject(project.id)}>Delete</AlertDialogAction>
+                      <AlertDialogCancel className="border-border bg-background text-foreground hover:bg-muted">Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => onDeleteProject(project.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>

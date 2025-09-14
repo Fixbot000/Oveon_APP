@@ -36,7 +36,7 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+    <form onSubmit={handleSubmit} className="grid gap-4 py-4 bg-card text-foreground">
       <div className="grid gap-2">
         <Label htmlFor="projectName">Project Name</Label>
         <Input
@@ -45,6 +45,7 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({
           value={projectName}
           onChange={(e) => setProjectName(e.target.value)}
           required
+          className="bg-background border border-input focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
         />
       </div>
       <div className="grid gap-2">
@@ -55,6 +56,7 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={4}
+          className="bg-background border border-input focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
         />
       </div>
       <div className="grid gap-2">
@@ -65,12 +67,13 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({
           multiple
           accept="image/*,.pdf,.doc,.docx"
           onChange={handleFileChange}
+          className="bg-background border border-input focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
         />
         <div className="mt-2">
           {files.map((file, index) => (
-            <div key={index} className="flex items-center justify-between bg-gray-100 p-2 rounded-md mb-1">
-              <span className="text-sm text-gray-700">{file.name}</span>
-              <button type="button" onClick={() => handleRemoveFile(index)} className="text-red-500 hover:text-red-700">
+            <div key={index} className="flex items-center justify-between bg-muted p-2 rounded-md mb-1">
+              <span className="text-sm text-foreground">{file.name}</span>
+              <button type="button" onClick={() => handleRemoveFile(index)} className="text-destructive hover:text-destructive/90">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -83,10 +86,12 @@ const CreateProjectForm: React.FC<CreateProjectFormProps> = ({
         <Input
           id="addMembers"
           placeholder="Enter email or username"
+          className="bg-background border border-input focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
         />
       </div>
       <div className="flex justify-end gap-2 mt-4">
-        <Button type="button" variant="outline" onClick={onCancel}>Close</Button>
+        <Button type="button" variant="outline" onClick={onCancel} className="border-border bg-background text-foreground hover:bg-muted">
+        Close</Button>
         <Button type="submit" className="bg-primary text-primary-foreground">Save Project</Button>
       </div>
     </form>

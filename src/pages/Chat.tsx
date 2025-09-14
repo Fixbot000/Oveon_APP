@@ -280,7 +280,7 @@ Just describe your problem and I'll guide you through the repair process. Let's 
 
   return (
     <div className="min-h-screen bg-background pb-20">
-              <MobileHeader onRefresh={() => window.location.reload()} isPremium={isPremium} showBackButton={false} backButtonTarget="/"/>
+              <MobileHeader onRefresh={() => window.location.reload()} isPremium={isPremium} showBackButton={false} backButtonTarget="/" className="bg-card"/>
       
       <div className="flex justify-center bg-card shadow-sm border-b border-border py-2 px-4">
         <div className="flex rounded-lg overflow-hidden bg-muted p-1">
@@ -302,11 +302,11 @@ Just describe your problem and I'll guide you through the repair process. Let's 
       </div>
 
       {activeTab === 'repairBot' ? (
-        <main className="px-4 py-6 space-y-4 pb-32">
+        <main className="px-4 py-6 space-y-4 pb-32 bg-background">
           <div className="space-y-4">
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.isBot ? 'justify-start' : 'justify-end'}`}>
-                <Card className={`max-w-[85%] ${msg.isBot ? 'bg-gray-100 text-gray-800 shadow-md' : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'}
+                <Card className={`max-w-[85%] ${msg.isBot ? 'bg-muted text-muted-foreground shadow-md' : 'bg-primary text-primary-foreground'}
                   rounded-xl px-4 py-3 my-1 mx-0`}>
                   <CardContent className="p-0">
                     <div className="flex items-start gap-2">
@@ -316,7 +316,7 @@ Just describe your problem and I'll guide you through the repair process. Let's 
                       {msg.hasMatches && !msg.isLoading && (
                         <AlertCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
                       )}
-                      <p className={`text-sm whitespace-pre-wrap ${msg.isBot ? 'text-gray-800' : 'text-white'}`}>
+                      <p className={`text-sm whitespace-pre-wrap ${msg.isBot ? 'text-muted-foreground' : 'text-primary-foreground'}`}>
                         {msg.text}
                       </p>
                     </div>
@@ -328,7 +328,7 @@ Just describe your problem and I'll guide you through the repair process. Let's 
             {/* Typing Indicator */}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-gray-200 text-gray-600 px-3 py-2 rounded-xl inline-flex items-center space-x-1">
+                <div className="bg-muted text-muted-foreground px-3 py-2 rounded-xl inline-flex items-center space-x-1">
                   <div className="dot-animation">
                     <span className="dot"></span>
                     <span className="dot"></span>
@@ -343,7 +343,7 @@ Just describe your problem and I'll guide you through the repair process. Let's 
 
           {/* Follow-up Questions */}
           {pendingQuestions.length > 0 && (
-            <Card className="bg-card border-blue-200">
+            <Card className="bg-card border-border">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-medium text-foreground">
@@ -365,7 +365,7 @@ Just describe your problem and I'll guide you through the repair process. Let's 
                     <Button
                       key={index}
                       variant="outline"
-                      className="w-full text-left justify-start h-auto p-3 bg-background/50 hover:bg-background"
+                      className="w-full text-left justify-start h-auto p-3 bg-background hover:bg-muted border-border"
                       onClick={() => handleQuestionSelect(question)}
                     >
                       {question}
@@ -410,7 +410,7 @@ Just describe your problem and I'll guide you through the repair process. Let's 
           )}
         </main>
       ) : (
-        <main className="px-4 py-6 space-y-8">
+        <main className="px-4 py-6 space-y-8 bg-background">
           {!isPremium ? (
             <PremiumUpsell />
           ) : (
@@ -435,7 +435,7 @@ Just describe your problem and I'll guide you through the repair process. Let's 
         </main>
       )}
 
-      <div className="fixed bottom-20 left-0 right-0 p-4 bg-background/95 backdrop-blur-sm border-t border-border">
+      <div className="fixed bottom-20 left-0 right-0 p-4 bg-card/95 backdrop-blur-sm border-t border-border">
         <div className="space-y-4 max-w-md mx-auto">
           {/* Description Box */}
           {showDescription && (
@@ -460,7 +460,7 @@ Just describe your problem and I'll guide you through the repair process. Let's 
                   value={detailedDescription}
                   onChange={(e) => setDetailedDescription(e.target.value)}
                   placeholder="Provide additional details about your device issue, symptoms, when it started, what you've tried, etc."
-                  className="min-h-[80px] bg-background"
+                  className="min-h-[80px] bg-background border border-input focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
                 />
               </CardContent>
             </Card>
@@ -474,7 +474,7 @@ Just describe your problem and I'll guide you through the repair process. Let's 
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="Describe your device issue..."
-                  className="pr-20 h-12 bg-card"
+                  className="pr-20 h-12 bg-card border border-input focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
                   onKeyPress={handleKeyPress}
                   disabled={isLoading}
                 />
@@ -501,7 +501,7 @@ Just describe your problem and I'll guide you through the repair process. Let's 
               </div>
               <Button 
                 onClick={handleSendClick}
-                className="h-12 w-12 bg-primary" 
+                className="h-12 w-12 bg-primary text-primary-foreground"
                 size="icon"
                 disabled={isLoading || !message.trim()}
               >
@@ -540,7 +540,7 @@ style.innerHTML = `
     display: inline-block;
     width: 8px;
     height: 8px;
-    background-color: #6B7280; /* gray-600 */
+    background-color: hsl(var(--muted-foreground));
     border-radius: 50%;
     animation: dot-pulse 1.4s infinite ease-in-out both;
   }
