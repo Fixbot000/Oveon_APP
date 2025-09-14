@@ -71,6 +71,8 @@ export default {
 			boxShadow: {
 				'card': '0 4px 20px -2px hsl(230 80% 50% / 0.1)',
 				'elevated': '0 8px 30px -4px hsl(230 80% 50% / 0.15)',
+				'neon': '0 0 15px rgba(0, 198, 255, 0.6), 0 0 25px rgba(148, 0, 211, 0.6)', // Soft blue/violet glow
+				'neon-button': '0 0 8px rgba(0, 242, 254, 0.8), 0 0 16px rgba(79, 172, 254, 0.8)', // Button specific glow
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
