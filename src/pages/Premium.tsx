@@ -5,17 +5,37 @@ import MobileHeader from '@/components/MobileHeader';
 import BottomNavigation from '@/components/BottomNavigation';
 import { CheckCircle, Crown, ShieldCheck, DollarSign, FolderOpen } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth'; // Import useAuth
+import { supabase } from '@/integrations/supabase/client'; // Import supabase client
 
 const Premium = () => {
-  const handleUpgrade = () => {
-    // This is where you would integrate with your payment provider
-    // For now, we'll just log a message.
-    console.log('Initiating premium upgrade for ₹249/month');
-    alert('Premium upgrade initiated! (This is a placeholder action)');
-    // In a real application, you would redirect to a payment checkout flow
-  };
+  const { isPremium, user } = useAuth(); // Destructure isPremium and user from useAuth
 
-  const { isPremium } = useAuth(); // Destructure isPremium from useAuth
+  const handleUpgrade = async () => {
+    if (!user) {
+      alert('You must be logged in to upgrade.');
+      return;
+    }
+
+    // Simulate payment processing
+    const paymentSuccessful = Math.random() > 0.5; // 50% chance of success
+
+    if (paymentSuccessful) {
+      const { error } = await supabase
+        .from('users')
+        .update({ ispremium: true })
+        .eq('id', user.id);
+
+      if (error) {
+        console.error('Error updating premium status:', error);
+        alert('Payment successful, but failed to update premium status. Please contact support.');
+      } else {
+        alert('Upgrade successful! Welcome to Premium!');
+        // Optionally, re-fetch user data to update UI
+      }
+    } else {
+      alert('Payment failed. Please try again.');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -95,6 +115,7 @@ const Premium = () => {
             </ul>
           </CardContent>
         </Card>
+
       </main>
       <BottomNavigation />
     </div>

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, Crown, DollarSign, FolderOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 // import { useNavigate } from 'react-router-dom'; // Removed
 // import { ChevronLeft } from "lucide-react"; // Removed
 
@@ -44,10 +45,32 @@ const Plans = () => {
     },
   ];
 
-  const handleCancelPlan = () => {
-    // Logic to cancel the premium plan
-    console.log('Cancelling premium plan...');
-    alert('Plan cancellation initiated. Please contact support for further assistance.');
+  const handleCancelPlan = async () => {
+    if (!user) {
+      alert('You must be logged in to cancel your plan.');
+      return;
+    }
+
+    if (window.confirm('Are you sure you want to cancel your premium plan? Your premium benefits will continue until the end of the current billing cycle.')) {
+      alert('Cancellation request received. Your plan will remain active until the end of the current billing cycle.');
+      console.log('Simulating end of billing cycle...');
+      
+      // Simulate the end of the billing cycle (e.g., 5 seconds delay)
+      setTimeout(async () => {
+        const { error } = await supabase
+          .from('users')
+          .update({ ispremium: false })
+          .eq('id', user.id);
+        
+        if (error) {
+          console.error('Error updating premium status after cancellation:', error);
+          alert('Failed to update premium status after billing cycle ended. Please contact support.');
+        } else {
+          alert('Your premium plan has now ended. You are now on the Free plan.');
+          // Optionally, re-fetch user data to update UI
+        }
+      }, 5000); // 5 seconds delay for demonstration
+    }
   };
 
   return (
