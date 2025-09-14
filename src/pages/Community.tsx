@@ -304,7 +304,7 @@ const Community = () => {
                     <Avatar className={`h-10 w-10 ${post.profiles?.ispremium ? 'ring-2 ring-amber-400' : ''}`}>
                       {post.profiles?.avatar_url && (
                         <img 
-                          src={post.profiles.avatar_url} 
+                          src={`${post.profiles.avatar_url}?v=${new Date().getTime()}`} 
                           alt="User avatar"
                           className="w-full h-full object-cover rounded-full"
                         />

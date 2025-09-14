@@ -155,7 +155,8 @@ const Profile = () => {
 
     const file = event.target.files[0];
     const fileExt = file.name.split('.').pop();
-    const fileName = `profile.${fileExt}`;
+    const timestamp = new Date().getTime(); // Generate a timestamp
+    const fileName = `profile-${timestamp}.${fileExt}`; // Append timestamp to filename
     const filePath = `${user.id}/${fileName}`;
 
     setUploading(true);
@@ -283,7 +284,7 @@ const Profile = () => {
             {/* Avatar Section */}
             <div className="flex flex-col items-center space-y-4">
               <Avatar className={`h-24 w-24 ring-2 cursor-pointer ${profile?.ispremium ? 'ring-amber-400' : 'ring-primary/20'}`}>
-                <AvatarImage src={profile?.avatar_url} />
+                <AvatarImage src={`${profile?.avatar_url}?v=${new Date().getTime()}`} />
                 <AvatarFallback className="text-2xl">
                   {username.charAt(0).toUpperCase()}
                 </AvatarFallback>

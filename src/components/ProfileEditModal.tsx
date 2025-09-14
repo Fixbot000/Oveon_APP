@@ -57,7 +57,8 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
     try {
       if (avatarFile) {
         const fileExt = avatarFile.name.split('.').pop();
-        const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+        const timestamp = new Date().getTime(); // Generate a timestamp
+        const fileName = `${user.id}-${timestamp}.${fileExt}`; // Append timestamp to filename
         const filePath = `${user.id}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
@@ -107,7 +108,7 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           <div className="flex justify-center mb-4">
             <Avatar className={`h-24 w-24 ring-2 cursor-pointer ${isPremium ? 'ring-amber-400' : 'ring-white/20'}`}>
-              <AvatarImage src={selectedAvatarUrl || currentProfile?.avatar_url || "/placeholder.svg"} />
+              <AvatarImage src={`${selectedAvatarUrl || currentProfile?.avatar_url || "/placeholder.svg"}?v=${new Date().getTime()}`} />
               <AvatarFallback className="bg-white/20 text-white font-semibold text-xl">
                 {(displayName || user?.email?.[0] || 'U').toUpperCase()}
               </AvatarFallback>

@@ -87,7 +87,7 @@ const MobileHeader = ({ onRefresh, isPremium, showBackButton, backButtonTarget }
             className={`h-12 w-12 ring-2 cursor-pointer ${isPremium ? 'ring-amber-400' : 'ring-white/20'}`}
             onClick={() => setIsEditModalOpen(true)} // Open modal on avatar click
           >
-            <AvatarImage src={profile?.avatar_url || "/placeholder.svg"} />
+            <AvatarImage src={`${profile?.avatar_url || "/placeholder.svg"}?v=${new Date().getTime()}`} />
             <AvatarFallback className="bg-white/20 text-white font-semibold text-lg">
               {user ? getUserDisplayName()[0]?.toUpperCase() : 'U'}
             </AvatarFallback>
