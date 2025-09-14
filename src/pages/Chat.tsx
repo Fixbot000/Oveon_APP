@@ -280,7 +280,7 @@ Just describe your problem and I'll guide you through the repair process. Let's 
 
   return (
     <div className="min-h-screen bg-background pb-20">
-              <MobileHeader onRefresh={() => window.location.reload()} isPremium={isPremium} showBackButton={false} backButtonTarget="/" className="bg-card"/>
+              <MobileHeader onRefresh={() => window.location.reload()} isPremium={isPremium} showBackButton={false} backButtonTarget="/" />
       
       <div className="flex justify-center bg-card shadow-sm border-b border-border py-2 px-4">
         <div className="flex rounded-lg overflow-hidden bg-muted p-1">

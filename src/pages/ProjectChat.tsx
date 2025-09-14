@@ -173,7 +173,7 @@ const ProjectChat = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20 flex flex-col">
-      <MobileHeader onRefresh={() => window.location.reload()} isPremium={isPremium} showBackButton={false} backButtonTarget="/chat" className="bg-card"/>
+      <MobileHeader onRefresh={() => window.location.reload()} isPremium={isPremium} showBackButton={false} backButtonTarget="/chat" />
       <div className="flex flex-col flex-1">
         <header className="bg-card p-4 border-b border-border flex items-center justify-between">
           <Button
