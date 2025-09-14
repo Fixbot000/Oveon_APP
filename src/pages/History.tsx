@@ -9,6 +9,7 @@ import BottomNavigation from '@/components/BottomNavigation';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 interface Scan {
   id: string;
@@ -36,6 +37,7 @@ const History = () => {
   const fetchScans = async () => {
     if (!user) {
       console.log('No user found, cannot fetch scans');
+      setLoading(false);
       return;
     }
 
@@ -51,11 +53,14 @@ const History = () => {
 
       if (error) {
         console.error('Error fetching scans:', error);
+        toast.error('Failed to fetch scan history');
       } else {
         setScans(data || []);
+        console.log('Successfully loaded', data?.length || 0, 'scans');
       }
     } catch (error) {
       console.error('Error fetching scans:', error);
+      toast.error('Error loading scan history');
     } finally {
       setLoading(false);
     }
