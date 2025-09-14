@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import onboarding1 from '@/assets/onboarding1.png';
 import onboarding2 from '@/assets/onboarding2.png';
@@ -39,16 +39,17 @@ interface OnboardingProps {
   onComplete: () => void;
 }
 
+const PreloadImages = ({ images }: { images: string[] }) => {
+  return (
+    <div style={{ display: 'none' }}>
+      {images.map((src, index) => (
+        <img key={index} src={src} alt="" loading="eager" />
+      ))}
+    </div>
+  );
+};
 export const Onboarding = ({ onComplete }: OnboardingProps) => {
   const [currentScreen, setCurrentScreen] = useState(0);
-  const [imageLoaded, setImageLoaded] = useState(false);
-
-  useEffect(() => {
-    setImageLoaded(false);
-    const img = new Image();
-    img.src = screens[currentScreen].image;
-    img.onload = () => setImageLoaded(true);
-  }, [currentScreen]);
 
   const handleNext = () => {
     if (currentScreen === screens.length - 1) {
@@ -70,6 +71,7 @@ export const Onboarding = ({ onComplete }: OnboardingProps) => {
 
   return (
     <div className="flex flex-col min-h-screen w-screen items-center justify-center p-4 overflow-auto bg-gradient-to-br from-primary/10 via-background to-secondary/10">
+      <PreloadImages images={screens.map(screen => screen.image)} />
       <Button
         variant="ghost"
         onClick={onComplete}
@@ -83,16 +85,11 @@ export const Onboarding = ({ onComplete }: OnboardingProps) => {
           {/* Image */}
           <div className="mb-8 flex justify-center w-full">
             <div className="relative w-80 h-80 rounded-3xl overflow-hidden shadow-2xl bg-white/50 backdrop-blur-sm border border-white/20 flex items-center justify-center">
-              {!imageLoaded && (
-                <Skeleton className="absolute inset-0 w-full h-full" />
-              )}
               <img 
+                key={currentScreen}
                 src={screens[currentScreen].image} 
                 alt={screens[currentScreen].title}
-                className={`w-full h-full object-contain p-6 transition-opacity duration-500 ${
-                  imageLoaded ? 'opacity-100' : 'opacity-0'
-                }`}
-                onLoad={() => setImageLoaded(true)}
+                className={`w-full h-full object-contain p-6`}
                 loading="eager"
               />
             </div>
