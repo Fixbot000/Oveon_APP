@@ -8,12 +8,16 @@ import BottomNavigation from '@/components/BottomNavigation';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import DiagnosticFlow from '@/components/DiagnosticFlow';
+import { ScanLanguageSelector } from '@/components/ScanLanguageSelector';
+import { useScanLanguage } from '@/hooks/useScanLanguage';
+import { getScanTranslation } from '@/lib/scanTranslations';
 
 const Scan = () => {
   const { user, isPremium } = useAuth();
   const [scansRemaining, setScansRemaining] = React.useState<number>(0);
   const [canScan, setCanScan] = React.useState<boolean>(true);
   const { toast } = useToast();
+  const { selectedLanguage, changeLanguage } = useScanLanguage();
 
   // Check scan status on page load
   React.useEffect(() => {
@@ -53,22 +57,28 @@ const Scan = () => {
       <main className="px-4 py-6">
         <div className="max-w-2xl mx-auto">
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold">Device Scanner</h1>
-            <div className="flex flex-col items-end gap-1">
-              <Badge variant="secondary" className="flex items-center gap-1">
-                <AlertCircle className="w-3 h-3" />
-                {isPremium ? "Unlimited scans" : `${scansRemaining} scans left today`}
-              </Badge>
-              {!canScan && (
-                <p className="text-xs text-muted-foreground text-right">
-                  You've reached your free scan limit for today.{' '}
-                  <span className="text-primary">Upgrade to Premium for unlimited scans.</span>
-                </p>
-              )}
+            <h1 className="text-2xl font-bold">{getScanTranslation(selectedLanguage, 'deviceScanner')}</h1>
+            <div className="flex items-center gap-3">
+              <ScanLanguageSelector 
+                selectedLanguage={selectedLanguage}
+                onLanguageChange={changeLanguage}
+              />
+              <div className="flex flex-col items-end gap-1">
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  {isPremium ? getScanTranslation(selectedLanguage, 'unlimitedScans') : `${scansRemaining} ${getScanTranslation(selectedLanguage, 'scansLeft')}`}
+                </Badge>
+                {!canScan && (
+                  <p className="text-xs text-muted-foreground text-right">
+                    {getScanTranslation(selectedLanguage, 'scanLimitReached')}{' '}
+                    <span className="text-primary">{getScanTranslation(selectedLanguage, 'upgradeToPremium')}</span>
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
-          <DiagnosticFlow selectedLanguage="en" canScan={canScan} onScanComplete={async () => {
+          <DiagnosticFlow selectedLanguage={selectedLanguage} canScan={canScan} onScanComplete={async () => {
             if (!user) return;
             
             try {
