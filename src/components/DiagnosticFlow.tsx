@@ -191,26 +191,31 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
                 id="deviceName"
                 value={deviceName}
                 onChange={(e) => setDeviceName(e.target.value)}
-                placeholder="e.g., iPhone 12, Samsung TV, Dell Laptop"
+                placeholder="e.g., Samsung TV"
               />
             </div>
             
             <div>
               <Label htmlFor="devicePhoto">Device Photo</Label>
+              <label htmlFor="devicePhotoInput" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm cursor-pointer items-center">
+                {devicePhoto ? devicePhoto.name : "Upload File"}
+              </label>
               <Input
-                id="devicePhoto"
+                id="devicePhotoInput"
                 type="file"
                 accept="image/*"
                 onChange={handlePhotoChange}
+                className="hidden"
               />
-              {photoPreview && (
+            </div>
+            
+            {photoPreview && (
                 <img 
                   src={photoPreview} 
                   alt="Device" 
                   className="mt-2 max-w-full h-48 object-cover rounded-lg"
                 />
               )}
-            </div>
 
             <Button 
               onClick={handleStep1Next}
@@ -251,9 +256,9 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
               />
               <label
                 htmlFor="problemFile"
-                className="absolute bottom-2 right-2 p-2 bg-blue-500 text-white rounded-md cursor-pointer hover:bg-blue-600 transition-colors flex items-center gap-1"
+                className="absolute bottom-2 right-2 px-3 py-1.5 text-xs bg-blue-500 text-white rounded-md cursor-pointer hover:bg-blue-600 transition-colors flex items-center"
               >
-                <Paperclip className="h-4 w-4" />
+                <Paperclip className="h-3 w-3" />
                 Upload
               </label>
             </div>
