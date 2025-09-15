@@ -11,8 +11,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { getScanTranslation } from '@/lib/scanTranslations';
-import { useScanLanguage } from '@/hooks/useScanLanguage';
 
 interface DiagnosticFlowProps {
   selectedLanguage: string;
@@ -26,7 +24,6 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
   
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { translateToEnglish, translateFromEnglish } = useScanLanguage();
 
   // Step 1: Device name and photo
   const [deviceName, setDeviceName] = useState('');
@@ -146,7 +143,7 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
 
   const handleStep1Next = () => {
     if (!deviceName.trim() || !devicePhoto) {
-      toast.error(getScanTranslation(selectedLanguage, 'provideDeviceNameAndPhoto'));
+      toast.error('Please provide both device name and photo');
       return;
     }
     setCurrentStep(2);
@@ -172,7 +169,7 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
       {/* Progress Bar */}
       <div className="space-y-2">
         <div className="flex justify-between text-sm text-muted-foreground">
-          <span>{getScanTranslation(selectedLanguage, 'step')} {currentStep} {getScanTranslation(selectedLanguage, 'of')} 4</span>
+          <span>Step {currentStep} of 4</span>
           <span>{Math.round((currentStep / 4) * 100)}%</span>
         </div>
         <Progress value={(currentStep / 4) * 100} className="h-2" />
@@ -184,24 +181,24 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Camera className="h-5 w-5" />
-              {getScanTranslation(selectedLanguage, 'deviceInformation')}
+              Device Information
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="deviceName">{getScanTranslation(selectedLanguage, 'deviceName')}</Label>
+              <Label htmlFor="deviceName">Device Name</Label>
               <Input
                 id="deviceName"
                 value={deviceName}
                 onChange={(e) => setDeviceName(e.target.value)}
-                placeholder={getScanTranslation(selectedLanguage, 'deviceNamePlaceholder')}
+                placeholder="e.g., Samsung TV"
               />
             </div>
             
             <div>
-              <Label htmlFor="devicePhoto">{getScanTranslation(selectedLanguage, 'devicePhoto')}</Label>
+              <Label htmlFor="devicePhoto">Device Photo</Label>
               <label htmlFor="devicePhotoInput" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm cursor-pointer items-center">
-                {devicePhoto ? devicePhoto.name : getScanTranslation(selectedLanguage, 'uploadFile')}
+                {devicePhoto ? devicePhoto.name : "Upload File"}
               </label>
               <Input
                 id="devicePhotoInput"
@@ -225,7 +222,7 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
               disabled={!deviceName.trim() || !devicePhoto || !canScan}
               className="w-full"
             >
-              {!canScan ? getScanTranslation(selectedLanguage, 'dailyLimitReached') : getScanTranslation(selectedLanguage, 'nextStep')}
+              {!canScan ? 'Daily Limit Reached' : 'Next Step'}
             </Button>
           </CardContent>
         </Card>
@@ -277,7 +274,7 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
               disabled={loading || (!problemDescription.trim() && !problemFile) || !canScan}
               className="w-full"
             >
-              {loading ? 'Analyzing...' : !canScan ? getScanTranslation(selectedLanguage, 'dailyLimitReached') : 'Analyze Code/Schematic'}
+              {loading ? 'Analyzing...' : !canScan ? 'Daily Limit Reached' : 'Analyze Code/Schematic'}
             </Button>
 
             {/* Code Analysis Results */}
@@ -339,17 +336,17 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              {getScanTranslation(selectedLanguage, 'describeTheIssue')}
+              Describe the Issue
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="description">{getScanTranslation(selectedLanguage, 'whatsWrong')}</Label>
+              <Label htmlFor="description">What's wrong with your device?</Label>
               <Textarea
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder={getScanTranslation(selectedLanguage, 'describeProblemPlaceholder')}
+                placeholder="Describe the problem in detail: when it started, what happens, any error messages, etc."
                 rows={5}
               />
             </div>
@@ -357,11 +354,11 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
             <Button 
               onClick={async () => {
                 if (!description.trim()) {
-                  toast.error(getScanTranslation(selectedLanguage, 'provideDescription'));
+                  toast.error('Please provide a description.');
                   return;
                 }
                 if (!canScan) {
-                  toast.error(getScanTranslation(selectedLanguage, 'scanLimitReachedMessage'));
+                  toast.error('Daily scan limit reached. Upgrade to Premium for unlimited scans.');
                   return;
                 }
                 setLoading(true);
@@ -371,35 +368,20 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
                     reader.onload = () => resolve(reader.result as string);
                     reader.readAsDataURL(devicePhoto!); // devicePhoto is guaranteed to be File | null, but we check for null in handleStep1Next, so it's safe to assert here
                   });
-                  
-                  // Translate user input to English for AI processing
-                  const translatedDeviceName = await translateToEnglish(deviceName, selectedLanguage);
-                  const translatedDescription = await translateToEnglish(description, selectedLanguage);
-                  
                   const { data, error } = await supabase.functions.invoke('analyze-device-and-generate-questions', {
                     body: {
-                      deviceName: translatedDeviceName,
+                      deviceName,
                       imageBase64: base64.split(',')[1],
-                      description: translatedDescription,
+                      description,
                       language: selectedLanguage,
                     },
                   });
                   if (error) throw error;
-                  
-                  // Translate questions back to user's language
-                  const translatedQuestions = await Promise.all(
-                    data.questions.map(async (q: any) => ({
-                      ...q,
-                      question: await translateFromEnglish(q.question, selectedLanguage),
-                      category: await translateFromEnglish(q.category, selectedLanguage)
-                    }))
-                  );
-                  
-                  setQuestions(translatedQuestions);
+                  setQuestions(data.questions);
                   setCurrentStep(3);
                 } catch (error) {
                   console.error('Error generating questions:', error);
-                  toast.error(getScanTranslation(selectedLanguage, 'failedToGenerateQuestions'));
+                  toast.error('Failed to generate questions. Please try again.');
                 } finally {
                   setLoading(false);
                 }
@@ -407,7 +389,7 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
               disabled={loading || !description.trim() || !devicePhoto || !canScan}
               className="w-full"
             >
-              {loading ? getScanTranslation(selectedLanguage, 'analyzing') : !canScan ? getScanTranslation(selectedLanguage, 'dailyLimitReached') : getScanTranslation(selectedLanguage, 'analyzeAndGenerateQuestions')}
+              {loading ? 'Analyzing...' : !canScan ? 'Daily Limit Reached' : 'Analyze & Generate Questions'}
             </Button>
           </CardContent>
         </Card>
@@ -419,13 +401,13 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <HelpCircle className="h-5 w-5" />
-              {getScanTranslation(selectedLanguage, 'answerTheseQuestions')}
+              Answer These Questions
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg">
               <p className="text-sm text-blue-700 dark:text-blue-300">
-                {getScanTranslation(selectedLanguage, 'answersHelpText')}
+                Please answer these questions to help identify the exact problem. Skip any that don't apply.
               </p>
             </div>
 
@@ -448,7 +430,7 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
                       [question.id]: e.target.value
                     }));
                   }}
-                  placeholder={getScanTranslation(selectedLanguage, 'yourAnswerPlaceholder')}
+                  placeholder="Your answer (optional)"
                   rows={2}
                   className="w-full"
                 />
@@ -458,25 +440,17 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
             <Button 
               onClick={async () => {
                 if (!canScan) {
-                  toast.error(getScanTranslation(selectedLanguage, 'scanLimitReachedMessage'));
+                  toast.error('Daily scan limit reached. Upgrade to Premium for unlimited scans.');
                   return;
                 }
                 setLoading(true);
                 try {
-                  // Translate user answers to English for AI processing
-                  const translatedAnswers: { [key: string]: string } = {};
-                  for (const [questionId, answer] of Object.entries(answers)) {
-                    if (answer.trim()) {
-                      translatedAnswers[questionId] = await translateToEnglish(answer, selectedLanguage);
-                    }
-                  }
-                  
                   const { data, error } = await supabase.functions.invoke('generate-repair-diagnosis', {
                     body: {
-                      deviceName: await translateToEnglish(deviceName, selectedLanguage),
-                      description: await translateToEnglish(description, selectedLanguage),
+                      deviceName,
+                      description,
                       questions,
-                      answers: translatedAnswers,
+                      answers,
                       language: selectedLanguage,
                     },
                   });
