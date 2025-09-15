@@ -292,7 +292,7 @@ const Index = () => {
             </div>
           ) : (
             <div 
-              className="relative w-full h-64 cursor-grab active:cursor-grabbing select-none overflow-x-auto scroll-smooth snap-x snap-mandatory"
+              className="relative w-full h-64 cursor-grab active:cursor-grabbing select-none overflow-x-auto scroll-smooth snap-x snap-mandatory dark:scrollbar-dark"
               style={{ willChange: 'transform' }}
             >
               <div 

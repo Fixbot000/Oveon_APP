@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import MobileHeader from '@/components/MobileHeader';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Info, Users, FileText, ListChecks, MessageSquareMore } from 'lucide-react'; // Import new icons
+import { Info, Users, FileText, ListChecks, MessageSquareMore, ArrowUp } from 'lucide-react'; // Import new icons
 
 interface ProjectFile {
   id: string;
@@ -56,6 +56,37 @@ const ProjectChat = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const [showScrollToTop, setShowScrollToTop] = useState(false);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (chatContainerRef.current) {
+        const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+        if (scrollTop > 100 && scrollHeight - scrollTop - clientHeight < 100) {
+          setShowScrollToTop(true);
+        } else {
+          setShowScrollToTop(false);
+        }
+      }
+    };
+
+    const currentChatContainer = chatContainerRef.current;
+    if (currentChatContainer) {
+      currentChatContainer.addEventListener('scroll', handleScroll);
+    }
+
+    return () => {
+      if (currentChatContainer) {
+        currentChatContainer.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, []);
+
+  const scrollToTop = () => {
+    chatContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   useEffect(() => {
     // Fetch all project details from localStorage
@@ -172,9 +203,9 @@ const ProjectChat = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20 flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
       <MobileHeader onRefresh={() => window.location.reload()} isPremium={isPremium} showBackButton={false} backButtonTarget="/chat" />
-      <div className="flex flex-col flex-1">
+      <div className="flex flex-col flex-1 overflow-hidden">
         <header className="bg-card p-4 border-b border-border flex items-center justify-between">
           <Button
             variant="ghost"
@@ -281,7 +312,7 @@ const ProjectChat = () => {
             </SheetContent>
           </Sheet>
         </header>
-        <main className="flex-1 overflow-y-auto p-4 bg-background">
+        <main ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 bg-background">
           <div className="flex flex-col space-y-4">
             {messages.map((message) => (
               <div
@@ -313,7 +344,15 @@ const ProjectChat = () => {
             <div ref={messagesEndRef} />
           </div>
         </main>
-        <footer className="bg-card p-4 border-t border-border flex items-center">
+        {showScrollToTop && (
+          <button
+            onClick={scrollToTop}
+            className="fixed bottom-[100px] right-4 bg-primary text-primary-foreground p-2 rounded-full shadow-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background z-50"
+          >
+            <ArrowUp className="h-5 w-5" />
+          </button>
+        )}
+        <footer className="bg-card p-4 border-t border-border flex items-center w-full">
           <input
             type="text"
             placeholder="Type your message..."

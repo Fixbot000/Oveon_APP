@@ -245,6 +245,8 @@ const Discussion = () => {
       if (!comment) return;
 
       // Check if user already has a like on this comment
+      console.log('User ID:', user.id);
+      console.log('Comment ID:', commentId);
       const { data: existingLike } = await supabase
         .from('comment_likes')
         .select('like_type')
@@ -252,6 +254,8 @@ const Discussion = () => {
         .eq('comment_id', commentId)
         .eq('like_type', 'like')
         .maybeSingle();
+
+      console.log('Existing Like Data:', existingLike);
 
       let likeDelta = 0;
       let newUserLike: 'like' | null = null;
@@ -605,32 +609,8 @@ const Discussion = () => {
           </CardContent>
         </Card>
 
-        {/* Add Comment */}
-        {user && (
-          <Card>
-            <CardContent className="p-4">
-              <div className="space-y-3">
-                <Textarea
-                  placeholder="Join the discussion..."
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  className="min-h-[80px]"
-                />
-                <Button 
-                  onClick={addComment}
-                  disabled={!newComment.trim()}
-                  className="w-full"
-                >
-                  <Send className="h-4 w-4 mr-2" />
-                  Add Comment
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Comments Section */}
-        <div className="space-y-4">
+        <div className="space-y-4 pb-24">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">Comments ({comments.length})</h3>
             <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
@@ -658,6 +638,28 @@ const Discussion = () => {
           )}
         </div>
       </div>
+
+      {/* Add Comment */}
+      {user && (
+        <div className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-lg px-4 py-2">
+          <div className="space-y-3">
+            <Textarea
+              placeholder="Type your message..."
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              className="min-h-[80px]"
+            />
+            <Button
+              onClick={addComment}
+              disabled={!newComment.trim()}
+              className="w-full"
+            >
+              <Send className="h-4 w-4 mr-2" />
+              Send Message
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

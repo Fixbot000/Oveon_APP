@@ -24,6 +24,7 @@ import TermsPage from "./pages/TermsPage";
 import NotFound from "./pages/NotFound";
 import ProjectChat from "./pages/ProjectChat";
 import { useTheme } from "@/hooks/useTheme"; // Import useTheme hook
+import ReloadWrapper from "@/components/ReloadWrapper"; // Import ReloadWrapper
 
 const queryClient = new QueryClient();
 
@@ -46,50 +47,50 @@ const AppContent = () => {
       <BrowserRouter>
         <OnboardingTutorial />
         <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/chat" element={<Chat />} />
-          <Route path="/shop" element={<Shop />} />
+          <Route path="/" element={<ReloadWrapper><Index /></ReloadWrapper>} />
+          <Route path="/auth" element={<ReloadWrapper><Auth /></ReloadWrapper>} />
+          <Route path="/chat" element={<ReloadWrapper><Chat /></ReloadWrapper>} />
+          <Route path="/shop" element={<ReloadWrapper><Shop /></ReloadWrapper>} />
           <Route path="/scan" element={
             <AuthGuard>
-              <Scan />
+              <ReloadWrapper><Scan /></ReloadWrapper>
             </AuthGuard>
           } />
           <Route path="/community" element={
             <AuthGuard>
-              <Community />
+              <ReloadWrapper><Community /></ReloadWrapper>
             </AuthGuard>
           } />
           <Route path="/discussion/:postId" element={
             <AuthGuard>
-              <Discussion />
+              <ReloadWrapper><Discussion /></ReloadWrapper>
             </AuthGuard>
           } />
           <Route path="/history" element={
             <AuthGuard>
-              <History />
+              <ReloadWrapper><History /></ReloadWrapper>
             </AuthGuard>
           } />
           <Route path="/profile" element={
             <AuthGuard>
-              <Profile />
+              <ReloadWrapper><Profile /></ReloadWrapper>
             </AuthGuard>
           } />
-          <Route path="/premium" element={<Premium />} />
+          <Route path="/premium" element={<ReloadWrapper><Premium /></ReloadWrapper>} />
           <Route path="/plans" element={
             <AuthGuard>
-              <Plans />
+              <ReloadWrapper><Plans /></ReloadWrapper>
             </AuthGuard>
           } />
-          <Route path="/help" element={<Help />} />
+          <Route path="/help" element={<ReloadWrapper><Help /></ReloadWrapper>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="/diagnosis-result" element={<DiagnosisResult />} />
+          <Route path="/diagnosis-result" element={<ReloadWrapper><DiagnosisResult /></ReloadWrapper>} />
           <Route path="/project/:projectId/chat" element={
             <AuthGuard>
-              <ProjectChat />
+              <ReloadWrapper><ProjectChat /></ReloadWrapper>
             </AuthGuard>
           } />
-          <Route path="/terms-and-policies" element={<TermsPage />} />
+          <Route path="/terms-and-policies" element={<ReloadWrapper><TermsPage /></ReloadWrapper>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

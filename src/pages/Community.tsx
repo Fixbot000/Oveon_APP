@@ -10,6 +10,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import MobileHeader from '@/components/MobileHeader';
 import BottomNavigation from '@/components/BottomNavigation';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Trash2 } from 'lucide-react';
 
 interface Post {
   id: string;
@@ -34,13 +36,14 @@ const Community = () => {
   const [loading, setLoading] = useState(true);
   const { user, isPremium } = useAuth();
   const navigate = useNavigate();
+  const [postFilter, setPostFilter] = useState<'all' | 'my'>('all');
 
   const fetchPosts = async () => {
     try {
       setLoading(true);
       
       // Fetch posts with profiles
-      const { data: postsData, error: postsError } = await supabase
+      let query = supabase
         .from('posts')
         .select(`
           *,
@@ -49,7 +52,13 @@ const Community = () => {
             avatar_url,
             ispremium
           )
-        `)
+        `);
+      
+      if (postFilter === 'my' && user) {
+        query = query.eq('user_id', user.id);
+      }
+
+      const { data: postsData, error: postsError } = await query
         .order('likes', { ascending: false })
         .order('created_at', { ascending: false });
 
@@ -217,6 +226,35 @@ const Community = () => {
     }
   };
 
+  const handleDeletePost = async (postId: string) => {
+    if (!user) {
+      toast.error('Please sign in to delete posts');
+      return;
+    }
+
+    try {
+      // First, delete associated likes
+      await supabase
+        .from('post_likes')
+        .delete()
+        .eq('post_id', postId);
+
+      const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', postId)
+        .eq('user_id', user.id); // Ensure only the owner can delete
+
+      if (error) throw error;
+
+      setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
+      toast.success('Post deleted successfully!');
+    } catch (error: any) {
+      console.error('Error deleting post:', error);
+      toast.error('Failed to delete post');
+    }
+  };
+
   const openDiscussion = (postId: string) => {
     incrementViews(postId);
     navigate(`/discussion/${postId}`);
@@ -224,7 +262,7 @@ const Community = () => {
 
   useEffect(() => {
     fetchPosts();
-  }, []);
+  }, [postFilter]);
 
   if (loading) {
     return (
@@ -257,6 +295,14 @@ const Community = () => {
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold">Community</h1>
         </div>
+
+        {/* Post Filter Tabs */}
+        <Tabs value={postFilter} onValueChange={(value: 'all' | 'my') => setPostFilter(value)} className="max-w-2xl mx-auto mb-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="all" onClick={() => setPostFilter('all')}>All Posts</TabsTrigger>
+            <TabsTrigger value="my" onClick={() => setPostFilter('my')} disabled={!user}>My Posts</TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         {/* Create Post */}
         {user && (
@@ -362,15 +408,28 @@ const Community = () => {
                         <span>{post.views}</span>
                       </div>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openDiscussion(post.id)}
-                      className="flex items-center space-x-1"
-                    >
-                      <MessageCircle className="h-4 w-4" />
-                      <span>Talk</span>
-                    </Button>
+                    <div className="flex items-center space-x-2">
+                      {user && user.id === post.user_id && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeletePost(post.id)}
+                          className="flex items-center space-x-1 text-muted-foreground hover:text-red-500"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span>Delete</span>
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openDiscussion(post.id)}
+                        className="flex items-center space-x-1"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        <span>Talk</span>
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
