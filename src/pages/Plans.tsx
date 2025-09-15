@@ -58,7 +58,7 @@ const Plans = () => {
       // Simulate the end of the billing cycle (e.g., 5 seconds delay)
       setTimeout(async () => {
         const { error } = await supabase
-          .from('users')
+          .from('profiles')
           .update({ ispremium: false })
           .eq('id', user.id);
         

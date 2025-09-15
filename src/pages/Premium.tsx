@@ -21,7 +21,7 @@ const Premium = () => {
 
     if (paymentSuccessful) {
       const { error } = await supabase
-        .from('users')
+        .from('profiles')
         .update({ ispremium: true })
         .eq('id', user.id);
 
