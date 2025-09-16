@@ -157,14 +157,13 @@ const Index = () => {
         {/* Hero Diagnostic Card */}
         <Card className="bg-card shadow-card border-border overflow-hidden">
           <CardContent className="p-0">
-            <div className="relative w-full aspect-[4/5] max-w-md mx-auto">
+            <div className="relative w-full max-w-md mx-auto">
               <img
                 src={heroImage}
                 alt="Oveon Smart Diagnostics - Snap, Scan, Solve"
-                className="w-full h-full object-cover rounded-lg"
+                className="w-full h-auto rounded-lg"
                 style={{ 
-                  aspectRatio: '4/5',
-                  objectFit: 'cover',
+                  objectFit: 'contain',
                   objectPosition: 'center'
                 }}
                 loading="eager"
