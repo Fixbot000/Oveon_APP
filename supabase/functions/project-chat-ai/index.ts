@@ -125,8 +125,8 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    // Build context prompt for ChatGPT
-    const contextPrompt = buildProjectContextPrompt(projectContext, message);
+    // Build context prompt for ChatGPT with file content
+    const contextPrompt = await buildProjectContextPrompt(projectContext, message);
 
     console.log('Project Chat AI - Processing message for project:', projectId);
     console.log('Context prompt length:', contextPrompt.length);
@@ -213,7 +213,7 @@ RESPONSE FORMAT:
   }
 });
 
-function buildProjectContextPrompt(projectContext: ProjectContext, userMessage: string): string {
+async function buildProjectContextPrompt(projectContext: ProjectContext, userMessage: string): Promise<string> {
   let prompt = `PROJECT CONTEXT:
 Project: "${projectContext.title}"
 Description: ${projectContext.description}
@@ -221,13 +221,60 @@ Last Updated: ${projectContext.lastUpdated}
 
 `;
 
-  // Add file information
+  // Add file information with content
   if (projectContext.files && projectContext.files.length > 0) {
     prompt += `UPLOADED FILES (${projectContext.files.length} files):
 `;
-    projectContext.files.forEach(file => {
-      prompt += `- ${file.name} (${file.type})\n`;
-    });
+    
+    // Initialize Supabase client for file access
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    
+    if (supabaseUrl && supabaseServiceRoleKey) {
+      const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+      
+      for (const file of projectContext.files) {
+        prompt += `- ${file.name} (${file.type})\n`;
+        
+        // Try to get file content for text-based files
+        if (file.url || file.id) {
+          try {
+            // Determine file path based on available data
+            const filePath = file.url?.replace(/^.*\/storage\/v1\/object\/public\/[^\/]+\//, '') || file.id;
+            
+            const { data: fileData, error: downloadError } = await supabase.storage
+              .from('project-files')
+              .download(filePath);
+
+            if (!downloadError && fileData) {
+              // Check if it's a text-based file
+              const isTextFile = file.type?.startsWith('text/') || 
+                                file.name?.match(/\.(txt|md|js|ts|jsx|tsx|py|java|cpp|c|html|css|json|xml|yaml|yml|csv)$/i);
+              
+              if (isTextFile) {
+                const content = await fileData.text();
+                if (content && content.length > 0) {
+                  // Limit content length to avoid token limits
+                  const truncatedContent = content.length > 2000 ? content.substring(0, 2000) + '...' : content;
+                  prompt += `  Content preview: ${truncatedContent}\n`;
+                }
+              } else if (file.type?.startsWith('image/')) {
+                prompt += `  [Image file - visual content available for analysis]\n`;
+              } else {
+                prompt += `  [Binary file - metadata available]\n`;
+              }
+            }
+          } catch (error) {
+            console.error(`Error reading file ${file.name}:`, error);
+            prompt += `  [Content not accessible]\n`;
+          }
+        }
+      }
+    } else {
+      projectContext.files.forEach(file => {
+        prompt += `- ${file.name} (${file.type})\n`;
+      });
+    }
     prompt += '\n';
   } else {
     prompt += `UPLOADED FILES: None uploaded yet\n\n`;
@@ -260,7 +307,7 @@ Last Updated: ${projectContext.lastUpdated}
 
   prompt += `CURRENT USER MESSAGE: ${userMessage}
 
-Please respond as Jarvis, staying in character and being helpful with this specific project. Reference the project context appropriately.`;
+Please respond as Jarvis, staying in character and being helpful with this specific project. Reference the project context and file contents appropriately when relevant.`;
 
   return prompt;
 }
