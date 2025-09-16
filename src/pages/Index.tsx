@@ -10,6 +10,7 @@ import ActionCard from '@/components/ActionCard';
 import { generateRepairTips, getDifficultyColor, type Tip } from '@/lib/tipsGenerator';
 import BottomSheetModal from '@/components/BottomSheetModal';
 import { useMediaQuery } from 'react-responsive';
+import heroImage from '@/assets/hero-diagnostic-card.jpg';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -153,73 +154,31 @@ const Index = () => {
           </div>
         )}
 
-        {/* Ad Banner Container */}
-        {!isPremium ? (
-          <Card className="bg-card shadow-card border-border">
-            <CardContent className="p-6 text-center">
-              <div className="relative z-10">
-                <div className="flex items-center justify-center h-20 bg-muted/30 rounded-lg border-2 border-dashed border-muted-foreground/20">
-                  <span className="text-muted-foreground text-sm">Ad will appear here</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="relative p-6 rounded-2xl shadow-neon border-none overflow-hidden 
-                      bg-gradient-to-br from-[#00c6ff] via-[#9400d3] to-[#5a1c8b] 
-                      text-white transform transition-transform duration-300 ease-out hover:scale-[1.02]">
-            {/* Background glowing particles/sparks */}
-            <div className="absolute -top-10 -left-10 w-24 h-24 bg-cyan-400 rounded-full mix-blend-screen filter blur-xl opacity-40 animate-blob"></div>
-            <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-fuchsia-400 rounded-full mix-blend-screen filter blur-xl opacity-40 animate-blob animation-delay-2000"></div>
-            <div className="absolute top-1/4 left-1/4 w-16 h-16 bg-cyan-300 rounded-full mix-blend-screen filter blur-xl opacity-40 animate-blob animation-delay-4000"></div>
-            <div className="absolute -top-4 right-1/4 w-20 h-20 bg-fuchsia-300 rounded-full mix-blend-screen filter blur-xl opacity-40 animate-blob animation-delay-3000"></div>
-            <div className="absolute bottom-1/3 left-1/2 w-16 h-16 bg-cyan-500 rounded-full mix-blend-screen filter blur-xl opacity-40 animate-blob animation-delay-1000"></div>
-            <div className="absolute top-1/2 right-0 w-20 h-20 bg-fuchsia-500 rounded-full mix-blend-screen filter blur-xl opacity-40 animate-blob animation-delay-2500"></div>
-
-            {/* Tech-themed lines (circuit traces) - subtle and integrated */}
-            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 400 200" preserveAspectRatio="none">
-              <path d="M 10 20 L 50 20 L 50 40 L 90 40" stroke="rgba(0,255,255,0.2)" strokeWidth="2" fill="none"/>
-              <path d="M 390 180 L 350 180 L 350 160 L 310 160" stroke="rgba(0,255,255,0.2)" strokeWidth="2" fill="none"/>
-              <path d="M 100 10 L 120 10 L 120 30 L 140 30" stroke="rgba(0,255,255,0.2)" strokeWidth="2" fill="none"/>
-              <path d="M 200 190 L 220 190 L 220 170 L 240 170" stroke="rgba(0,255,255,0.2)" strokeWidth="2" fill="none"/>
-              <path d="M 10 100 L 30 100 L 30 120 L 50 120" stroke="rgba(0,255,255,0.2)" strokeWidth="2" fill="none"/>
-              <path d="M 390 90 L 370 90 L 370 70 L 350 70" stroke="rgba(0,255,255,0.2)" strokeWidth="2" fill="none"/>
-              <circle cx="10" cy="20" r="2" fill="rgba(0,255,255,0.4)" />
-              <circle cx="90" cy="40" r="2" fill="rgba(0,255,255,0.4)" />
-              <circle cx="390" cy="180" r="2" fill="rgba(0,255,255,0.4)" />
-              <circle cx="310" cy="160" r="2" fill="rgba(0,255,255,0.4)" />
-              <circle cx="10" cy="100" r="2" fill="rgba(0,255,255,0.4)" />
-              <circle cx="50" cy="120" r="2" fill="rgba(0,255,255,0.4)" />
-              <circle cx="390" cy="90" r="2" fill="rgba(0,255,255,0.4)" />
-              <circle cx="350" cy="70" r="2" fill="rgba(0,255,255,0.4)" />
-            </svg>
-
-            {/* Faint blueprint grid overlay - updated opacity and color */}
-            <div className="absolute inset-0 z-0 opacity-15" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23FFFFFF' fill-opacity='0.15' fill-rule='evenodd'%3E%3Ccircle cx='3' cy='3' r='3'/%3E%3Ccircle cx='13' cy='13' r='3'/%3E%3C/g%3E%3C/svg%3E\")" }}></div>
-
-            {/* No lightbulb outline as per new image reference - REMOVED */}
-
-            <div className="relative z-10 flex flex-col items-center text-center">
-              <h3 className="text-4xl sm:text-5xl font-extrabold mb-2 text-white drop-shadow-lg leading-tight">
-                Want to make<br/>something new?
-              </h3>
-              <p className="text-lg sm:text-xl text-white/80 mb-8 max-w-sm">
-                Let the AI help you invent, design, and create.
-              </p>
-              <Button 
-                onClick={() => navigate('/chat?tab=projects')}
-                className="relative px-10 py-4 rounded-full font-bold text-lg 
-                           bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-white 
-                           shadow-neon-button transition-all duration-300 
-                           transform hover:-translate-y-1 hover:scale-105 
-                           overflow-hidden group border border-transparent"
-              >
-                <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-[#00f2fe] to-[#4facfe] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-                <span className="relative z-10">Explore Projects</span>
-              </Button>
+        {/* Hero Diagnostic Card */}
+        <Card className="bg-card shadow-card border-border overflow-hidden">
+          <CardContent className="p-0">
+            <div className="relative w-full aspect-[4/5] max-w-md mx-auto">
+              <img
+                src={heroImage}
+                alt="Oveon Smart Diagnostics - Snap, Scan, Solve"
+                className="w-full h-full object-cover rounded-lg"
+                style={{ 
+                  aspectRatio: '4/5',
+                  objectFit: 'cover',
+                  objectPosition: 'center'
+                }}
+                loading="eager"
+                onLoad={() => {
+                  // Cache the image in browser cache
+                  localStorage.setItem('hero-image-cached', 'true');
+                }}
+                onError={(e) => {
+                  console.error('Failed to load hero image:', e);
+                }}
+              />
             </div>
-          </div>
-        )}
+          </CardContent>
+        </Card>
 
         {/* Main Action Cards */}
         <div className="grid grid-cols-2 gap-3 mb-4">
