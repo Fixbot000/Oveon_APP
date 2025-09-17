@@ -12,6 +12,16 @@ import MobileHeader from '@/components/MobileHeader';
 import BottomNavigation from '@/components/BottomNavigation';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface Post {
   id: string;
@@ -37,6 +47,8 @@ const Community = () => {
   const { user, isPremium } = useAuth();
   const navigate = useNavigate();
   const [postFilter, setPostFilter] = useState<'all' | 'my'>('all');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [postToDelete, setPostToDelete] = useState<string | null>(null);
 
   const fetchPosts = async () => {
     try {
@@ -226,9 +238,9 @@ const Community = () => {
     }
   };
 
-  const handleDeletePost = async (postId: string) => {
-    if (!user) {
-      toast.error('Please sign in to delete posts');
+  const handleDeletePost = async () => {
+    if (!user || !postToDelete) {
+      toast.error('Please sign in or select a post to delete');
       return;
     }
 
@@ -237,18 +249,20 @@ const Community = () => {
       await supabase
         .from('post_likes')
         .delete()
-        .eq('post_id', postId);
+        .eq('post_id', postToDelete);
 
       const { error } = await supabase
         .from('posts')
         .delete()
-        .eq('id', postId)
+        .eq('id', postToDelete)
         .eq('user_id', user.id); // Ensure only the owner can delete
 
       if (error) throw error;
 
-      setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
+      setPosts(prevPosts => prevPosts.filter(post => post.id !== postToDelete));
       toast.success('Post deleted successfully!');
+      setPostToDelete(null); // Clear the post to delete
+      setShowDeleteConfirm(false); // Close the dialog
     } catch (error: any) {
       console.error('Error deleting post:', error);
       toast.error('Failed to delete post');
@@ -410,15 +424,33 @@ const Community = () => {
                     </div>
                     <div className="flex items-center space-x-2">
                       {user && user.id === post.user_id && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeletePost(post.id)}
-                          className="flex items-center space-x-1 text-muted-foreground hover:text-red-500"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          <span>Delete</span>
-                        </Button>
+                        <AlertDialog open={showDeleteConfirm && postToDelete === post.id} onOpenChange={setShowDeleteConfirm}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent opening discussion
+                              setPostToDelete(post.id);
+                              setShowDeleteConfirm(true);
+                            }}
+                            className="flex items-center space-x-1 text-muted-foreground hover:text-red-500"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span>Delete</span>
+                          </Button>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Are you sure you want to delete this message?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete your message and remove it from the community.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel onClick={() => setShowDeleteConfirm(false)}>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={handleDeletePost}>Confirm</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       )}
                       <Button
                         variant="outline"
