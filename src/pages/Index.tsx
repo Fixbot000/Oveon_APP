@@ -11,6 +11,7 @@ import { generateRepairTips, getDifficultyColor, type Tip } from '@/lib/tipsGene
 import BottomSheetModal from '@/components/BottomSheetModal';
 import { useMediaQuery } from 'react-responsive';
 import heroImage from '@/assets/hero-diagnostic-card.jpg';
+import { AdsBanner } from '@/components/AdsBanner';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -143,6 +144,11 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       <MobileHeader onRefresh={loadTips} isPremium={isPremium} />
+      {!isPremium && (
+        <div className="mt-8 px-4">
+          <AdsBanner />
+        </div>
+      )}
       
       <main className="px-4 py-6 space-y-8">
         {/* Auth Section */}
