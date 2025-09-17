@@ -42,14 +42,29 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('ispremium, premiumuienabled')
+          .select('ispremium, premiumuienabled, premium_expiry')
           .eq('id', userId)
           .single();
 
         if (error) throw error;
         
-        setIsPremium(data?.ispremium || false);
-        setPremiumUiEnabled(data?.premiumuienabled || false);
+        // Check if premium has expired
+        const now = new Date();
+        const premiumExpiry = data?.premium_expiry ? new Date(data.premium_expiry) : null;
+        
+        if (data?.ispremium && premiumExpiry && now > premiumExpiry) {
+          // Premium has expired, reset it
+          await supabase
+            .from('profiles')
+            .update({ ispremium: false, premium_expiry: null })
+            .eq('id', userId);
+          
+          setIsPremium(false);
+          setPremiumUiEnabled(false);
+        } else {
+          setIsPremium(data?.ispremium || false);
+          setPremiumUiEnabled(data?.premiumuienabled || false);
+        }
         
         // Update timezone on login
         updateUserTimezone(userId);

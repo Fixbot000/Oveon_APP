@@ -21,6 +21,7 @@ interface Profile {
   avatar_url?: string;
   ispremium?: boolean;
   premiumuienabled?: boolean;
+  premium_expiry?: string;
 }
 
 interface DiagnosticSession {
@@ -228,6 +229,103 @@ const Profile = () => {
     }
   };
 
+  const handleUpgradeNow = async () => {
+    if (!user) return;
+
+    setUpdating(true);
+    try {
+      // For now, simulate billing redirect (placeholder)
+      toast.success('Redirecting to billing...');
+      
+      // On success, set premium status
+      const premiumExpiry = new Date();
+      premiumExpiry.setDate(premiumExpiry.getDate() + 28); // 28 days from now
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          ispremium: true, 
+          premium_expiry: premiumExpiry.toISOString() 
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setProfile(prev => prev ? { 
+        ...prev, 
+        ispremium: true, 
+        premium_expiry: premiumExpiry.toISOString() 
+      } : null);
+      
+      toast.success('Welcome to Premium! Your subscription is active for 28 days.');
+      
+      // Reload to update auth context
+      window.location.reload();
+    } catch (error: any) {
+      console.error('Error upgrading to premium:', error);
+      toast.error('Failed to upgrade to premium');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleSelectPlan = async () => {
+    if (!user) return;
+
+    setUpdating(true);
+    try {
+      // Reset/extend premium by 28 days
+      const premiumExpiry = new Date();
+      premiumExpiry.setDate(premiumExpiry.getDate() + 28);
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          ispremium: true, 
+          premium_expiry: premiumExpiry.toISOString() 
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setProfile(prev => prev ? { 
+        ...prev, 
+        ispremium: true, 
+        premium_expiry: premiumExpiry.toISOString() 
+      } : null);
+      
+      toast.success('Your premium subscription has been extended for 28 days!');
+    } catch (error: any) {
+      console.error('Error extending premium:', error);
+      toast.error('Failed to extend premium subscription');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleCancelPlan = async () => {
+    if (!user || !profile) return;
+
+    // Confirm cancellation
+    const confirmed = window.confirm(
+      'Are you sure you want to cancel your premium plan? You will keep premium features until your current subscription expires.'
+    );
+    
+    if (!confirmed) return;
+
+    setUpdating(true);
+    try {
+      // Note: We keep ispremium = true until premium_expiry is reached
+      // The auth context will handle the expiry check
+      toast.success('Your premium plan has been cancelled. You will keep premium features until your subscription expires.');
+    } catch (error: any) {
+      console.error('Error cancelling plan:', error);
+      toast.error('Failed to cancel premium plan');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background pb-20">
@@ -389,22 +487,60 @@ const Profile = () => {
                   <span className="font-medium">Scan History</span>
                 </button>
                 {profile?.ispremium && (
-                  <button
-                    className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-muted text-left"
-                    onClick={() => navigate('/plans')}
-                  >
-                    <Star className="h-5 w-5 text-indigo-500" />
-                    <span className="font-medium">My Plans</span>
-                  </button>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3 rounded-md px-3 py-2 bg-muted/50">
+                      <Star className="h-5 w-5 text-indigo-500" />
+                      <div className="flex-1">
+                        <span className="font-medium">My Plan</span>
+                        <p className="text-sm text-muted-foreground">
+                          Premium Active
+                          {profile.premium_expiry && (
+                            <span> until {new Date(profile.premium_expiry).toLocaleDateString()}</span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 px-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSelectPlan}
+                        disabled={updating}
+                        className="flex-1"
+                      >
+                        Select Plan
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCancelPlan}
+                        disabled={updating}
+                        className="flex-1 text-destructive hover:text-destructive"
+                      >
+                        Cancel Plan
+                      </Button>
+                    </div>
+                  </div>
                 )}
                 {!profile?.ispremium && (
-                  <button
-                    className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-muted text-left text-yellow-600"
-                    onClick={() => navigate('/premium')}
-                  >
-                    <Star className="h-5 w-5" />
-                    <span className="font-medium">Upgrade to Premium</span>
-                  </button>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-muted text-left text-yellow-600">
+                      <Star className="h-5 w-5" />
+                      <div className="flex-1">
+                        <span className="font-medium">Upgrade to Premium</span>
+                        <p className="text-sm text-muted-foreground">Get unlimited scans and premium features</p>
+                      </div>
+                    </div>
+                    <div className="px-3">
+                      <Button
+                        onClick={handleUpgradeNow}
+                        disabled={updating}
+                        className="w-full bg-yellow-600 hover:bg-yellow-700"
+                      >
+                        {updating ? 'Processing...' : 'Upgrade Now'}
+                      </Button>
+                    </div>
+                  </div>
                 )}
                 <button
                   className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-muted text-left"

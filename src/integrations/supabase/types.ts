@@ -443,50 +443,77 @@ export type Database = {
       }
       profiles: {
         Row: {
+          auto_renew: boolean
           avatar_url: string | null
           created_at: string | null
           daily_scans: number | null
           email: string | null
+          google_play_product_id: string | null
+          google_play_purchase_token: string | null
           id: string
           ispremium: boolean | null
           last_scan_date: string | null
+          last_validated_at: string | null
           lastscanreset: string | null
+          platform: string | null
+          premium_expiry: string | null
           premiumuienabled: boolean | null
           remainingscans: number | null
           scan_count: number
           scan_count_date: string
+          subscription_expiry_date: string | null
+          subscription_start_date: string | null
+          subscription_status: string
           timezone: string | null
           username: string
         }
         Insert: {
+          auto_renew?: boolean
           avatar_url?: string | null
           created_at?: string | null
           daily_scans?: number | null
           email?: string | null
+          google_play_product_id?: string | null
+          google_play_purchase_token?: string | null
           id?: string
           ispremium?: boolean | null
           last_scan_date?: string | null
+          last_validated_at?: string | null
           lastscanreset?: string | null
+          platform?: string | null
+          premium_expiry?: string | null
           premiumuienabled?: boolean | null
           remainingscans?: number | null
           scan_count?: number
           scan_count_date?: string
+          subscription_expiry_date?: string | null
+          subscription_start_date?: string | null
+          subscription_status?: string
           timezone?: string | null
           username: string
         }
         Update: {
+          auto_renew?: boolean
           avatar_url?: string | null
           created_at?: string | null
           daily_scans?: number | null
           email?: string | null
+          google_play_product_id?: string | null
+          google_play_purchase_token?: string | null
           id?: string
           ispremium?: boolean | null
           last_scan_date?: string | null
+          last_validated_at?: string | null
           lastscanreset?: string | null
+          platform?: string | null
+          premium_expiry?: string | null
           premiumuienabled?: boolean | null
           remainingscans?: number | null
           scan_count?: number
           scan_count_date?: string
+          subscription_expiry_date?: string | null
+          subscription_start_date?: string | null
+          subscription_status?: string
           timezone?: string | null
           username?: string
         }
