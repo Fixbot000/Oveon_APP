@@ -155,29 +155,31 @@ const Index = () => {
         )}
 
         {/* Hero Diagnostic Card */}
-        <Card className="bg-card shadow-card border-border overflow-hidden">
-          <CardContent className="p-0">
-            <div className="relative w-full max-w-md mx-auto">
-              <img
-                src={heroImage}
-                alt="Oveon Smart Diagnostics - Snap, Scan, Solve"
-                className="w-full h-auto rounded-lg"
-                style={{
-                  objectFit: 'contain',
-                  objectPosition: 'center'
-                }}
-                loading="eager"
-                onLoad={() => {
-                  // Cache the image in browser cache
-                  localStorage.setItem('hero-image-cached', 'true');
-                }}
-                onError={(e) => {
-                  console.error('Failed to load hero image:', e);
-                }}
-              />
-            </div>
-          </CardContent>
-        </Card>
+        <div onClick={() => navigate('/scan')} className="cursor-pointer">
+          <Card className="bg-card shadow-card border-border overflow-hidden">
+            <CardContent className="p-0">
+              <div className="relative w-full max-w-md mx-auto">
+                <img
+                  src={heroImage}
+                  alt="Oveon Smart Diagnostics - Snap, Scan, Solve"
+                  className="w-full h-auto rounded-lg"
+                  style={{
+                    objectFit: 'contain',
+                    objectPosition: 'center'
+                  }}
+                  loading="eager"
+                  onLoad={() => {
+                    // Cache the image in browser cache
+                    localStorage.setItem('hero-image-cached', 'true');
+                  }}
+                  onError={(e) => {
+                    console.error('Failed to load hero image:', e);
+                  }}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Main Action Cards */}
         <div className="grid grid-cols-2 gap-3 mb-4">
