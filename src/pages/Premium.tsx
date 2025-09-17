@@ -16,24 +16,31 @@ const Premium = () => {
       return;
     }
 
-    // Simulate payment processing
-    const paymentSuccessful = Math.random() > 0.5; // 50% chance of success
-
-    if (paymentSuccessful) {
+    // For now, simulate billing redirect (placeholder)
+    alert('Redirecting to billing...');
+    
+    // On success, set premium status
+    const premiumExpiry = new Date();
+    premiumExpiry.setDate(premiumExpiry.getDate() + 28); // 28 days from now
+    
+    try {
       const { error } = await supabase
         .from('profiles')
-        .update({ ispremium: true })
+        .update({ 
+          ispremium: true, 
+          premium_expiry: premiumExpiry.toISOString() 
+        })
         .eq('id', user.id);
 
-      if (error) {
-        console.error('Error updating premium status:', error);
-        alert('Payment successful, but failed to update premium status. Please contact support.');
-      } else {
-        alert('Upgrade successful! Welcome to Premium!');
-        // Optionally, re-fetch user data to update UI
-      }
-    } else {
-      alert('Payment failed. Please try again.');
+      if (error) throw error;
+      
+      alert('Welcome to Premium! Your subscription is active for 28 days.');
+      
+      // Reload to update auth context
+      window.location.reload();
+    } catch (error: any) {
+      console.error('Error upgrading to premium:', error);
+      alert('Failed to upgrade to premium');
     }
   };
 

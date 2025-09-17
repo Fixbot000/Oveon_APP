@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import MobileHeader from "@/components/MobileHeader";
 import BottomNavigation from "@/components/BottomNavigation";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,13 +6,11 @@ import { CheckCircle, Crown, DollarSign, FolderOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-// import { useNavigate } from 'react-router-dom'; // Removed
-// import { ChevronLeft } from "lucide-react"; // Removed
+import { toast } from 'sonner';
 
 const Plans = () => {
   const { user, isPremium: isPremiumUser } = useAuth();
-  // const navigate = useNavigate(); // Removed
-  // const isPremiumUser = user?.user_metadata?.isPremium || false; // This line is no longer needed
+  const [updating, setUpdating] = useState(false);
 
   // This would ideally fetch actual plan data from an API
   const plans = [
@@ -45,31 +43,57 @@ const Plans = () => {
     },
   ];
 
-  const handleCancelPlan = async () => {
-    if (!user) {
-      alert('You must be logged in to cancel your plan.');
-      return;
-    }
+  const handleSelectPlan = async () => {
+    if (!user) return;
 
-    if (window.confirm('Are you sure you want to cancel your premium plan? Your premium benefits will continue until the end of the current billing cycle.')) {
-      alert('Cancellation request received. Your plan will remain active until the end of the current billing cycle.');
-      console.log('Simulating end of billing cycle...');
+    setUpdating(true);
+    try {
+      // Reset/extend premium by 28 days
+      const premiumExpiry = new Date();
+      premiumExpiry.setDate(premiumExpiry.getDate() + 28);
       
-      // Simulate the end of the billing cycle (e.g., 5 seconds delay)
-      setTimeout(async () => {
-        const { error } = await supabase
-          .from('profiles')
-          .update({ ispremium: false })
-          .eq('id', user.id);
-        
-        if (error) {
-          console.error('Error updating premium status after cancellation:', error);
-          alert('Failed to update premium status after billing cycle ended. Please contact support.');
-        } else {
-          alert('Your premium plan has now ended. You are now on the Free plan.');
-          // Optionally, re-fetch user data to update UI
-        }
-      }, 5000); // 5 seconds delay for demonstration
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          ispremium: true, 
+          premium_expiry: premiumExpiry.toISOString() 
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+      
+      toast.success('Your premium subscription has been extended for 28 days!');
+      
+      // Reload to update auth context
+      window.location.reload();
+    } catch (error: any) {
+      console.error('Error extending premium:', error);
+      toast.error('Failed to extend premium subscription');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleCancelPlan = async () => {
+    if (!user) return;
+
+    // Confirm cancellation
+    const confirmed = window.confirm(
+      'Are you sure you want to cancel your premium plan? You will keep premium features until your current subscription expires.'
+    );
+    
+    if (!confirmed) return;
+
+    setUpdating(true);
+    try {
+      // Note: We keep ispremium = true until premium_expiry is reached
+      // The auth context will handle the expiry check
+      toast.success('Your premium plan has been cancelled. You will keep premium features until your subscription expires.');
+    } catch (error: any) {
+      console.error('Error cancelling plan:', error);
+      toast.error('Failed to cancel premium plan');
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -107,14 +131,28 @@ const Plans = () => {
                   ))}
                 </ul>
                 {plan.isPremium && isPremiumUser ? (
-                  <Button className="w-full" variant="destructive" onClick={handleCancelPlan}>
-                    Cancel Plan
+                  <div className="space-y-2">
+                    <Button 
+                      className="w-full" 
+                      onClick={handleSelectPlan}
+                      disabled={updating}
+                    >
+                      {updating ? 'Processing...' : 'Select Plan'}
+                    </Button>
+                    <Button 
+                      className="w-full" 
+                      variant="destructive" 
+                      onClick={handleCancelPlan}
+                      disabled={updating}
+                    >
+                      Cancel Plan
+                    </Button>
+                  </div>
+                ) : plan.isCurrent ? (
+                  <Button className="w-full" variant="outline" disabled>
+                    Current Plan
                   </Button>
-                ) : (
-                  <Button className="w-full" variant={plan.isPremium ? 'default' : 'outline'}>
-                    {plan.isCurrent ? 'Current Plan' : (plan.isPremium ? 'Upgrade Now' : 'Select Plan')}
-                  </Button>
-                )}
+                ) : null}
               </CardContent>
             </Card>
           ))}
