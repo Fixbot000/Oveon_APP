@@ -162,7 +162,7 @@ const Index = () => {
                 src={heroImage}
                 alt="Oveon Smart Diagnostics - Snap, Scan, Solve"
                 className="w-full h-auto rounded-lg"
-                style={{ 
+                style={{
                   objectFit: 'contain',
                   objectPosition: 'center'
                 }}
