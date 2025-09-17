@@ -11,35 +11,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth'; // Import useAuth
 import { useRef, useEffect } from 'react'; // Import useRef and useEffect
-import ProjectsView from '@/components/ProjectsView';
-interface ProjectFile {
-  id: string;
-  name: string;
-  type: string; // e.g., 'pdf', 'doc', 'image'
-  url: string;
-}
-
-interface ProjectMember {
-  id: string;
-  name: string;
-  role: string;
-}
-
-interface Project {
-  id: string;
-  title: string;
-  description: string;
-  lastUpdated: string;
-  files?: ProjectFile[];
-  members?: ProjectMember[];
-  chatHistory?: {
-    id: number;
-    sender: 'user' | 'ai';
-    text: string;
-  }[];
-}
-import ProjectDetail from '@/components/ProjectDetail';
-import { useLocation } from 'react-router-dom';
 import PremiumUpsell from '@/components/PremiumUpsell'; // Import the new component
 
 interface Message {
@@ -80,31 +51,18 @@ Just describe your problem and I'll guide you through the repair process. Let's 
       isBot: true,
     }
   ]);
-  const [activeTab, setActiveTab] = useState<'repairBot' | 'projects'>('repairBot');
-  const [projects, setProjects] = useState<Project[]>(() => {
+  const [projects, setProjects] = useState<any[]>(() => {
     const storedProjects = localStorage.getItem('projects');
     return storedProjects ? JSON.parse(storedProjects) : [];
   });
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false); 
 
-  const handleUpdateProject = (updatedProject: Project) => {
+  const handleUpdateProject = (updatedProject: any) => {
     setProjects((prevProjects) =>
       prevProjects.map((p) => (p.id === updatedProject.id ? updatedProject : p))
     );
   };
-
-  const location = useLocation();
-
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const tab = params.get('tab');
-    if (tab === 'projects') {
-      setActiveTab('projects');
-    } else {
-      setActiveTab('repairBot');
-    }
-  }, [location.search]);
 
   const quickActions = [
     'My phone won\'t charge',
@@ -259,7 +217,7 @@ Just describe your problem and I'll guide you through the repair process. Let's 
   }, [projects]);
 
   const handleCreateProject = (projectName: string, description: string, files: File[]) => {
-    const newProject: Project = {
+    const newProject: any = {
       id: String(Date.now()), // Unique ID for the project
       title: projectName,
       description: description,
@@ -282,27 +240,7 @@ Just describe your problem and I'll guide you through the repair process. Let's 
     <div className="min-h-screen bg-background pb-20">
               <MobileHeader onRefresh={() => window.location.reload()} isPremium={isPremium} showBackButton={false} backButtonTarget="/" />
       
-      <div className="flex justify-center bg-card shadow-sm border-b border-border py-2 px-4">
-        <div className="flex rounded-lg overflow-hidden bg-muted p-1">
-          <Button
-            variant={activeTab === 'repairBot' ? 'default' : 'ghost'}
-            onClick={() => setActiveTab('repairBot')}
-            className="flex-1 px-6 py-2 rounded-md transition-all duration-200"
-          >
-            Repair Bot
-          </Button>
-          <Button
-            variant={activeTab === 'projects' ? 'default' : 'ghost'}
-            onClick={() => setActiveTab('projects')}
-            className="flex-1 px-6 py-2 rounded-md transition-all duration-200"
-          >
-            Projects
-          </Button>
-        </div>
-      </div>
-
-      {activeTab === 'repairBot' ? (
-        <main className="px-4 py-6 space-y-4 pb-32 bg-background">
+      <main className="px-4 py-6 space-y-4 pb-32 bg-background">
           <div className="space-y-4">
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.isBot ? 'justify-start' : 'justify-end'}`}>
@@ -409,31 +347,6 @@ Just describe your problem and I'll guide you through the repair process. Let's 
             </div>
           )}
         </main>
-      ) : (
-        <main className="px-4 py-6 space-y-8 bg-background">
-          {!isPremium ? (
-            <PremiumUpsell />
-          ) : (
-            selectedProjectId ? (
-              selectedProject && (
-                <ProjectDetail
-                  project={selectedProject}
-                  onBack={() => setSelectedProjectId(null)}
-                  onUpdateProject={handleUpdateProject}
-                />
-              )
-            ) : (
-              <ProjectsView 
-                projects={projects}
-                onSelectProject={setSelectedProjectId}
-                onCreateProject={handleCreateProject}
-                onDeleteProject={handleDeleteProject} // Pass the delete handler
-                onModalToggle={setIsCreateProjectModalOpen} 
-              />
-            )
-          )}
-        </main>
-      )}
 
       <div className="fixed bottom-20 left-0 right-0 p-4 bg-card/95 backdrop-blur-sm border-t border-border">
         <div className="space-y-4 max-w-md mx-auto">
@@ -467,52 +380,51 @@ Just describe your problem and I'll guide you through the repair process. Let's 
           )}
 
           {/* Only show chat input if activeTab is 'repairBot' */}
-          {activeTab === 'repairBot' && (
-            <div className="flex gap-3">
-              <div className="flex-1 relative">
-                <Input
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Describe your device issue..."
-                  className="pr-20 h-12 bg-card border border-input focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
-                  onKeyPress={handleKeyPress}
-                  disabled={isLoading}
-                />
-                <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => setShowDescription(!showDescription)}
-                    title="Add detailed description"
-                  >
-                    <Info className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    disabled
-                    title="Voice input (coming soon)"
-                  >
-                    <Mic className="h-4 w-4" />
-                  </Button>
-                </div>
+          {/* This block is now always rendered */}
+          <div className="flex gap-3">
+            <div className="flex-1 relative">
+              <Input
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Describe your device issue..."
+                className="pr-20 h-12 bg-card border border-input focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+                onKeyPress={handleKeyPress}
+                disabled={isLoading}
+              />
+              <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setShowDescription(!showDescription)}
+                  title="Add detailed description"
+                >
+                  <Info className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled
+                  title="Voice input (coming soon)"
+                >
+                  <Mic className="h-4 w-4" />
+                </Button>
               </div>
-              <Button 
-                onClick={handleSendClick}
-                className="h-12 w-12 bg-primary text-primary-foreground"
-                size="icon"
-                disabled={isLoading || !message.trim()}
-              >
-                {isLoading ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <Send className="h-5 w-5" />
-                )}
-              </Button>
             </div>
-          )}
+            <Button 
+              onClick={handleSendClick}
+              className="h-12 w-12 bg-primary text-primary-foreground"
+              size="icon"
+              disabled={isLoading || !message.trim()}
+            >
+              {isLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Send className="h-5 w-5" />
+              )}
+            </Button>
+          </div>
         </div>
       </div>
 
