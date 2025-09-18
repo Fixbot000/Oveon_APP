@@ -13,8 +13,8 @@ import { toast } from 'sonner';
 
 interface Scan {
   id: string;
-  device_category: string;
-  ai_analysis: any;
+  device_name: string;
+  result: string;
   created_at: string;
   updated_at: string;
 }
@@ -42,10 +42,10 @@ const History = () => {
 
     try {
       const { data, error } = await supabase
-        .from('diagnostic_sessions')
+        .from('scans')
         .select('*')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .order('updated_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching scans:', error);
@@ -72,17 +72,13 @@ const History = () => {
     });
   };
 
-  const getResultPreview = (scan: Scan) => {
-    if (scan.ai_analysis?.finalSolution) {
-      const solution = scan.ai_analysis.finalSolution;
-      const lines = solution.split('\n').filter((line: string) => line.trim());
-      const firstLine = lines.find((line: string) => line.includes('Problem') || line.includes('Issue'));
-      if (firstLine) {
-        return firstLine.replace(/[#•-]\s*/, '').slice(0, 60) + '...';
-      }
-      return solution.slice(0, 60) + '...';
+  const getResultPreview = (result: string) => {
+    const lines = result.split('\n').filter(line => line.trim());
+    const firstIssue = lines.find(line => line.includes('•') || line.includes('-'));
+    if (firstIssue) {
+      return firstIssue.replace(/[•-]\s*/, '').slice(0, 60) + '...';
     }
-    return 'Analysis completed';
+    return result.slice(0, 60) + '...';
   };
 
   if (!user) {
@@ -146,14 +142,14 @@ const History = () => {
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold">{scan.device_category}</h3>
+                          <h3 className="font-semibold">{scan.device_name}</h3>
                           <Badge variant="outline" className="text-xs">
                             <Calendar className="w-3 h-3 mr-1" />
-                            {formatDate(scan.created_at)}
+                            {formatDate(scan.updated_at)}
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          {getResultPreview(scan)}
+                          {getResultPreview(scan.result)}
                         </p>
                       </div>
                       <ChevronRight className="w-5 h-5 text-muted-foreground" />
@@ -171,17 +167,15 @@ const History = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="w-5 h-5" />
-              {selectedScan?.device_category}
+              {selectedScan?.device_name}
             </DialogTitle>
             <DialogDescription>
-              Scanned on {selectedScan && formatDate(selectedScan.created_at)}
+              Scanned on {selectedScan && formatDate(selectedScan.updated_at)}
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4">
             <div className="prose prose-sm max-w-none">
-              <div className="whitespace-pre-wrap">
-                {selectedScan?.ai_analysis?.finalSolution || 'No analysis available'}
-              </div>
+              <div className="whitespace-pre-wrap">{selectedScan?.result}</div>
             </div>
           </div>
         </DialogContent>
