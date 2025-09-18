@@ -20,7 +20,7 @@ interface Scan {
 }
 
 const History = () => {
-  const { user, isPremium } = useAuth(); // Destructure isPremium
+  const { user, isPremium } = useAuth();
   const navigate = useNavigate();
   const [scans, setScans] = useState<Scan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,12 +36,10 @@ const History = () => {
 
   const fetchScans = async () => {
     if (!user) {
-      console.log('No user found, cannot fetch scans');
       setLoading(false);
       return;
     }
 
-    console.log('Fetching scans for user:', user.id);
     try {
       const { data, error } = await supabase
         .from('scans')
@@ -49,14 +47,11 @@ const History = () => {
         .eq('user_id', user.id)
         .order('updated_at', { ascending: false });
 
-      console.log('Scans query result:', { data, error });
-
       if (error) {
         console.error('Error fetching scans:', error);
         toast.error('Failed to fetch scan history');
       } else {
         setScans(data || []);
-        console.log('Successfully loaded', data?.length || 0, 'scans');
       }
     } catch (error) {
       console.error('Error fetching scans:', error);
