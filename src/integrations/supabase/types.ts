@@ -519,6 +519,36 @@ export type Database = {
         }
         Relationships: []
       }
+      scan_history: {
+        Row: {
+          created_at: string
+          device_name: string
+          id: string
+          local_id: string | null
+          scan_result: Json
+          synced_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_name: string
+          id?: string
+          local_id?: string | null
+          scan_result: Json
+          synced_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_name?: string
+          id?: string
+          local_id?: string | null
+          scan_result?: Json
+          synced_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       scans: {
         Row: {
           created_at: string
