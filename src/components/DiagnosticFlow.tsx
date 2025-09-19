@@ -7,10 +7,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Camera, FileText, HelpCircle, Wrench, AlertTriangle, Shield, Paperclip } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
+import { useEnhancedScan } from '@/hooks/useEnhancedScan';
+import { isNativePlatform } from '@/utils/capacitorHelpers';
 
 interface DiagnosticFlowProps {
   selectedLanguage: string;
@@ -20,10 +21,16 @@ interface DiagnosticFlowProps {
 
 export default function DiagnosticFlow({ selectedLanguage, canScan = true, onScanComplete }: DiagnosticFlowProps) {
   const [currentStep, setCurrentStep] = useState(1);
-  const [loading, setLoading] = useState(false);
   
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { 
+    loading, 
+    captureImage, 
+    analyzeCode, 
+    analyzeDevice, 
+    generateDiagnosis 
+  } = useEnhancedScan();
 
   // Step 1: Device name and photo
   const [deviceName, setDeviceName] = useState('');
@@ -50,13 +57,31 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
     preventionTip: string; 
   } | null>(null);
 
-  const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setDevicePhoto(file);
-      const reader = new FileReader();
-      reader.onload = (e) => setPhotoPreview(e.target?.result as string);
-      reader.readAsDataURL(file);
+  const handlePhotoChange = async (event?: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      let imageData: string;
+      
+      if (isNativePlatform()) {
+        // Use Capacitor Camera for native platforms
+        imageData = await captureImage();
+        setPhotoPreview(imageData);
+        // Create a mock file for compatibility
+        const blob = await fetch(imageData).then(r => r.blob());
+        const file = new File([blob], 'camera-image.jpg', { type: 'image/jpeg' });
+        setDevicePhoto(file);
+      } else {
+        // Use file input for web
+        const file = event?.target.files?.[0];
+        if (file) {
+          setDevicePhoto(file);
+          const reader = new FileReader();
+          reader.onload = (e) => setPhotoPreview(e.target?.result as string);
+          reader.readAsDataURL(file);
+        }
+      }
+    } catch (error) {
+      console.error('Photo capture error:', error);
+      toast.error('Failed to capture photo. Please check camera permissions.');
     }
   };
 
@@ -76,17 +101,11 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
   };
 
   const analyzeCodeProblem = async () => {
-    if (!problemDescription.trim() && !problemFile) {
-      toast.error('Please provide either a description or upload a file.');
-      return;
-    }
-
     if (!canScan) {
       toast.error('Daily scan limit reached. Upgrade to Premium for unlimited scans.');
       return;
     }
 
-    setLoading(true);
     try {
       let fileContent = '';
       let fileName = '';
@@ -107,37 +126,21 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
         }
       }
 
-      const { data, error } = await supabase.functions.invoke('analyze-code-problem', {
-        body: {
-          text: problemDescription || undefined,
-          fileContent: fileContent || undefined,
-          fileName: fileName || undefined,
-        },
-      });
+      const result = await analyzeCode(
+        problemDescription,
+        fileContent || undefined,
+        fileName || undefined
+      );
 
-      if (error) throw error;
-
-      if (data.success) {
-        setCodeAnalysisResult({
-          problems: data.problems,
-          suggestions: data.suggestions,
-          correctedCode: data.correctedCode,
-        });
-        
-        // Call onScanComplete callback to update scan count
-        if (onScanComplete) {
-          onScanComplete();
-        }
-
-        toast.success('Code analysis completed!');
-      } else {
-        throw new Error(data.error || 'Analysis failed');
+      setCodeAnalysisResult(result);
+      
+      // Call onScanComplete callback to update scan count
+      if (onScanComplete) {
+        onScanComplete();
       }
     } catch (error) {
-      console.error('Error analyzing code:', error);
-      toast.error('Unable to analyze, please try again.');
-    } finally {
-      setLoading(false);
+      // Error handling is done in the hook
+      console.error('Code analysis failed:', error);
     }
   };
 
@@ -197,16 +200,31 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
             
             <div>
               <Label htmlFor="devicePhoto">Device Photo</Label>
-              <label htmlFor="devicePhotoInput" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm cursor-pointer items-center">
-                {devicePhoto ? devicePhoto.name : "Upload File"}
-              </label>
-              <Input
-                id="devicePhotoInput"
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoChange}
-                className="hidden"
-              />
+              {isNativePlatform() ? (
+                <Button
+                  type="button"
+                  onClick={() => handlePhotoChange()}
+                  className="w-full h-10 justify-start"
+                  variant="outline"
+                >
+                  <Camera className="w-4 h-4 mr-2" />
+                  {devicePhoto ? 'Photo Captured' : 'Take Photo'}
+                </Button>
+              ) : (
+                <>
+                  <label htmlFor="devicePhotoInput" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm cursor-pointer items-center">
+                    <Camera className="w-4 h-4 mr-2" />
+                    {devicePhoto ? devicePhoto.name : "Upload Photo"}
+                  </label>
+                  <Input
+                    id="devicePhotoInput"
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoChange}
+                    className="hidden"
+                  />
+                </>
+              )}
             </div>
             
             {photoPreview && (
@@ -259,29 +277,37 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
                   toast.error('Daily scan limit reached. Upgrade to Premium for unlimited scans.');
                   return;
                 }
-                setLoading(true);
+                
                 try {
-                  const base64 = await new Promise<string>((resolve) => {
-                    const reader = new FileReader();
-                    reader.onload = () => resolve(reader.result as string);
-                    reader.readAsDataURL(devicePhoto!); // devicePhoto is guaranteed to be File | null, but we check for null in handleStep1Next, so it's safe to assert here
-                  });
-                  const { data, error } = await supabase.functions.invoke('analyze-device-and-generate-questions', {
-                    body: {
-                      deviceName,
-                      imageBase64: base64.split(',')[1],
-                      description,
-                      language: selectedLanguage,
-                    },
-                  });
-                  if (error) throw error;
-                  setQuestions(data.questions);
+                  let imageData: string;
+                  
+                  if (photoPreview) {
+                    // Use existing preview data
+                    imageData = photoPreview;
+                  } else if (devicePhoto) {
+                    // Read file as data URL
+                    imageData = await new Promise<string>((resolve) => {
+                      const reader = new FileReader();
+                      reader.onload = () => resolve(reader.result as string);
+                      reader.readAsDataURL(devicePhoto);
+                    });
+                  } else {
+                    toast.error('Please capture a device photo first.');
+                    return;
+                  }
+
+                  const result = await analyzeDevice(
+                    deviceName,
+                    imageData,
+                    description,
+                    selectedLanguage
+                  );
+                  
+                  setQuestions(result.questions);
                   setCurrentStep(3);
                 } catch (error) {
-                  console.error('Error generating questions:', error);
-                  toast.error('Failed to generate questions. Please try again.');
-                } finally {
-                  setLoading(false);
+                  // Error handling is done in the hook
+                  console.error('Device analysis failed:', error);
                 }
               }}
               disabled={loading || !description.trim() || !devicePhoto || !canScan}
@@ -341,57 +367,27 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
                   toast.error('Daily scan limit reached. Upgrade to Premium for unlimited scans.');
                   return;
                 }
-                setLoading(true);
+                
                 try {
-                  const { data, error } = await supabase.functions.invoke('generate-repair-diagnosis', {
-                    body: {
-                      deviceName,
-                      description,
-                      questions,
-                      answers,
-                      language: selectedLanguage,
-                    },
-                  });
-                  if (error) throw error;
-                  
-                  // Save to scans table for history
-                  console.log('Saving scan for user:', user?.id);
-                  const formatDiagnosisForHistory = (diagnosis: any) => {
-                    return `Device: ${deviceName}\n\n` +
-                           `Problem: ${diagnosis.problem}\n\n` +
-                           `Repair Steps:\n${diagnosis.repairSteps}\n\n` +
-                           `Tools Needed: ${diagnosis.toolsNeeded}\n\n` +
-                           `Prevention Tip: ${diagnosis.preventionTip}`;
-                  };
-
-                  const scanToSave = {
-                    user_id: user?.id,
-                    device_name: deviceName,
-                    result: formatDiagnosisForHistory(data)
-                  };
-                  console.log('Scan data to save:', scanToSave);
-
-                  const { error: saveError } = await supabase
-                    .from('scans')
-                    .insert(scanToSave);
-
-                  if (saveError) {
-                    console.error('Error saving scan to history:', saveError);
-                  }
+                  const result = await generateDiagnosis(
+                    deviceName,
+                    description,
+                    questions,
+                    answers,
+                    selectedLanguage
+                  );
 
                   // Call onScanComplete callback to update scan count
                   if (onScanComplete) {
                     onScanComplete();
                   }
 
-                  setFinalDiagnosis(data);
-                  navigate('/diagnosis-result', { state: { finalDiagnosis: data } });
+                  setFinalDiagnosis(result);
+                  navigate('/diagnosis-result', { state: { finalDiagnosis: result } });
                   setCurrentStep(4);
                 } catch (error) {
-                  console.error('Error generating final report:', error);
-                  toast.error('Failed to generate repair guide. Please try again.');
-                } finally {
-                  setLoading(false);
+                  // Error handling is done in the hook
+                  console.error('Diagnosis generation failed:', error);
                 }
               }}
               disabled={loading || !canScan}
