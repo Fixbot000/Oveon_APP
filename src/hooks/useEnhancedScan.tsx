@@ -236,22 +236,20 @@ export const useEnhancedScan = () => {
 
       // Save to scan history
       try {
-        const scanResult = {
-          device_name: deviceName,
-          scan_result: {
-            problem: data.problem,
-            repairSteps: data.repairSteps,
-            toolsNeeded: data.toolsNeeded || [],
-            preventionTip: data.preventionTip || '',
-            timestamp: new Date().toISOString()
-          }
-        };
+        const scanResult = JSON.stringify({
+          problem: data.problem,
+          repairSteps: data.repairSteps,
+          toolsNeeded: data.toolsNeeded || [],
+          preventionTip: data.preventionTip || '',
+          timestamp: new Date().toISOString()
+        });
 
         await supabase
-          .from('scan_history')
+          .from('scans')
           .insert({
             user_id: user?.id,
-            ...scanResult
+            device_name: deviceName,
+            result: scanResult
           });
       } catch (saveError) {
         console.error('Failed to save scan to history:', saveError);
