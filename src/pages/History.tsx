@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Clock, FileText, Calendar, ChevronRight, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Clock, FileText, Calendar, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -7,23 +7,62 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import MobileHeader from '@/components/MobileHeader';
 import BottomNavigation from '@/components/BottomNavigation';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-import { useScanHistory, ScanHistoryItem } from '@/hooks/useScanHistory';
+import { toast } from 'sonner';
+
+interface Scan {
+  id: string;
+  device_name: string;
+  result: string;
+  created_at: string;
+  updated_at: string;
+}
 
 const History = () => {
-  const { user, isPremium } = useAuth();
+  const { user, isPremium } = useAuth(); // Destructure isPremium
   const navigate = useNavigate();
-  const { scans, loading, refreshScans, syncPendingScans } = useScanHistory();
-  const [selectedScan, setSelectedScan] = useState<ScanHistoryItem | null>(null);
-  const [syncing, setSyncing] = useState(false);
+  const [scans, setScans] = useState<Scan[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedScan, setSelectedScan] = useState<Scan | null>(null);
 
-  const handleSync = async () => {
-    setSyncing(true);
+  useEffect(() => {
+    if (user) {
+      fetchScans();
+    } else {
+      navigate('/auth');
+    }
+  }, [user, navigate]);
+
+  const fetchScans = async () => {
+    if (!user) {
+      console.log('No user found, cannot fetch scans');
+      setLoading(false);
+      return;
+    }
+
+    console.log('Fetching scans for user:', user.id);
     try {
-      await syncPendingScans();
-      await refreshScans();
+      const { data, error } = await supabase
+        .from('scans')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false });
+
+      console.log('Scans query result:', { data, error });
+
+      if (error) {
+        console.error('Error fetching scans:', error);
+        toast.error('Failed to fetch scan history');
+      } else {
+        setScans(data || []);
+        console.log('Successfully loaded', data?.length || 0, 'scans');
+      }
+    } catch (error) {
+      console.error('Error fetching scans:', error);
+      toast.error('Error loading scan history');
     } finally {
-      setSyncing(false);
+      setLoading(false);
     }
   };
 
@@ -38,22 +77,13 @@ const History = () => {
     });
   };
 
-  const getResultPreview = (result: any) => {
-    if (typeof result === 'string') {
-      const lines = result.split('\n').filter(line => line.trim());
-      const firstIssue = lines.find(line => line.includes('•') || line.includes('-'));
-      if (firstIssue) {
-        return firstIssue.replace(/[•-]\s*/, '').slice(0, 60) + '...';
-      }
-      return result.slice(0, 60) + '...';
+  const getResultPreview = (result: string) => {
+    const lines = result.split('\n').filter(line => line.trim());
+    const firstIssue = lines.find(line => line.includes('•') || line.includes('-'));
+    if (firstIssue) {
+      return firstIssue.replace(/[•-]\s*/, '').slice(0, 60) + '...';
     }
-    
-    // Handle JSON scan results
-    if (result?.problem) {
-      return result.problem.slice(0, 60) + '...';
-    }
-    
-    return 'Scan completed - tap to view details';
+    return result.slice(0, 60) + '...';
   };
 
   if (!user) {
@@ -63,7 +93,7 @@ const History = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       <MobileHeader 
-        onRefresh={refreshScans} 
+        onRefresh={() => window.location.reload()} 
         isPremium={isPremium}
         showBackButton={true}
         backButtonTarget="/profile"
@@ -71,24 +101,10 @@ const History = () => {
       
       <main className="px-4 py-6">
         <div className="max-w-2xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Clock className="w-6 h-6" />
-              Scan History
-            </h1>
-            {user && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSync}
-                disabled={syncing}
-                className="flex items-center gap-2"
-              >
-                <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-                Sync
-              </Button>
-            )}
-          </div>
+          <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
+            <Clock className="w-6 h-6" />
+            Scan History
+          </h1>
           
           {loading ? (
             <div className="space-y-4">
@@ -132,20 +148,13 @@ const History = () => {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="font-semibold">{scan.device_name}</h3>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs">
-                              <Calendar className="w-3 h-3 mr-1" />
-                              {formatDate(scan.created_at)}
-                            </Badge>
-                            {scan.local_id && !scan.synced_at && (
-                              <Badge variant="secondary" className="text-xs">
-                                Local
-                              </Badge>
-                            )}
-                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            <Calendar className="w-3 h-3 mr-1" />
+                            {formatDate(scan.updated_at)}
+                          </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          {getResultPreview(scan.scan_result)}
+                          {getResultPreview(scan.result)}
                         </p>
                       </div>
                       <ChevronRight className="w-5 h-5 text-muted-foreground" />
@@ -166,42 +175,12 @@ const History = () => {
               {selectedScan?.device_name}
             </DialogTitle>
             <DialogDescription>
-              Scanned on {selectedScan && formatDate(selectedScan.created_at)}
-              {selectedScan?.local_id && !selectedScan?.synced_at && " (Local)"}
+              Scanned on {selectedScan && formatDate(selectedScan.updated_at)}
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4">
             <div className="prose prose-sm max-w-none">
-              {typeof selectedScan?.scan_result === 'string' ? (
-                <div className="whitespace-pre-wrap">{selectedScan.scan_result}</div>
-              ) : (
-                <div className="space-y-4">
-                  {selectedScan?.scan_result?.problem && (
-                    <div>
-                      <h4 className="font-semibold text-sm mb-2">Problem:</h4>
-                      <p className="text-sm">{selectedScan.scan_result.problem}</p>
-                    </div>
-                  )}
-                  {selectedScan?.scan_result?.repairSteps && (
-                    <div>
-                      <h4 className="font-semibold text-sm mb-2">Repair Steps:</h4>
-                      <p className="text-sm whitespace-pre-wrap">{selectedScan.scan_result.repairSteps}</p>
-                    </div>
-                  )}
-                  {selectedScan?.scan_result?.toolsNeeded && (
-                    <div>
-                      <h4 className="font-semibold text-sm mb-2">Tools Needed:</h4>
-                      <p className="text-sm">{selectedScan.scan_result.toolsNeeded}</p>
-                    </div>
-                  )}
-                  {selectedScan?.scan_result?.preventionTip && (
-                    <div>
-                      <h4 className="font-semibold text-sm mb-2">Prevention Tip:</h4>
-                      <p className="text-sm">{selectedScan.scan_result.preventionTip}</p>
-                    </div>
-                  )}
-                </div>
-              )}
+              <div className="whitespace-pre-wrap">{selectedScan?.result}</div>
             </div>
           </div>
         </DialogContent>

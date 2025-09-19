@@ -11,7 +11,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { useScanHistory } from '@/hooks/useScanHistory';
 
 interface DiagnosticFlowProps {
   selectedLanguage: string;
@@ -25,7 +24,6 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
   
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { addScan } = useScanHistory();
 
   // Step 1: Device name and photo
   const [deviceName, setDeviceName] = useState('');
@@ -356,11 +354,29 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
                   });
                   if (error) throw error;
                   
-                  // Save to scan history
-                  try {
-                    await addScan(deviceName, data);
-                  } catch (error) {
-                    console.error('Error saving scan to history:', error);
+                  // Save to scans table for history
+                  console.log('Saving scan for user:', user?.id);
+                  const formatDiagnosisForHistory = (diagnosis: any) => {
+                    return `Device: ${deviceName}\n\n` +
+                           `Problem: ${diagnosis.problem}\n\n` +
+                           `Repair Steps:\n${diagnosis.repairSteps}\n\n` +
+                           `Tools Needed: ${diagnosis.toolsNeeded}\n\n` +
+                           `Prevention Tip: ${diagnosis.preventionTip}`;
+                  };
+
+                  const scanToSave = {
+                    user_id: user?.id,
+                    device_name: deviceName,
+                    result: formatDiagnosisForHistory(data)
+                  };
+                  console.log('Scan data to save:', scanToSave);
+
+                  const { error: saveError } = await supabase
+                    .from('scans')
+                    .insert(scanToSave);
+
+                  if (saveError) {
+                    console.error('Error saving scan to history:', saveError);
                   }
 
                   // Call onScanComplete callback to update scan count
