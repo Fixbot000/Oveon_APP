@@ -59,14 +59,13 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
 
   const handlePhotoChange = async (event?: React.ChangeEvent<HTMLInputElement>) => {
     try {
-      let imageData: string;
-      
       if (isNativePlatform()) {
         // Use Capacitor Camera for native platforms
-        imageData = await captureImage();
+        const imageData = await captureImage();
         setPhotoPreview(imageData);
-        // Create a mock file for compatibility
-        const blob = await fetch(imageData).then(r => r.blob());
+        // Convert data URL to blob for file compatibility
+        const response = await fetch(imageData);
+        const blob = await response.blob();
         const file = new File([blob], 'camera-image.jpg', { type: 'image/jpeg' });
         setDevicePhoto(file);
       } else {

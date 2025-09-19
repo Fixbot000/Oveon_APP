@@ -113,7 +113,7 @@ export const retryRequest = async <T>(
   maxRetries: number = 3,
   delay: number = 1000
 ): Promise<T> => {
-  let lastError: Error;
+  let lastError: Error | null = null;
   
   for (let i = 0; i < maxRetries; i++) {
     try {
@@ -131,7 +131,8 @@ export const retryRequest = async <T>(
       if (error instanceof Error && (
         error.message.includes('401') ||
         error.message.includes('403') ||
-        error.message.includes('400')
+        error.message.includes('400') ||
+        error.message.includes('Authentication')
       )) {
         throw error;
       }
@@ -142,5 +143,5 @@ export const retryRequest = async <T>(
     }
   }
   
-  throw lastError!;
+  throw lastError || new Error('Request failed after retries');
 };
