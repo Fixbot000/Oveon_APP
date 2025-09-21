@@ -25,6 +25,23 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  // Translation helper function
+  const translateText = async (text: string): Promise<string> => {
+    if (!text || selectedLanguage === 'en') return text;
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('gemini-translate', {
+        body: { text, targetLanguage: selectedLanguage }
+      });
+      
+      if (error) throw error;
+      return data.translatedText || text;
+    } catch (error) {
+      console.error('Translation error:', error);
+      return text; // Fallback to original text
+    }
+  };
+
   // Step 1: Device name and photo
   const [deviceName, setDeviceName] = useState('');
   const [devicePhoto, setDevicePhoto] = useState<File | null>(null);
@@ -42,6 +59,7 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
   const [description, setDescription] = useState('');
   // New pipeline state
   const [questions, setQuestions] = useState<{ id: string, category: string, question: string }[]>([]);
+  const [translatedQuestions, setTranslatedQuestions] = useState<{ id: string, category: string, question: string }[]>([]);
   const [answers, setAnswers] = useState<{ [key: string]: string }>({});
   const [finalDiagnosis, setFinalDiagnosis] = useState<{ 
     problem: string; 
@@ -181,12 +199,22 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Camera className="h-5 w-5" />
-              Device Information
+              {selectedLanguage === 'en' ? 'Device Information' :
+               selectedLanguage === 'hi' ? 'डिवाइस की जानकारी' :
+               selectedLanguage === 'ta' ? 'சாதன தகவல்' :
+               selectedLanguage === 'te' ? 'పరికర సమాచారం' :
+               selectedLanguage === 'kn' ? 'ಸಾಧನ ಮಾಹಿತಿ' : 'Device Information'}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="deviceName">Device Name</Label>
+              <Label htmlFor="deviceName">
+                {selectedLanguage === 'en' ? 'Device Name' :
+                 selectedLanguage === 'hi' ? 'डिवाइस का नाम' :
+                 selectedLanguage === 'ta' ? 'சாதன பெயர்' :
+                 selectedLanguage === 'te' ? 'పరికరం పేరు' :
+                 selectedLanguage === 'kn' ? 'ಸಾಧನದ ಹೆಸರು' : 'Device Name'}
+              </Label>
               <Input
                 id="deviceName"
                 value={deviceName}
@@ -234,12 +262,22 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Describe the Issue
+              {selectedLanguage === 'en' ? 'Describe the Issue' :
+               selectedLanguage === 'hi' ? 'समस्या का वर्णन करें' :
+               selectedLanguage === 'ta' ? 'பிரச்சினையை விவரிக்கவும்' :
+               selectedLanguage === 'te' ? 'సమస్యను వివరించండి' :
+               selectedLanguage === 'kn' ? 'ಸಮಸ್ಯೆಯನ್ನು ವಿವರಿಸಿ' : 'Describe the Issue'}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="description">What's wrong with your device?</Label>
+              <Label htmlFor="description">
+                {selectedLanguage === 'en' ? "What's wrong with your device?" :
+                 selectedLanguage === 'hi' ? 'आपके डिवाइस में क्या समस्या है?' :
+                 selectedLanguage === 'ta' ? 'உங்கள் சாதனத்தில் என்ன தவறு?' :
+                 selectedLanguage === 'te' ? 'మీ పరికరంలో ఏమి తప్పు?' :
+                 selectedLanguage === 'kn' ? 'ನಿಮ್ಮ ಸಾಧನದಲ್ಲಿ ಏನು ತಪ್ಪಾಗಿದೆ?' : "What's wrong with your device?"}
+              </Label>
               <Textarea
                 id="description"
                 value={description}
@@ -273,10 +311,25 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
                       description,
                       language: selectedLanguage,
                     },
-                  });
-                  if (error) throw error;
-                  setQuestions(data.questions);
-                  setCurrentStep(3);
+                   });
+                   if (error) throw error;
+                   setQuestions(data.questions);
+                   
+                   // Translate questions immediately if not English
+                   if (selectedLanguage !== 'en') {
+                     const translatedQs = await Promise.all(
+                       data.questions.map(async (q: any) => ({
+                         ...q,
+                         question: await translateText(q.question),
+                         category: await translateText(q.category)
+                       }))
+                     );
+                     setTranslatedQuestions(translatedQs);
+                   } else {
+                     setTranslatedQuestions(data.questions);
+                   }
+                   
+                   setCurrentStep(3);
                 } catch (error) {
                   console.error('Error generating questions:', error);
                   toast.error('Failed to generate questions. Please try again.');
@@ -299,17 +352,26 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <HelpCircle className="h-5 w-5" />
-              Answer These Questions
+              {selectedLanguage === 'en' ? 'Answer These Questions' :
+               selectedLanguage === 'hi' ? 'इन सवालों के जवाब दें' :
+               selectedLanguage === 'ta' ? 'இந்த கேள்விகளுக்கு பதிலளிக்கவும்' :
+               selectedLanguage === 'te' ? 'ఈ ప్రశ్నలకు సమాధానం ఇవ్వండి' :
+               selectedLanguage === 'kn' ? 'ಈ ಪ್ರಶ್ನೆಗಳಿಗೆ ಉತ್ತರಿಸಿ' : 'Answer These Questions'}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg">
               <p className="text-sm text-blue-700 dark:text-blue-300">
-                Please answer these questions to help identify the exact problem. Skip any that don't apply.
+                {selectedLanguage === 'en' ? 'Please answer these questions to help identify the exact problem. Skip any that don\'t apply.' :
+                 selectedLanguage === 'hi' ? 'सटीक समस्या की पहचान में मदद के लिए कृपया इन सवालों के जवाब दें। जो लागू न हों उन्हें छोड़ दें।' :
+                 selectedLanguage === 'ta' ? 'சரியான பிரச்சினையை அடையாளம் காண உதவ தயவுசெய்து இந்த கேள்விகளுக்கு பதிலளிக்கவும். பொருந்தாதவற்றைத் தவிர்க்கவும்।' :
+                 selectedLanguage === 'te' ? 'ఖచ్చితమైన సమస్యను గుర్తించడంలో సహాయపడటానికి దయచేసి ఈ ప్రశ్నలకు సమాధానం ఇవ్వండి. వర్తించనివాటిని దాటవేయండి।' :
+                 selectedLanguage === 'kn' ? 'ನಿಖರವಾದ ಸಮಸ್ಯೆಯನ್ನು ಗುರುತಿಸಲು ಸಹಾಯ ಮಾಡಲು ದಯವಿಟ್ಟು ಈ ಪ್ರಶ್ನೆಗಳಿಗೆ ಉತ್ತರಿಸಿ. ಅನ್ವಯಿಸದವುಗಳನ್ನು ಬಿಟ್ಟುಬಿಡಿ।' : 
+                 'Please answer these questions to help identify the exact problem. Skip any that don\'t apply.'}
               </p>
             </div>
 
-            {questions.map((question, index) => (
+            {translatedQuestions.map((question, index) => (
               <div key={question.id} className="space-y-2">
                 <div className="flex items-center gap-2 mb-1">
                   <Badge variant="secondary" className="text-xs">
@@ -328,7 +390,11 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
                       [question.id]: e.target.value
                     }));
                   }}
-                  placeholder="Your answer (optional)"
+                  placeholder={selectedLanguage === 'en' ? "Your answer (optional)" : 
+                    selectedLanguage === 'hi' ? "आपका उत्तर (वैकल्पिक)" :
+                    selectedLanguage === 'ta' ? "உங்கள் பதில் (விருப்பமானது)" :
+                    selectedLanguage === 'te' ? "మీ సమాధానం (ఐచ్ఛికం)" :
+                    selectedLanguage === 'kn' ? "ನಿಮ್ಮ ಉತ್ತರ (ಐಚ್ಛಿಕ)" : "Your answer (optional)"}
                   rows={2}
                   className="w-full"
                 />
