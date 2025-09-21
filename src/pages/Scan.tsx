@@ -8,11 +8,13 @@ import BottomNavigation from '@/components/BottomNavigation';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import DiagnosticFlow from '@/components/DiagnosticFlow';
+import LanguageSelector from '@/components/LanguageSelector';
 
 const Scan = () => {
   const { user, isPremium } = useAuth();
   const [scansRemaining, setScansRemaining] = React.useState<number>(0);
   const [canScan, setCanScan] = React.useState<boolean>(true);
+  const [selectedLanguage, setSelectedLanguage] = React.useState<string>('en');
   const { toast } = useToast();
 
   // Check scan status on page load
@@ -54,21 +56,27 @@ const Scan = () => {
         <div className="max-w-2xl mx-auto">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold">Device Scanner</h1>
-            <div className="flex flex-col items-end gap-1">
-              <Badge variant="secondary" className="flex items-center gap-1">
-                <AlertCircle className="w-3 h-3" />
-                {isPremium ? "Unlimited scans" : `${scansRemaining} scans left today`}
-              </Badge>
-              {!canScan && (
-                <p className="text-xs text-muted-foreground text-right">
-                  You've reached your free scan limit for today.{' '}
-                  <span className="text-primary">Upgrade to Premium for unlimited scans.</span>
-                </p>
-              )}
+            <div className="flex flex-col items-end gap-3">
+              <LanguageSelector 
+                value={selectedLanguage} 
+                onChange={setSelectedLanguage} 
+              />
+              <div className="flex flex-col items-end gap-1">
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  {isPremium ? "Unlimited scans" : `${scansRemaining} scans left today`}
+                </Badge>
+                {!canScan && (
+                  <p className="text-xs text-muted-foreground text-right">
+                    You've reached your free scan limit for today.{' '}
+                    <span className="text-primary">Upgrade to Premium for unlimited scans.</span>
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
-          <DiagnosticFlow selectedLanguage="en" canScan={canScan} onScanComplete={async () => {
+          <DiagnosticFlow selectedLanguage={selectedLanguage} canScan={canScan} onScanComplete={async () => {
             if (!user) return;
             
             try {

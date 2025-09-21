@@ -385,7 +385,7 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
                   }
 
                   setFinalDiagnosis(data);
-                  navigate('/diagnosis-result', { state: { finalDiagnosis: data } });
+                  navigate('/diagnosis-result', { state: { finalDiagnosis: data, selectedLanguage } });
                   setCurrentStep(4);
                 } catch (error) {
                   console.error('Error generating final report:', error);
