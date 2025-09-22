@@ -53,7 +53,7 @@ const BottomNavigation = ({ isCreateProjectModalOpen = false }: BottomNavigation
         <>
           {/* Bottom Navigation */}
           <nav 
-            className={`fixed bottom-4 left-4 right-4 transition-transform duration-300 z-50 ${
+            className={`fixed bottom-4 left-4 right-4 transition-transform duration-300 z-50 pb-safe-bottom ${
               isVisible ? 'transform translate-y-0' : 'transform translate-y-full'
             }`}
           >

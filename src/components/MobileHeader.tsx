@@ -69,7 +69,7 @@ const MobileHeader = ({ onRefresh, isPremium, showBackButton, backButtonTarget }
   };
 
   return (
-    <header className="bg-gradient-header p-4 pb-6 rounded-b-3xl shadow-card">
+    <header className="bg-gradient-header p-4 pb-6 rounded-b-3xl shadow-card pt-safe-top">
       <div className="flex items-center justify-between relative">
         {showBackButton && (
           <Button
