@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import MobileHeader from "@/components/MobileHeader";
 import BottomNavigation from "@/components/BottomNavigation";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +11,22 @@ import { toast } from 'sonner';
 const Plans = () => {
   const { user, isPremium: isPremiumUser } = useAuth();
   const [updating, setUpdating] = useState(false);
+  const [premiumExpiryDate, setPremiumExpiryDate] = useState<Date | null>(null);
+  const [showCancelledPremiumOptions, setShowCancelledPremiumOptions] = useState(false);
+  const [isPremiumActiveButCancelled, setIsPremiumActiveButCancelled] = useState(false);
+
+  useEffect(() => {
+    if (user?.user_metadata?.premium_expiry) {
+      const expiryDate = new Date(user.user_metadata.premium_expiry);
+      setPremiumExpiryDate(expiryDate);
+
+      // Show options if premium_expiry is in the future but user is not currently premium
+      // or if the user has actively cancelled but premium is still active
+      if ((expiryDate > new Date() && !isPremiumUser) || isPremiumActiveButCancelled) {
+        setShowCancelledPremiumOptions(true);
+      }
+    }
+  }, [user, isPremiumUser, isPremiumActiveButCancelled]);
 
   // This would ideally fetch actual plan data from an API
   const plans = [
@@ -66,6 +82,7 @@ const Plans = () => {
       
       // Reload to update auth context
       window.location.reload();
+      setIsPremiumActiveButCancelled(false);
     } catch (error: any) {
       console.error('Error extending premium:', error);
       toast.error('Failed to extend premium subscription');
@@ -89,6 +106,7 @@ const Plans = () => {
       // Note: We keep ispremium = true until premium_expiry is reached
       // The auth context will handle the expiry check
       toast.success('Your premium plan has been cancelled. You will keep premium features until your subscription expires.');
+      setIsPremiumActiveButCancelled(true);
     } catch (error: any) {
       console.error('Error cancelling plan:', error);
       toast.error('Failed to cancel premium plan');
@@ -108,6 +126,20 @@ const Plans = () => {
       />
       <main className="px-4 py-6 space-y-6">
         <h1 className="text-3xl font-bold text-center">Our Plans</h1>
+
+        {showCancelledPremiumOptions && premiumExpiryDate && (
+          <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-lg flex flex-col items-center space-y-3" role="alert">
+            <p className="font-bold">Premium Plan Cancelled</p>
+            <p>You will retain premium features until: {premiumExpiryDate.toLocaleDateString()}</p>
+            <Button
+              className="w-fit"
+              onClick={handleSelectPlan}
+              disabled={updating}
+            >
+              {updating ? 'Processing...' : 'Back to Premium'}
+            </Button>
+          </div>
+        )}
 
         <div className="flex flex-col md:flex-row gap-6 justify-center items-stretch">
           {plans.map((plan, index) => (
@@ -139,14 +171,16 @@ const Plans = () => {
                     >
                       {updating ? 'Processing...' : 'Select Plan'}
                     </Button>
-                    <Button 
-                      className="w-full" 
-                      variant="destructive" 
-                      onClick={handleCancelPlan}
-                      disabled={updating}
-                    >
-                      Cancel Plan
-                    </Button>
+                    {!isPremiumActiveButCancelled && (
+                      <Button 
+                        className="w-full" 
+                        variant="destructive" 
+                        onClick={handleCancelPlan}
+                        disabled={updating}
+                      >
+                        Cancel Plan
+                      </Button>
+                    )}
                   </div>
                 ) : plan.isCurrent ? (
                   <Button className="w-full" variant="outline" disabled>

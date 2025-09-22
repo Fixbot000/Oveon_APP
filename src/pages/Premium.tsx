@@ -78,10 +78,6 @@ const Premium = () => {
                 <span>Ad-Free Experience</span>
               </li>
               <li className="flex items-center gap-3">
-                <FolderOpen className="h-6 w-6 text-green-700" />
-                <span>Projects</span>
-              </li>
-              <li className="flex items-center gap-3">
                 <Crown className="h-6 w-6 text-green-700" />
                 <span>Premium Badge on Profile</span>
               </li>

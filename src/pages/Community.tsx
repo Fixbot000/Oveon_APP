@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Plus, Heart, MessageCircle, Eye, Send } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -22,6 +22,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { OptimizedImage } from '@/components/OptimizedImage';
 
 interface Post {
   id: string;
@@ -38,19 +40,24 @@ interface Post {
     ispremium: boolean;
   };
   user_like?: 'like' | null;
+  user_has_liked?: boolean; // New property
 }
 
+
 const Community = () => {
-  const [posts, setPosts] = useState<Post[]>([]);
   const [newPostText, setNewPostText] = useState('');
+  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const { user, isPremium } = useAuth();
   const navigate = useNavigate();
-  const [postFilter, setPostFilter] = useState<'all' | 'my'>('all');
+  const [postFilter, setPostFilter] = useState<'all' | 'my' | 'liked'>('all');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [postToDelete, setPostToDelete] = useState<string | null>(null);
+  const [selectedUser, setSelectedUser] = useState<Partial<Profile> | null>(null);
+  const [isUserDetailsModalOpen, setIsUserDetailsModalOpen] = useState(false);
+  const [isPosting, setIsPosting] = useState(false);
 
-  const fetchPosts = async () => {
+  const fetchPosts = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -91,17 +98,22 @@ const Community = () => {
       // Combine posts with user likes
       const postsWithLikes = postsData?.map(post => ({
         ...post,
-        user_like: userLikes.find(like => like.post_id === post.id)?.like_type || null
+        user_like: userLikes.find(like => like.post_id === post.id)?.like_type || null,
+        user_has_liked: userLikes.some(like => like.post_id === post.id && like.like_type === 'like') // Populate new field
       })) || [];
 
-      setPosts(postsWithLikes);
+      if (postFilter === 'liked') {
+        setPosts(postsWithLikes.filter(post => post.user_has_liked));
+      } else {
+        setPosts(postsWithLikes);
+      }
     } catch (error: any) {
       console.error('Error fetching posts:', error);
       toast.error('Failed to load posts');
     } finally {
       setLoading(false);
     }
-  };
+  }, [postFilter, user]);
 
   const createPost = async () => {
     if (!user) {
@@ -115,6 +127,7 @@ const Community = () => {
     }
 
     try {
+      setIsPosting(true);
       const { error } = await supabase
         .from('posts')
         .insert({
@@ -130,6 +143,8 @@ const Community = () => {
     } catch (error: any) {
       console.error('Error creating post:', error);
       toast.error('Failed to create post');
+    } finally {
+      setIsPosting(false);
     }
   };
 
@@ -276,7 +291,7 @@ const Community = () => {
 
   useEffect(() => {
     fetchPosts();
-  }, [postFilter]);
+  }, [fetchPosts]);
 
   if (loading) {
     return (
@@ -311,10 +326,11 @@ const Community = () => {
         </div>
 
         {/* Post Filter Tabs */}
-        <Tabs value={postFilter} onValueChange={(value: 'all' | 'my') => setPostFilter(value)} className="max-w-2xl mx-auto mb-6">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs value={postFilter} onValueChange={(value: 'all' | 'my' | 'liked') => setPostFilter(value)} className="max-w-2xl mx-auto mb-6">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="all" onClick={() => setPostFilter('all')}>All Posts</TabsTrigger>
             <TabsTrigger value="my" onClick={() => setPostFilter('my')} disabled={!user}>My Posts</TabsTrigger>
+            <TabsTrigger value="liked" onClick={() => setPostFilter('liked')} disabled={!user}>Liked Posts</TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -337,7 +353,7 @@ const Community = () => {
               <Button 
                 onClick={createPost} 
                 className="w-full"
-                disabled={!newPostText.trim()}
+                disabled={!newPostText.trim() || isPosting}
               >
                 <Send className="h-4 w-4 mr-2" />
                 Share Post
@@ -361,15 +377,23 @@ const Community = () => {
               <Card key={post.id} className="shadow-lg hover:shadow-xl transition-all duration-300">
                 <CardContent className="p-6">
                   <div className="flex items-center space-x-3 mb-4">
-                    <Avatar className={`h-10 w-10 ${post.profiles?.ispremium ? 'ring-2 ring-amber-400' : ''}`}>
+                    <Avatar 
+                      className={`h-10 w-10 cursor-pointer ${post.profiles?.ispremium ? 'ring-2 ring-amber-400' : ''}`}
+                      onClick={() => {
+                        if (post.profiles) {
+                          setSelectedUser({ avatar_url: post.profiles.avatar_url, username: post.profiles.username, ispremium: post.profiles.ispremium });
+                          setIsUserDetailsModalOpen(true);
+                        }
+                      }}
+                    >
                       {post.profiles?.avatar_url && (
-                        <img 
-                          src={`${post.profiles.avatar_url}?v=${new Date().getTime()}`} 
+                        <OptimizedImage 
+                          src={post.profiles.avatar_url} 
                           alt="User avatar"
                           className="w-full h-full object-cover rounded-full"
                         />
                       )}
-                      <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                      <AvatarFallback className="text-sm">
                         {post.profiles?.username?.[0]?.toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
@@ -396,7 +420,7 @@ const Community = () => {
 
                   {post.image_url && (
                     <div className="mb-4">
-                      <img 
+                      <OptimizedImage 
                         src={post.image_url} 
                         alt="Post image"
                         className="w-full rounded-lg object-cover max-h-96"
@@ -415,7 +439,7 @@ const Community = () => {
                         }`}
                       >
                         <Heart className={`h-4 w-4 ${post.user_like === 'like' ? 'fill-current' : ''}`} />
-                        <span>{post.likes}</span>
+                        
                       </Button>
                       <div className="flex items-center space-x-1 text-muted-foreground">
                         <Eye className="h-4 w-4" />
@@ -468,9 +492,30 @@ const Community = () => {
             ))
           )}
         </div>
-      </main>
 
-      <BottomNavigation />
+        {selectedUser && (
+          <Dialog open={isUserDetailsModalOpen} onOpenChange={setIsUserDetailsModalOpen}>
+            <DialogContent className="sm:max-w-[320px]">
+              <DialogHeader>
+                <DialogTitle className="text-center">User Details</DialogTitle>
+              </DialogHeader>
+              <div className="flex flex-col items-center gap-4 py-4">
+                <Avatar className={`h-24 w-24 ${selectedUser.ispremium ? 'ring-2 ring-amber-400' : ''}`}>
+                  {selectedUser.avatar_url && (
+                    <OptimizedImage src={selectedUser.avatar_url} alt="User avatar" className="w-full h-full object-cover rounded-full" />
+                  )}
+                  <AvatarFallback className="text-3xl">
+                    {(selectedUser.username?.[0] || 'U').toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <h3 className="text-xl font-semibold">{selectedUser.username}</h3>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        <BottomNavigation />
+      </main>
     </div>
   );
 };

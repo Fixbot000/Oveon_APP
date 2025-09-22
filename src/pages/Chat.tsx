@@ -31,26 +31,24 @@ const Chat = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showDescription, setShowDescription] = useState(false);
   const [pendingQuestions, setPendingQuestions] = useState<string[]>([]);
-  const [conversationHistory, setConversationHistory] = useState<any[]>([]);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      text: `Hi there! 👋 I'm your friendly Repair Assistant!
-
-I'm here to help you troubleshoot and fix your electronic devices with step-by-step guidance. Whether it's a smartphone, laptop, appliance, or any other gadget, I'll do my best to get it working again! 🔧✨
-
-**What I can help with:**
-• 📱 Smartphones & tablets
-• 💻 Laptops & computers  
-• 🏠 Home appliances
-• 🎮 Gaming consoles
-• 🔊 Audio/video equipment
-• ⚡ Basic electrical issues
-
-Just describe your problem and I'll guide you through the repair process. Let's fix it together! 💪`,
-      isBot: true,
+  const [conversationHistory, setConversationHistory] = useState<any[]>(() => {
+    const storedHistory = localStorage.getItem('chatConversationHistory');
+    return storedHistory ? JSON.parse(storedHistory) : [];
+  });
+  const [messages, setMessages] = useState<Message[]>(() => {
+    const storedMessages = localStorage.getItem('chatMessages');
+    if (storedMessages) {
+      return JSON.parse(storedMessages);
+    } else {
+      return [
+        {
+          id: 1,
+          text: `Hi there! 👋 I\'m your friendly Repair Assistant!\n\nI\'m here to help you troubleshoot and fix your electronic devices with step-by-step guidance. Whether it\'s a smartphone, laptop, appliance, or any other gadget, I\'ll do my best to get it working again! 🔧✨\n\n**What I can help with:**\n• 📱 Smartphones & tablets\n• 💻 Laptops & computers  \n• 🏠 Home appliances\n• 🎮 Gaming consoles\n• 🔊 Audio/video equipment\n• ⚡ Basic electrical issues\n\nJust describe your problem and I\'ll guide you through the repair process. Let\'s fix it together! 💪`,
+          isBot: true,
+        }
+      ];
     }
-  ]);
+  });
   const [projects, setProjects] = useState<any[]>(() => {
     const storedProjects = localStorage.getItem('projects');
     return storedProjects ? JSON.parse(storedProjects) : [];
@@ -215,6 +213,14 @@ Just describe your problem and I'll guide you through the repair process. Let's 
   useEffect(() => {
     localStorage.setItem('projects', JSON.stringify(projects));
   }, [projects]);
+
+  useEffect(() => {
+    localStorage.setItem('chatConversationHistory', JSON.stringify(conversationHistory));
+  }, [conversationHistory]);
+
+  useEffect(() => {
+    localStorage.setItem('chatMessages', JSON.stringify(messages));
+  }, [messages]);
 
   const handleCreateProject = (projectName: string, description: string, files: File[]) => {
     const newProject: any = {
