@@ -83,11 +83,11 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { text, fileContent, fileName }: RequestBody = await req.json();
+    const { description, files }: { description: string; files: string } = await req.json();
     
-    if (!text && !fileContent) {
+    if (!description) {
       return new Response(JSON.stringify({ 
-        error: 'Either text or file content is required.',
+        error: 'Description is required.',
         success: false 
       }), {
         status: 400,
@@ -95,134 +95,104 @@ serve(async (req) => {
       });
     }
 
-    // Get OpenAI API key from environment
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-    if (!OPENAI_API_KEY) {
-      throw new Error('OpenAI API key not configured');
+    // Get Gemini API key from environment
+    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+    if (!GEMINI_API_KEY) {
+      throw new Error('Gemini API key not configured');
     }
 
-    // Prepare content for analysis
-    const contentToAnalyze = fileContent || text;
-    const fileInfo = fileName ? `File: ${fileName}\n\n` : '';
+    // Build prompt for Gemini to generate clarifying questions
+    const prompt = `Analyze this technical problem and generate 3-5 clarifying questions to better understand the issue:
 
-    // Build prompt for ChatGPT
-    const prompt = `${fileInfo}Analyze the following code/schematic for problems and provide solutions:
+Problem Description: ${description}
 
-${contentToAnalyze}
+${files ? `Additional Files/Code: ${files}` : ''}
 
-Please respond in the following structured format:
+Generate specific, technical questions that will help diagnose the problem accurately. Focus on:
+- What exactly is happening vs what should happen
+- When the problem occurs (conditions, timing)
+- Any error messages or symptoms
+- What troubleshooting has been attempted
+- Environmental factors (hardware, software versions, etc.)
 
-**PROBLEMS FOUND:**
-- [List each problem as a bullet point]
+Provide only a JSON array of questions, no other text:
+["Question 1?", "Question 2?", "Question 3?"]`;
 
-**SUGGESTED FIXES:**
-- [List each suggested fix as a bullet point]
+    console.log('Generating clarifying questions for user:', userId);
 
-**CORRECTED CODE/SCHEMATIC:**
-\`\`\`
-[Provide the corrected version of the code/schematic]
-\`\`\`
-
-Focus on syntax errors, logical issues, best practices, and potential bugs. Be specific and actionable in your suggestions.`;
-
-    console.log('Code Analysis - Processing request for user:', userId);
-    console.log('Content length:', contentToAnalyze?.length || 0);
-
-    // Call OpenAI API
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Call Gemini API
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-2025-04-14',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert code reviewer and electronic schematic analyst. You help identify problems in code and schematics, provide clear suggestions for fixes, and offer corrected versions. Be thorough, specific, and educational in your responses.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        max_completion_tokens: 1500,
-      }),
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 1024,
+        },
+      })
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('OpenAI API error:', errorText);
-      throw new Error(`OpenAI API error: ${response.status} ${errorText}`);
+      console.error('Gemini API error:', errorText);
+      throw new Error(`Gemini API error: ${response.status}`);
     }
 
     const data = await response.json();
-    const aiResponse = data.choices[0].message.content;
+    const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    console.log('Code Analysis - Generated response length:', aiResponse.length);
+    if (!aiResponse) {
+      throw new Error('No response from Gemini API');
+    }
 
-    // Parse the structured response
-    const parseResponse = (text: string) => {
-      const problems: string[] = [];
-      const suggestions: string[] = [];
-      let correctedCode = '';
+    console.log('Generated questions response length:', aiResponse.length);
 
-      const lines = text.split('\n');
-      let currentSection = '';
-      
-      for (const line of lines) {
-        const trimmed = line.trim();
-        
-        if (trimmed.includes('PROBLEMS FOUND')) {
-          currentSection = 'problems';
-          continue;
-        } else if (trimmed.includes('SUGGESTED FIXES')) {
-          currentSection = 'suggestions';
-          continue;
-        } else if (trimmed.includes('CORRECTED CODE') || trimmed.includes('CORRECTED SCHEMATIC')) {
-          currentSection = 'corrected';
-          continue;
-        }
-
-        if (currentSection === 'problems' && trimmed.startsWith('-')) {
-          problems.push(trimmed.substring(1).trim());
-        } else if (currentSection === 'suggestions' && trimmed.startsWith('-')) {
-          suggestions.push(trimmed.substring(1).trim());
-        } else if (currentSection === 'corrected' && !trimmed.startsWith('```')) {
-          if (trimmed) {
-            correctedCode += line + '\n';
-          }
-        }
+    try {
+      // Try to parse JSON response
+      const questions = JSON.parse(aiResponse);
+      if (Array.isArray(questions)) {
+        return new Response(JSON.stringify({ questions, success: true }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } else {
+        throw new Error('Response is not an array');
       }
-
-      return { problems, suggestions, correctedCode: correctedCode.trim() };
-    };
-
-    const parsedResponse = parseResponse(aiResponse);
-
-    const responseBody: ResponseBody = {
-      problems: parsedResponse.problems,
-      suggestions: parsedResponse.suggestions,
-      correctedCode: parsedResponse.correctedCode,
-      success: true
-    };
-
-    return new Response(JSON.stringify(responseBody), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    } catch (parseError) {
+      console.error('Parse error, using fallback questions:', parseError);
+      
+      // Fallback questions
+      const fallbackQuestions = [
+        "What specific error message or symptom are you experiencing?",
+        "When did this problem first start occurring?",
+        "What steps have you already tried to resolve this issue?",
+        "Are there any recent changes to your system or environment?",
+        "Can you reproduce this problem consistently?"
+      ];
+      
+      return new Response(JSON.stringify({ 
+        questions: fallbackQuestions, 
+        success: true 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
   } catch (error) {
-    console.error('Code Analysis error:', error);
+    console.error('Question generation error:', error);
     
-    const responseBody: ResponseBody = {
-      problems: [],
-      suggestions: [],
-      success: false,
-      error: error.message || 'Unable to analyze, please try again.'
-    };
-
-    return new Response(JSON.stringify(responseBody), {
+    return new Response(JSON.stringify({
+      error: error.message || 'Unable to generate questions, please try again.',
+      success: false
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
