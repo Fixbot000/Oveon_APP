@@ -48,33 +48,31 @@ serve(async (req) => {
       });
     }
 
-    const { deviceName, problemDescription, questions, answers, language = 'en' } = await req.json();
+    const { deviceName, imageAnalysis, description, questionAnswers, language = 'en' } = await req.json();
     const apiKey = Deno.env.get('GEMINI_API_KEY');
 
     if (!apiKey) {
       throw new Error('GEMINI_API_KEY not found');
     }
 
-    const qaText = questions.map((q: string, i: number) => 
-      `Q: ${q}\nA: ${answers[i] || 'No answer provided'}`
-    ).join('\n\n');
-
     const context = `
 Device Name: ${deviceName}
-Problem Description: ${problemDescription}
-Questions & Answers:
-${qaText}
+Previous image analysis: ${imageAnalysis}
+User detailed description: ${description}
+Question answers: ${JSON.stringify(questionAnswers)}
 `;
 
-    const prompt = `Based on all the provided information, generate a comprehensive repair diagnosis in ${getLanguageName(language)}. 
+    const prompt = `Based on all the provided information, generate a comprehensive repair report in ${getLanguageName(language)}. 
 Return a JSON object with the following exact fields:
-- problem: A clear description of the identified problem and its likely cause
-- repairSteps: A step-by-step list of instructions to fix the issue (MUST be an array with detailed steps)
-- toolsNeeded: A list of tools needed for the repair
-- preventionTip: A tip on how to avoid this issue in the future
+- problem: A concise summary of the issue.
+- reason: The most likely cause.
+- solutions: A step-by-step list of instructions to fix the issue (MUST be an array with at least 1 step).
+- tools_required: A list of tools needed.
+- estimated_cost: An approximate cost for parts and labor (e.g., "$50-$100", "£20-£40").
+- tip: A short tip on how to avoid this issue in the future.
 
 CRITICAL REQUIREMENTS:
-- The 'repairSteps' field MUST contain detailed, actionable repair steps
+- The 'solutions' field MUST contain at least one actionable repair step
 - If the repair is dangerous, include "Stop using device and consult professional" as first step
 - Make steps specific and clear for the device type: ${deviceName}
 - Ensure all fields are populated with meaningful content
@@ -84,20 +82,22 @@ ${context}
 
 Example JSON format:
 {
-  "problem": "Specific problem identified with ${deviceName} and the likely technical cause",
-  "repairSteps": [
-    "Turn off and unplug the ${deviceName} completely for safety",
+  "problem": "[specific problem with ${deviceName}]",
+  "reason": "[technical cause specific to ${deviceName}]",
+  "solutions": [
+    "Turn off and unplug the ${deviceName} completely",
     "Remove the outer casing using appropriate screwdriver",
     "Clean internal components with compressed air",
     "Check for loose connections and reseat them",
     "Reassemble and test functionality"
   ],
-  "toolsNeeded": [
+  "tools_required": [
     "Screwdriver set",
     "Compressed air canister",
     "Anti-static brush"
   ],
-  "preventionTip": "Clean your ${deviceName} every 6 months to prevent dust buildup"
+  "estimated_cost": "$20-$50",
+  "tip": "Clean your ${deviceName} every 6 months to prevent dust buildup"
 }`;
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
@@ -126,15 +126,17 @@ Example JSON format:
       const reportText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
       report = JSON.parse(reportText.replace(/```json\n?/g, '').replace(/```/g, ''));
       
-      // Ensure repairSteps array exists and has at least one step
-      if (!report.repairSteps || !Array.isArray(report.repairSteps) || report.repairSteps.length === 0) {
-        report.repairSteps = ["Stop using the device and consult a professional technician for safe repair."];
+      // Ensure solutions array exists and has at least one step
+      if (!report.solutions || !Array.isArray(report.solutions) || report.solutions.length === 0) {
+        report.solutions = ["Stop using the device and consult a professional technician for safe repair."];
       }
       
       // Ensure all required fields exist
       if (!report.problem) report.problem = "Device issue identified";
-      if (!report.toolsNeeded) report.toolsNeeded = ["Professional consultation recommended"];
-      if (!report.preventionTip) report.preventionTip = "Follow manufacturer maintenance guidelines";
+      if (!report.reason) report.reason = "Root cause analysis needed";
+      if (!report.tools_required) report.tools_required = ["Professional consultation recommended"];
+      if (!report.estimated_cost) report.estimated_cost = "Contact professional for quote";
+      if (!report.tip) report.tip = "Follow manufacturer maintenance guidelines";
       
     } catch (e) {
       console.error('Error parsing report:', e);
@@ -147,7 +149,10 @@ Example JSON format:
       });
     }
 
-    return new Response(JSON.stringify(report), {
+    return new Response(JSON.stringify({ 
+      report,
+      success: true 
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 

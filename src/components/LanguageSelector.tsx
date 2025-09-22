@@ -9,20 +9,10 @@ interface LanguageSelectorProps {
 
 const languages = [
   { code: 'en', name: 'English' },
-  { code: 'es', name: 'Español' },
-  { code: 'fr', name: 'Français' },
-  { code: 'de', name: 'Deutsch' },
   { code: 'hi', name: 'हिंदी' },
   { code: 'ta', name: 'தமிழ்' },
   { code: 'te', name: 'తెలుగు' },
   { code: 'kn', name: 'ಕನ್ನಡ' },
-  { code: 'zh', name: '中文' },
-  { code: 'ja', name: '日本語' },
-  { code: 'ko', name: '한국어' },
-  { code: 'pt', name: 'Português' },
-  { code: 'it', name: 'Italiano' },
-  { code: 'ru', name: 'Русский' },
-  { code: 'ar', name: 'العربية' },
 ];
 
 export default function LanguageSelector({ value, onChange }: LanguageSelectorProps) {

@@ -7,7 +7,7 @@ import MobileHeader from '@/components/MobileHeader';
 import BottomNavigation from '@/components/BottomNavigation';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import DiagnosticFlowWithTranslation from '@/components/DiagnosticFlowWithTranslation';
+import DiagnosticFlow from '@/components/DiagnosticFlow';
 import LanguageSelector from '@/components/LanguageSelector';
 
 const Scan = () => {
@@ -76,7 +76,7 @@ const Scan = () => {
             </div>
           </div>
 
-          <DiagnosticFlowWithTranslation selectedLanguage={selectedLanguage} canScan={canScan} onScanComplete={async () => {
+          <DiagnosticFlow selectedLanguage={selectedLanguage} canScan={canScan} onScanComplete={async () => {
             if (!user) return;
             
             try {
