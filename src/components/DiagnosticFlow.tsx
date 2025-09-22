@@ -12,9 +12,6 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
-const MAX_IMAGE_SIZE_PX = 2048;
-const JPEG_QUALITY = 0.7; // 70% quality
-
 interface DiagnosticFlowProps {
   selectedLanguage: string;
   canScan?: boolean;
@@ -71,68 +68,13 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
     preventionTip: string; 
   } | null>(null);
 
-  const processImageFile = async (file: File): Promise<File> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-
-          // Resize image
-          if (width > height) {
-            if (width > MAX_IMAGE_SIZE_PX) {
-              height = height * (MAX_IMAGE_SIZE_PX / width);
-              width = MAX_IMAGE_SIZE_PX;
-            }
-          } else {
-            if (height > MAX_IMAGE_SIZE_PX) {
-              width = width * (MAX_IMAGE_SIZE_PX / height);
-              height = MAX_IMAGE_SIZE_PX;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            return reject(new Error('Could not get canvas context.'));
-          }
-          ctx.drawImage(img, 0, 0, width, height);
-
-          canvas.toBlob((blob) => {
-            if (blob) {
-              resolve(new File([blob], file.name.replace(/\.[^/.]+$/, ".jpeg"), { type: "image/jpeg" }));
-            } else {
-              reject(new Error('Failed to convert image to Blob.'));
-            }
-          }, 'image/jpeg', JPEG_QUALITY);
-        };
-        img.onerror = (error) => reject(new Error('Failed to load image: ' + error));
-        img.src = e.target?.result as string;
-      };
-      reader.onerror = (error) => reject(new Error('Failed to read file: ' + error));
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const handlePhotoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      setPhotoPreview(URL.createObjectURL(file)); // Show immediate preview
-      try {
-        const processedFile = await processImageFile(file);
-        setDevicePhoto(processedFile);
-        setPhotoPreview(URL.createObjectURL(processedFile));
-      } catch (error) {
-        console.error('Error processing image:', error);
-        toast.error('Failed to process image. Please try another file.');
-        setDevicePhoto(null);
-        setPhotoPreview(null);
-      }
+      setDevicePhoto(file);
+      const reader = new FileReader();
+      reader.onload = (e) => setPhotoPreview(e.target?.result as string);
+      reader.readAsDataURL(file);
     }
   };
 
@@ -357,10 +299,9 @@ export default function DiagnosticFlow({ selectedLanguage, canScan = true, onSca
                 }
                 setLoading(true);
                 try {
-                  const base64 = await new Promise<string>((resolve, reject) => {
+                  const base64 = await new Promise<string>((resolve) => {
                     const reader = new FileReader();
                     reader.onload = () => resolve(reader.result as string);
-                    reader.onerror = reject;
                     reader.readAsDataURL(devicePhoto!); // devicePhoto is guaranteed to be File | null, but we check for null in handleStep1Next, so it's safe to assert here
                   });
                   const { data, error } = await supabase.functions.invoke('analyze-device-and-generate-questions', {
