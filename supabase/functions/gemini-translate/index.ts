@@ -35,7 +35,17 @@ serve(async (req) => {
       'hi': 'Hindi',
       'ta': 'Tamil',
       'te': 'Telugu',
-      'kn': 'Kannada'
+      'kn': 'Kannada',
+      'es': 'Spanish',
+      'fr': 'French',
+      'de': 'German',
+      'zh': 'Chinese',
+      'ja': 'Japanese',
+      'ko': 'Korean',
+      'pt': 'Portuguese',
+      'it': 'Italian',
+      'ru': 'Russian',
+      'ar': 'Arabic'
     };
 
     const targetLanguageName = languageNames[targetLanguage as keyof typeof languageNames] || targetLanguage;
