@@ -1,28 +1,36 @@
 import { Bell, RefreshCw, ChevronLeft } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { OptimizedImage } from '@/components/OptimizedImage';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
-import ProfileEditModal from './ProfileEditModal'; // Import ProfileEditModal
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useScrollPosition } from '@/hooks/use-scroll-position';
+import { useRefresh } from '@/hooks/useRefresh'; // Import useRefresh hook
 
 interface MobileHeaderProps {
   // showSearch?: boolean;
-  onRefresh?: () => Promise<void> | void;
+  onRefresh?: () => Promise<void> | void; // Make onRefresh optional
   isPremium?: boolean; // Add isPremium prop
   showBackButton?: boolean; // New prop for showing back button
   backButtonTarget?: string; // New prop for back button navigation target
+  alignLeft?: boolean; // New prop for aligning content to the left
+  title?: string; // New prop for custom title
+  avatarUrl?: string; // New prop for custom avatar URL
+  isTargetUserPremium?: boolean; // New prop for target user's premium status
+  isScrolled?: boolean; // Add isScrolled prop
 }
 
-const MobileHeader = ({ onRefresh, isPremium, showBackButton, backButtonTarget }: MobileHeaderProps) => {
+const MobileHeader = ({ onRefresh, isPremium, showBackButton, backButtonTarget, alignLeft, title, avatarUrl, isTargetUserPremium }: MobileHeaderProps) => {
   const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false); // State for modal visibility
   const navigate = useNavigate();
+  const location = useLocation();
+  const { hasShrunk } = useScrollPosition(20); // Use the new hook
+  const { triggerRefresh } = useRefresh(); // Use the useRefresh hook
 
   useEffect(() => {
     if (user) {
@@ -36,7 +44,7 @@ const MobileHeader = ({ onRefresh, isPremium, showBackButton, backButtonTarget }
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('username, avatar_url')
+        .select('username, avatar_url, ispremium')
         .eq('id', user.id)
         .single();
       
@@ -54,68 +62,72 @@ const MobileHeader = ({ onRefresh, isPremium, showBackButton, backButtonTarget }
   };
 
   const handleRefresh = async () => {
-    if (!onRefresh || isRefreshing) return;
+    if (isRefreshing) return;
     
     setIsRefreshing(true);
     try {
-      await onRefresh();
-      toast.success('Refreshed successfully!');
+      if (onRefresh) {
+        await onRefresh(); // Use the passed onRefresh prop
+      }
+      triggerRefresh(); // Trigger global refresh
     } catch (error) {
       console.error('Refresh error:', error);
-      toast.error('Failed to refresh');
     } finally {
       setIsRefreshing(false);
     }
   };
 
   return (
-    <header className="bg-gradient-header p-4 pb-6 rounded-b-3xl shadow-card pt-[var(--sab)]">
-      <div className="flex items-center justify-between relative">
+    <header className={`sticky top-0 z-50 px-4 rounded-b-3xl shadow-card flex flex-col justify-center transition-all duration-300 ease-in-out
+    ${(hasShrunk) ? 'min-h-[70px] bg-gradient-header' : 'min-h-[120px] bg-gradient-header'}`}>
+      <div className="flex items-center justify-between relative w-full">
         {showBackButton && (
           <Button
             variant="ghost"
             size="icon"
             onClick={() => navigate(backButtonTarget || '/profile')}
-            className="text-white hover:bg-white/20 transition-all duration-200 absolute left-0 top-1/2 -translate-y-1/2"
+            className="text-white hover:bg-white/20 transition-all duration-200 my-auto"
           >
             <ChevronLeft className="h-6 w-6" />
           </Button>
         )}
-        <div className={`flex items-center gap-3 ${showBackButton ? 'pl-10' : ''}`}>
+        <div className={`flex items-center gap-3 transition-all duration-300 ease-in-out ${hasShrunk ? 'scale-90' : 'scale-100'} ${alignLeft ? 'mr-auto' : showBackButton ? 'pl-10' : ''}`}>
           
           <Avatar 
-            className={`h-12 w-12 ring-2 cursor-pointer ${isPremium ? 'ring-amber-400' : 'ring-white/20'}`}
-            onClick={() => setIsEditModalOpen(true)} // Open modal on avatar click
+            className={`ring-2 cursor-pointer transition-all duration-300 ease-in-out ${hasShrunk ? 'h-9 w-9' : 'h-12 w-12'} ${avatarUrl ? (isTargetUserPremium ? 'ring-amber-400' : 'ring-white/20') : (profile?.ispremium ? 'ring-amber-400' : 'ring-white/20')}`}
+            // onClick={() => { if (!avatarUrl) setIsEditModalOpen(true); }} // Open modal on avatar click, only if it's the current user's profile
           >
-            <AvatarImage src={`${profile?.avatar_url || "/placeholder.svg"}?v=${new Date().getTime()}`} />
+            <OptimizedImage 
+              src={avatarUrl || profile?.avatar_url || "/placeholder.svg"}
+              alt="User avatar"
+              className="w-full h-full object-cover rounded-full"
+            />
             <AvatarFallback className="bg-white/20 text-white font-semibold text-lg">
-              {user ? getUserDisplayName()[0]?.toUpperCase() : 'U'}
+              {avatarUrl ? (title?.[0]?.toUpperCase() || 'U') : (user ? getUserDisplayName()[0]?.toUpperCase() : 'U')}
             </AvatarFallback>
           </Avatar>
-          <div>
-            <h1 className="text-white text-lg font-semibold">
-              Hi, {user ? getUserDisplayName() : 'User'}
+          <div className={`transition-all duration-300 ease-in-out ${hasShrunk ? 'opacity-100 h-auto overflow-visible' : 'opacity-100 h-auto overflow-visible'}`}>
+            <h1 className={`text-white font-semibold transition-all duration-300 ease-in-out ${hasShrunk ? 'text-base' : 'text-lg'}`}>
+              {title || `Hi, ${user ? getUserDisplayName() : 'User'}`}
             </h1>
-            <p className="text-white/80 text-xs">Ready to fix something?</p>
+            {!title && <p className={`text-white/80 text-xs transition-all duration-300 ease-in-out ${hasShrunk ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100 h-auto overflow-visible'}`}>Ready to fix something?</p>}
           </div>
         </div>
         
         <div className="flex items-center space-x-1">
-          {onRefresh && (
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="text-white hover:bg-white/20 transition-all duration-200"
-            >
-              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            </Button>
-          )}
-          
-          <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 transition-all duration-200">
-            <Bell className="h-5 w-5" />
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="text-white hover:bg-white/20 transition-all duration-200"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
           </Button>
+          
+          {!title && <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 transition-all duration-200">
+            <Bell className="h-5 w-5" />
+          </Button>}
         </div>
       </div>
       
@@ -136,14 +148,6 @@ const MobileHeader = ({ onRefresh, isPremium, showBackButton, backButtonTarget }
         </div>
       )} */}
 
-      {/* Profile Edit Modal */}
-      <ProfileEditModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        currentProfile={profile}
-        onProfileUpdated={fetchProfile}
-        isPremium={isPremium}
-      />
     </header>
   );
 };

@@ -71,7 +71,7 @@ export const OptimizedImage = ({
   }
 
   // Use ImageWithSignedUrl for Supabase storage paths
-  if (imageSrc && !imageSrc.startsWith('blob:') && !imageSrc.startsWith('data:') && !imageSrc.startsWith('http')) {
+  if (imageSrc && !imageSrc.startsWith('blob:') && !imageSrc.startsWith('data:') && !imageSrc.startsWith('http') && imageSrc !== placeholder) {
     return (
       <ImageWithSignedUrl 
         bucket="device-images"
@@ -85,7 +85,7 @@ export const OptimizedImage = ({
     );
   }
 
-  // Regular img for direct URLs
+  // Regular img for direct URLs or placeholder
   return (
     <img
       src={imageSrc || placeholder}

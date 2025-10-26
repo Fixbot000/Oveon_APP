@@ -4,9 +4,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import { EyeIcon, EyeOffIcon } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useToast } from '@/components/ui/use-toast';
 
 interface AuthFormProps {
   onSuccess?: () => void;
@@ -20,6 +20,7 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const { toast } = useToast();
 
   const checkPasswordBreach = async (password: string): Promise<boolean> => {
     try {
@@ -51,15 +52,23 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
         const isBreached = await checkPasswordBreach(password);
         
         if (isBreached) {
-          toast.error('This password has been found in data breaches. Please choose a stronger, unique password for your security.');
           setLoading(false);
+          toast({
+            title: 'Password breach detected!',
+            description: 'Please choose a different password.',
+            variant: 'destructive',
+          });
           return;
         }
 
         // Terms of Service and Privacy Policy agreement check
         if (!agreedToTerms) {
-          toast.error('You must agree to the Terms of Service and Privacy Policy to continue.');
           setLoading(false);
+          toast({
+            title: 'Terms not agreed!',
+            description: 'You must agree to the Terms and Privacy Policy to create an account.',
+            variant: 'destructive',
+          });
           return;
         }
       }
@@ -78,7 +87,11 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
 
         if (error) throw error;
 
-        toast.success('Account created successfully! Please check your email to verify your account.');
+        toast({
+          title: 'Account created!',
+          description: 'Please check your email to verify your account.',
+        });
+
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
@@ -87,11 +100,19 @@ export const AuthForm = ({ onSuccess }: AuthFormProps) => {
 
         if (error) throw error;
 
-        toast.success('Signed in successfully!');
         onSuccess?.();
+        toast({
+          title: 'Signed in!',
+          description: 'You have successfully signed in.',
+        });
       }
     } catch (error: any) {
-      toast.error(error.message || 'An error occurred');
+      console.error('An error occurred:', error);
+      toast({
+        title: 'Authentication failed',
+        description: error.message || 'Could not authenticate user.',
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }

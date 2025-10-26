@@ -1,0 +1,6 @@
+ALTER TABLE public.profiles
+ADD COLUMN ispremium BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE public.profiles
+ADD COLUMN premium_expiry TIMESTAMP WITH TIME ZONE;
+

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import MobileHeader from "@/components/MobileHeader";
 import BottomNavigation from "@/components/BottomNavigation";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, Crown, DollarSign, FolderOpen } from 'lucide-react';
@@ -8,7 +7,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-const Plans = () => {
+interface PlansProps {
+  isScrolled: boolean;
+}
+
+const Plans = ({ isScrolled }: PlansProps) => {
   const { user, isPremium: isPremiumUser } = useAuth();
   const [updating, setUpdating] = useState(false);
   const [premiumExpiryDate, setPremiumExpiryDate] = useState<Date | null>(null);
@@ -117,13 +120,6 @@ const Plans = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      {/* Removed old back button implementation */}
-      <MobileHeader 
-        onRefresh={() => {}} 
-        isPremium={isPremiumUser}
-        showBackButton={true}
-        backButtonTarget="/profile"
-      />
       <main className="px-4 py-6 space-y-6">
         <h1 className="text-3xl font-bold text-center">Our Plans</h1>
 

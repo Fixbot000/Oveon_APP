@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import MobileHeader from '@/components/MobileHeader';
 import BottomNavigation from '@/components/BottomNavigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Wrench, FileText, AlertTriangle, Hammer, DollarSign, Lightbulb } from 'lucide-react';
+import { Wrench, FileText, AlertTriangle, Hammer, DollarSign, Lightbulb, BookmarkPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -81,11 +80,21 @@ const TranslatedDiagnosisResult = () => {
     navigate('/scan');
   };
 
+  const handleSaveDiagnosis = () => {
+    if (displayDiagnosis) {
+      const savedDiagnoses = JSON.parse(localStorage.getItem('savedDiagnoses') || '[]');
+      const newDiagnosis = { ...displayDiagnosis, savedAt: new Date().toISOString() };
+      localStorage.setItem('savedDiagnoses', JSON.stringify([...savedDiagnoses, newDiagnosis]));
+      toast.success('Diagnosis saved successfully!');
+    } else {
+      toast.error('No diagnosis to save.');
+    }
+  };
+
   const displayDiagnosis = translatedDiagnosis || finalDiagnosis;
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <MobileHeader onRefresh={() => window.location.reload()} />
       <main className="px-4 py-6">
         <div className="max-w-2xl mx-auto">
           <Card>
@@ -99,6 +108,15 @@ const TranslatedDiagnosisResult = () => {
                 {translationError && (
                   <span className="text-sm text-orange-500">(English)</span>
                 )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleSaveDiagnosis}
+                  className="ml-auto"
+                  title="Save Diagnosis"
+                >
+                  <BookmarkPlus className="h-5 w-5" />
+                </Button>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -163,6 +181,9 @@ const TranslatedDiagnosisResult = () => {
 
               <Button onClick={handleNewDiagnosis} className="w-full">
                 Start New Diagnosis
+              </Button>
+              <Button onClick={() => navigate('/repair-bot', { state: { diagnosisDetails: displayDiagnosis } })} className="w-full mt-2">
+                Chat with AI for more
               </Button>
             </CardContent>
           </Card>

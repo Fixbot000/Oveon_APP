@@ -5,10 +5,13 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useNavigate } from 'react-router-dom';
-import MobileHeader from '@/components/MobileHeader';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Info, Users, FileText, ListChecks, MessageSquareMore, ArrowUp } from 'lucide-react'; // Import new icons
+
+interface ProjectChatProps {
+  isScrolled: boolean;
+}
 
 interface ProjectFile {
   id: string;
@@ -37,7 +40,7 @@ interface Project {
   }[];
 }
 
-const ProjectChat = () => {
+const ProjectChat = ({ isScrolled }: ProjectChatProps) => {
   const { projectId } = useParams<{ projectId: string }>();
   const [project, setProject] = useState<Project | null>(null);
   const [allProjects, setAllProjects] = useState<Project[]>([]);
@@ -115,6 +118,22 @@ const ProjectChat = () => {
 
   const handleSelectProject = (id: string) => {
     navigate(`/project/${id}/chat`);
+  };
+
+  const handleRefresh = () => {
+    // Re-fetch project chat history from localStorage
+    const storedProjects = localStorage.getItem('projects');
+    if (storedProjects) {
+      const projects: Project[] = JSON.parse(storedProjects);
+      const foundProject = projects.find(p => p.id === projectId);
+      if (foundProject?.chatHistory) {
+        setMessages(foundProject.chatHistory);
+      } else {
+        setMessages([ // Default initial message with Jarvis personality
+          { id: 1, sender: 'ai', text: "Good day! I'm Jarvis, your project assistant. I'm here to help you with this project. How can I assist you today?" },
+        ]);
+      }
+    }
   };
 
   const handleSendMessage = async () => {
@@ -204,7 +223,6 @@ const ProjectChat = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <MobileHeader onRefresh={() => window.location.reload()} isPremium={isPremium} showBackButton={false} backButtonTarget="/chat" />
       <div className="flex flex-col flex-1 overflow-hidden">
         <header className="bg-card p-4 border-b border-border flex items-center justify-between">
           <Button

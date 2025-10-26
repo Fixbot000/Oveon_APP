@@ -7,7 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'; // Import Avatar components
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'; // Import Avatar components
+import { OptimizedImage } from '@/components/OptimizedImage';
 
 interface ProfileEditModalProps {
   isOpen: boolean;
@@ -22,7 +23,7 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
 }) => {
   const { user } = useAuth();
   const [displayName, setDisplayName] = useState('');
-  const [bio, setBio] = useState('');
+  const [bio, setBio] = useState(''); // Remove bio state
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [selectedAvatarUrl, setSelectedAvatarUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -93,7 +94,6 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
       onClose();
     } catch (error: any) {
       toast.error(error.message || 'Failed to update profile.');
-      console.error('Error updating profile:', error);
     } finally {
       setLoading(false);
     }
@@ -108,9 +108,13 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           <div className="flex justify-center mb-4">
             <Avatar className={`h-24 w-24 ring-2 cursor-pointer ${isPremium ? 'ring-amber-400' : 'ring-white/20'}`}>
-              <AvatarImage src={`${selectedAvatarUrl || currentProfile?.avatar_url || "/placeholder.svg"}?v=${new Date().getTime()}`} />
+              <OptimizedImage 
+                src={selectedAvatarUrl || currentProfile?.avatar_url || "/placeholder.svg"}
+                alt="User avatar"
+                className="w-full h-full object-cover rounded-full"
+              />
               <AvatarFallback className="bg-white/20 text-white font-semibold text-xl">
-                {(displayName || user?.email?.[0] || 'U').toUpperCase()}
+                {(displayName || currentProfile?.username || user?.email?.[0] || 'U').toUpperCase()}
               </AvatarFallback>
             </Avatar>
           </div>

@@ -40,7 +40,7 @@ serve(async (req) => {
 
     // Placeholder logic for demonstration:
     // Assume the webhook payload directly provides userId and isPremium status
-    userId = payload.userId; 
+    userId = payload.userId;
     isPremiumStatus = payload.isPremium;
 
     if (!userId) {

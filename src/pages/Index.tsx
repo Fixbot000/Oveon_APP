@@ -4,14 +4,15 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Camera, History, Clock, Wrench, Star, TrendingUp, Users } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
-import MobileHeader from '@/components/MobileHeader';
 import BottomNavigation from '@/components/BottomNavigation';
 import ActionCard from '@/components/ActionCard';
 import { generateRepairTips, getDifficultyColor, type Tip } from '@/lib/tipsGenerator';
 import BottomSheetModal from '@/components/BottomSheetModal';
 import { useMediaQuery } from 'react-responsive';
 import heroImage from '@/assets/hero-diagnostic-card.jpg';
+import React from 'react';
 import { AdsBanner } from '@/components/AdsBanner';
+import { useRefresh } from '@/hooks/useRefresh'; // Import useRefresh hook
 
 const Index = () => {
   const navigate = useNavigate();
@@ -32,6 +33,16 @@ const Index = () => {
 
   const isMobile = useMediaQuery({ query: '(max-width: 768px)' });
   const tipRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const { refreshTrigger } = useRefresh(); // Consume refresh context
+
+  // Effect to handle global refresh trigger (excluding tips)
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      console.log("Index page detected global refresh. Performing page-specific refresh logic (excluding tips).");
+      // Add other refresh logic for the Index page here, if any.
+      // Do NOT call loadTips() here.
+    }
+  }, [refreshTrigger]);
 
   const loadTips = async () => {
     try {
@@ -54,6 +65,11 @@ const Index = () => {
     } else {
       loadTips();
     }
+    // showNativeAd(); // Call showNativeAd when the component mounts
+
+    return () => {
+      // AdMob.hideNativeAd(); // Hide native ad when the component unmounts
+    };
   }, []);
 
   useEffect(() => {
@@ -124,10 +140,10 @@ const Index = () => {
     if (Math.abs(dragOffset) > threshold) {
       if (dragOffset > 0) {
         // Swiped right - go to previous
-        
+
       } else {
         // Swiped left - go to next
-        
+
       }
     }
 
@@ -143,13 +159,11 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <MobileHeader onRefresh={loadTips} isPremium={isPremium} />
-      {!isPremium && (
-        <div className="mt-8 px-4">
-          <AdsBanner />
-        </div>
-      )}
-      
+      {/* <MobileHeader onRefresh={loadTips} isPremium={isPremium} /> */}
+      <div className="px-4 pt-8">
+        <AdsBanner isPremium={isPremium} className="mb-8"/>
+      </div>
+
       <main className="px-4 py-6 space-y-8">
         {/* Auth Section */}
         {!user && (
@@ -194,27 +208,31 @@ const Index = () => {
             title="Scan"
             description="Capture device photos"
             onClick={() => navigate('/scan')}
+            iconColorClass="text-white"
           />
           <ActionCard
             icon={Wrench}
             title="Repair Bot"
             description="Chat with AI assistant"
             onClick={() => navigate('/chat')}
+            iconColorClass="text-white"
           />
         </div>
-        
+
         <div className="grid grid-cols-2 gap-3">
           <ActionCard
             icon={Users}
             title="Community"
             description="Share & learn together"
             onClick={() => navigate('/community')}
+            iconColorClass="text-white"
           />
           <ActionCard
             icon={History}
             title="History"
             description="View past repairs"
             onClick={() => navigate('/history')}
+            iconColorClass="text-white"
           />
         </div>
 
@@ -223,9 +241,9 @@ const Index = () => {
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-xl font-bold text-foreground">Tips & Tricks</h3>
             <div className="flex items-center gap-2">
-              
-              <Button 
-                variant="ghost" 
+
+              <Button
+                variant="ghost"
                 className="text-primary hover:bg-primary/10 transition-colors"
                 onClick={loadTips}
                 disabled={loading}
@@ -234,7 +252,7 @@ const Index = () => {
               </Button>
             </div>
           </div>
-          
+
           {tips.length === 0 && !loading ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground mb-4">Click "Refresh Tips" to generate repair tips</p>
@@ -257,20 +275,20 @@ const Index = () => {
               ))}
             </div>
           ) : (
-            <div 
-              className="relative w-full h-64 cursor-grab active:cursor-grabbing select-none overflow-x-auto scroll-smooth snap-x snap-mandatory dark:scrollbar-dark"
+            <div
+              className="relative w-full h-64 cursor-grab active:cursor-grabbing select-none overflow-x-auto snap-x snap-mandatory custom-scrollbar"
               style={{ willChange: 'transform' }}
             >
-              <div 
+              <div
                 className="flex h-full"
                 style={{
-                  
+
                 }}
               >
                 {tips.map((tip, index) => {
                   const isCurrent = index === currentTipIndex;
                   const distance = Math.abs(index - currentTipIndex);
-                  
+
                   return (
                     <div
                       key={index}
@@ -312,7 +330,7 @@ const Index = () => {
                         handlePointerEnd();
                       }}
                     >
-                      <div 
+                      <div
                         className={`w-full h-full rounded-xl shadow-lg transition-all duration-300 ease-out ${
                           ['bg-gradient-to-br from-blue-500 to-purple-600',
                            'bg-gradient-to-br from-green-500 to-teal-600', 
@@ -354,7 +372,7 @@ const Index = () => {
 
       <BottomNavigation />
 
-      <BottomSheetModal 
+      <BottomSheetModal
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
         title={selectedTip?.title || "Tip"}

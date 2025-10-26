@@ -1,13 +1,16 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import MobileHeader from '@/components/MobileHeader';
 import BottomNavigation from '@/components/BottomNavigation';
 import { CheckCircle, Crown, ShieldCheck, DollarSign, FolderOpen } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth'; // Import useAuth
 import { supabase } from '@/integrations/supabase/client'; // Import supabase client
 
-const Premium = () => {
+interface PremiumProps {
+  isScrolled: boolean;
+}
+
+const Premium = ({ isScrolled }: PremiumProps) => {
   const { isPremium, user } = useAuth(); // Destructure isPremium and user from useAuth
 
   const handleUpgrade = async () => {
@@ -46,13 +49,6 @@ const Premium = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <MobileHeader 
-        onRefresh={() => {}} 
-        isPremium={isPremium}
-        showBackButton={true}
-        backButtonTarget="/profile"
-      />
-
       <main className="px-4 py-6 space-y-8">
         <h1 className="text-3xl font-bold text-center">Go Premium with Oveon!</h1>
 

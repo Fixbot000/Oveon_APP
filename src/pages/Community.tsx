@@ -5,25 +5,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Plus, Heart, MessageCircle, Eye, Send } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import MobileHeader from '@/components/MobileHeader';
 import BottomNavigation from '@/components/BottomNavigation';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Trash2 } from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { OptimizedImage } from '@/components/OptimizedImage';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Post {
   id: string;
@@ -43,14 +33,20 @@ interface Post {
   user_has_liked?: boolean; // New property
 }
 
+type SortOption = 'newest' | 'most_liked';
 
-const Community = () => {
+interface CommunityProps {
+  isScrolled: boolean;
+}
+
+const Community = ({ isScrolled }: CommunityProps) => {
   const [newPostText, setNewPostText] = useState('');
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const { user, isPremium } = useAuth();
   const navigate = useNavigate();
   const [postFilter, setPostFilter] = useState<'all' | 'my' | 'liked'>('all');
+  const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [postToDelete, setPostToDelete] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<Partial<Profile> | null>(null);
@@ -75,11 +71,25 @@ const Community = () => {
       
       if (postFilter === 'my' && user) {
         query = query.eq('user_id', user.id);
+      } else if (postFilter === 'all') {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        query = query.gte('created_at', thirtyDaysAgo.toISOString());
+      } else if (postFilter === 'liked' && user) {
+        // This part needs to be handled on the frontend after fetching all posts and user likes
+        // The `post_likes` table doesn't have profiles directly, so we need to join.
+        // For simplicity, we'll fetch all posts and then filter in the frontend based on `userLikes`
+        // This approach might not be scalable for very large number of posts
+        // An alternative would be to use a database function or view for liked posts
       }
 
-      const { data: postsData, error: postsError } = await query
-        .order('likes', { ascending: false })
-        .order('created_at', { ascending: false });
+      if (sortBy === 'newest') {
+        query = query.order('created_at', { ascending: false });
+      } else if (sortBy === 'most_liked') {
+        query = query.order('likes', { ascending: false });
+      }
+
+      const { data: postsData, error: postsError } = await query;
 
       if (postsError) throw postsError;
 
@@ -109,20 +119,17 @@ const Community = () => {
       }
     } catch (error: any) {
       console.error('Error fetching posts:', error);
-      toast.error('Failed to load posts');
     } finally {
       setLoading(false);
     }
-  }, [postFilter, user]);
+  }, [postFilter, user, sortBy]);
 
   const createPost = async () => {
     if (!user) {
-      toast.error('Please sign in to create posts');
       return;
     }
 
     if (!newPostText.trim()) {
-      toast.error('Please enter some text for your post');
       return;
     }
 
@@ -138,11 +145,9 @@ const Community = () => {
       if (error) throw error;
 
       setNewPostText('');
-      toast.success('Post created successfully!');
       fetchPosts();
     } catch (error: any) {
       console.error('Error creating post:', error);
-      toast.error('Failed to create post');
     } finally {
       setIsPosting(false);
     }
@@ -150,7 +155,6 @@ const Community = () => {
 
   const handleLike = async (postId: string) => {
     if (!user) {
-      toast.error('Please sign in to like posts');
       return;
     }
 
@@ -218,10 +222,8 @@ const Community = () => {
         )
       );
 
-      toast.success(newUserLike ? 'Post liked!' : 'Like removed');
     } catch (error: any) {
       console.error('Error handling like:', error);
-      toast.error('Failed to update like');
       // Refresh data on error
       fetchPosts();
     }
@@ -255,7 +257,6 @@ const Community = () => {
 
   const handleDeletePost = async () => {
     if (!user || !postToDelete) {
-      toast.error('Please sign in or select a post to delete');
       return;
     }
 
@@ -275,12 +276,10 @@ const Community = () => {
       if (error) throw error;
 
       setPosts(prevPosts => prevPosts.filter(post => post.id !== postToDelete));
-      toast.success('Post deleted successfully!');
-      setPostToDelete(null); // Clear the post to delete
       setShowDeleteConfirm(false); // Close the dialog
+      setPostToDelete(null); // Clear the post to delete
     } catch (error: any) {
       console.error('Error deleting post:', error);
-      toast.error('Failed to delete post');
     }
   };
 
@@ -291,12 +290,11 @@ const Community = () => {
 
   useEffect(() => {
     fetchPosts();
-  }, [fetchPosts]);
+  }, [fetchPosts, sortBy]);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-background pb-20">
-        <MobileHeader onRefresh={fetchPosts} isPremium={isPremium} showBackButton={false} backButtonTarget="/" />
         <div className="px-4 py-6">
           <div className="space-y-4">
             {[1, 2, 3].map(i => (
@@ -318,7 +316,6 @@ const Community = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <MobileHeader onRefresh={fetchPosts} isPremium={isPremium} showBackButton={false} backButtonTarget="/" />
       
       <main className="px-4 py-6 space-y-6">
         <div className="flex items-center justify-between mb-8">
@@ -333,6 +330,19 @@ const Community = () => {
             <TabsTrigger value="liked" onClick={() => setPostFilter('liked')} disabled={!user}>Liked Posts</TabsTrigger>
           </TabsList>
         </Tabs>
+
+        {/* Sorting Options */}
+        <div className="max-w-2xl mx-auto mb-6 flex justify-end">
+          <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Sort By" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Newest</SelectItem>
+              <SelectItem value="most_liked">Most Liked</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
         {/* Create Post */}
         {user && (

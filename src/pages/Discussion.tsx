@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { OptimizedImage } from '@/components/OptimizedImage';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Heart, Reply, Send, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -403,8 +404,8 @@ const Discussion = () => {
           <div className="flex items-center space-x-3 mb-3">
             <Avatar className={`h-8 w-8 ${comment.profiles?.ispremium ? 'ring-2 ring-amber-400' : ''}`}>
               {comment.profiles?.avatar_url && (
-                <img 
-                  src={`${comment.profiles.avatar_url}?v=${new Date().getTime()}`} 
+                <OptimizedImage 
+                  src={comment.profiles.avatar_url}
                   alt="User avatar"
                   className="w-full h-full object-cover rounded-full"
                 />
@@ -441,7 +442,7 @@ const Discussion = () => {
                 }`}
               >
                 <Heart className={`h-3 w-3 ${comment.user_like === 'like' ? 'fill-current' : ''}`} />
-                <span className="text-xs">{comment.likes}</span>
+                
               </Button>
             </div>
             {!isReply && user && (
@@ -550,8 +551,8 @@ const Discussion = () => {
             <div className="flex items-center space-x-3 mb-4">
               <Avatar className={`h-10 w-10 ${post.profiles?.ispremium ? 'ring-2 ring-amber-400' : ''}`}>
                 {post.profiles?.avatar_url && (
-                  <img 
-                    src={`${post.profiles.avatar_url}?v=${new Date().getTime()}`} 
+                  <OptimizedImage 
+                    src={post.profiles.avatar_url}
                     alt="User avatar"
                     className="w-full h-full object-cover rounded-full"
                   />
@@ -579,8 +580,8 @@ const Discussion = () => {
 
             {post.image_url && (
               <div className="mb-4">
-                <img 
-                  src={post.image_url} 
+                <OptimizedImage 
+                  src={post.image_url}
                   alt="Post image"
                   className="w-full rounded-lg object-cover max-h-96"
                 />
@@ -598,7 +599,7 @@ const Discussion = () => {
                   }`}
                 >
                   <Heart className={`h-4 w-4 ${post.user_like === 'like' ? 'fill-current' : ''}`} />
-                  <span>{post.likes}</span>
+                  
                 </Button>
                 <div className="flex items-center space-x-1 text-muted-foreground">
                   <Eye className="h-4 w-4" />

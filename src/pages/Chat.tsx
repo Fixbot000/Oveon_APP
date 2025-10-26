@@ -5,13 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useNavigate } from 'react-router-dom';
-import MobileHeader from '@/components/MobileHeader';
 import BottomNavigation from '@/components/BottomNavigation';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth'; // Import useAuth
 import { useRef, useEffect } from 'react'; // Import useRef and useEffect
 import PremiumUpsell from '@/components/PremiumUpsell'; // Import the new component
+import MobileHeader from '@/components/MobileHeader'; // Import MobileHeader
+import ScopeBanner from '@/components/ScopeBanner'; // Import ScopeBanner
+import { useRefresh } from '@/hooks/useRefresh'; // Import useRefresh hook
 
 interface Message {
   id: number;
@@ -23,9 +24,17 @@ interface Message {
   usedFallback?: boolean;
 }
 
+const initialMessages: Message[] = [
+  {
+    id: 1,
+    text: `Hi there! 👋 I\'m your friendly Repair Assistant!\n\nI\'m here to help you troubleshoot and fix your electronic devices with step-by-step guidance. Whether it\'s a smartphone, laptop, appliance, or any other gadget, I\'ll do my best to get it working again! 🔧✨\n\n**What I can help with:**\n• 📱 Smartphones & tablets\n• 💻 Laptops & computers  \n• 🏠 Home appliances\n• 🎮 Gaming consoles\n• 🔊 Audio/video equipment\n• ⚡ Basic electrical issues\n\nJust describe your problem and I\'ll guide you through the repair process. Let\'s fix it together! 💪`,
+    isBot: true,
+  }
+];
+
 const Chat = () => {
   const navigate = useNavigate();
-  const { isPremium } = useAuth(); // Destructure isPremium
+  const { isPremium, user } = useAuth(); // Destructure isPremium and user
   const [message, setMessage] = useState('');
   const [detailedDescription, setDetailedDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -40,13 +49,7 @@ const Chat = () => {
     if (storedMessages) {
       return JSON.parse(storedMessages);
     } else {
-      return [
-        {
-          id: 1,
-          text: `Hi there! 👋 I\'m your friendly Repair Assistant!\n\nI\'m here to help you troubleshoot and fix your electronic devices with step-by-step guidance. Whether it\'s a smartphone, laptop, appliance, or any other gadget, I\'ll do my best to get it working again! 🔧✨\n\n**What I can help with:**\n• 📱 Smartphones & tablets\n• 💻 Laptops & computers  \n• 🏠 Home appliances\n• 🎮 Gaming consoles\n• 🔊 Audio/video equipment\n• ⚡ Basic electrical issues\n\nJust describe your problem and I\'ll guide you through the repair process. Let\'s fix it together! 💪`,
-          isBot: true,
-        }
-      ];
+      return initialMessages;
     }
   });
   const [projects, setProjects] = useState<any[]>(() => {
@@ -151,8 +154,6 @@ const Chat = () => {
         ];
       });
 
-      toast.success('Got repair guidance! 🔧');
-
     } catch (error) {
       console.error('Chat error:', error);
       
@@ -169,7 +170,6 @@ const Chat = () => {
         ];
       });
       
-      toast.error('Unable to connect to repair assistant');
     } finally {
       setIsLoading(false);
     }
@@ -182,7 +182,6 @@ const Chat = () => {
 
   const handleSkipQuestions = () => {
     setPendingQuestions([]);
-    toast.success('Questions skipped! Feel free to describe your issue directly.');
   };
 
   const handleQuickAction = (action: string) => {
@@ -222,6 +221,15 @@ const Chat = () => {
     localStorage.setItem('chatMessages', JSON.stringify(messages));
   }, [messages]);
 
+  // Consume refresh context and trigger local handleRefresh
+  const { refreshTrigger } = useRefresh();
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      console.log('Chat page detected global refresh. Clearing chat history.');
+      handleRefresh();
+    }
+  }, [refreshTrigger]);
+
   const handleCreateProject = (projectName: string, description: string, files: File[]) => {
     const newProject: any = {
       id: String(Date.now()), // Unique ID for the project
@@ -232,20 +240,31 @@ const Chat = () => {
       // Files are handled within the CreateProjectForm or uploaded separately
     };
     setProjects((prevProjects) => [...prevProjects, newProject]);
-    toast.success('Project created successfully!');
   };
 
   const handleDeleteProject = (projectId: string) => {
     setProjects((prevProjects) => prevProjects.filter(project => project.id !== projectId));
-    toast.success('Project deleted successfully!');
+  };
+
+  const handleRefresh = () => {
+    setMessages(initialMessages);
+    setConversationHistory([]);
+    localStorage.removeItem('chatMessages');
+    localStorage.removeItem('chatConversationHistory');
+    setIsLoading(false);
+    setPendingQuestions([]);
+    setMessage('');
+    setDetailedDescription('');
+    setShowDescription(false);
   };
 
   const selectedProject = projects.find(p => p.id === selectedProjectId);
 
   return (
     <div className="min-h-screen bg-background pb-20">
-              <MobileHeader onRefresh={() => window.location.reload()} isPremium={isPremium} showBackButton={false} backButtonTarget="/" />
-      
+      <div className="px-4 mb-4 mt-6">
+        <ScopeBanner />
+      </div>
       <main className="px-4 py-6 space-y-4 pb-32 bg-background">
           <div className="space-y-4">
             {messages.map((msg) => (
@@ -260,7 +279,7 @@ const Chat = () => {
                       {msg.hasMatches && !msg.isLoading && (
                         <AlertCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
                       )}
-                      <p className={`text-sm whitespace-pre-wrap ${msg.isBot ? 'text-muted-foreground' : 'text-primary-foreground'}`}>
+                      <p className="text-sm whitespace-pre-wrap">
                         {msg.text}
                       </p>
                     </div>
@@ -378,7 +397,7 @@ const Chat = () => {
                 <Textarea
                   value={detailedDescription}
                   onChange={(e) => setDetailedDescription(e.target.value)}
-                  placeholder="Provide additional details about your device issue, symptoms, when it started, what you've tried, etc."
+                  placeholder="Provide additional details about your device issue, symptoms, when it started, what you\'ve tried, etc."
                   className="min-h-[80px] bg-background border border-input focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
                 />
               </CardContent>

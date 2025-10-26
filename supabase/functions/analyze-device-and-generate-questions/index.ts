@@ -1,4 +1,8 @@
+// @ts-ignore
+/// <reference lib="deno.ns" />
+// @ts-ignore
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
+// @ts-ignore
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -13,10 +17,15 @@ serve(async (req) => {
 
   try {
     const { deviceName, imageBase64, description, language = 'en' } = await req.json();
+    console.log('Received imageBase64 length:', imageBase64 ? imageBase64.length : '0');
+    // @ts-ignore
     const apiKey = Deno.env.get('GEMINI_API_KEY');
 
     if (!apiKey) {
-      throw new Error('GEMINI_API_KEY not found');
+      return new Response(JSON.stringify({ error: 'GEMINI_API_KEY not configured on the server.' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const prompt = `Analyze the device and generate 5 targeted questions to identify the problem clearly.
@@ -69,6 +78,7 @@ Respond in ${getLanguageName(language)} with this JSON format:
 
 Categories: Power, Performance, Physical, Audio, Display, Connection, Usage, Environment`;
 
+    // Use the updated model version here
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
@@ -90,13 +100,17 @@ Categories: Power, Performance, Physical, Audio, Display, Connection, Usage, Env
     });
 
     const data = await response.json();
+    console.log('Gemini API raw response:', JSON.stringify(data, null, 2));
     
     if (!response.ok) {
       console.error('Gemini API error:', data);
-      throw new Error(data.error?.message || 'Failed to analyze device');
+      return new Response(JSON.stringify({ error: data.error?.message || 'Failed to analyze device with Gemini API' }), {
+        status: response.status === 429 ? 429 : 502, // 429 for rate limit, 502 for other upstream errors
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    let result = {};
+    let result: { questions?: Array<{ id: string; category: string; question: string }> } = {};
     try {
       const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
       result = JSON.parse(resultText.replace(/```json\n?/g, '').replace(/```/g, ''));
@@ -113,24 +127,25 @@ Categories: Power, Performance, Physical, Audio, Display, Connection, Usage, Env
       
     } catch (e) {
       console.error('Error parsing result:', e);
-      result = {
-        questions: [
-          { id: "q1", category: "General", question: "When did you first notice this problem?" },
-          { id: "q2", category: "Usage", question: "Does this happen every time you use the device?" },
-          { id: "q3", category: "Power", question: "Does the device turn on properly?" },
-          { id: "q4", category: "Physical", question: "Has the device been dropped or damaged recently?" },
-          { id: "q5", category: "Environment", question: "Where do you typically use this device?" }
-        ]
-      };
+      // Fallback questions are already handled below
     }
 
-    return new Response(JSON.stringify(result), {
+    if (!result.questions || !Array.isArray(result.questions) || result.questions.length === 0) {
+      // This means Gemini didn't generate questions, which is an internal issue.
+      console.error('Gemini API did not generate valid questions. Raw result:', JSON.stringify(result, null, 2));
+      return new Response(JSON.stringify({ error: 'Gemini API did not generate valid questions.' }), {
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    return new Response(JSON.stringify({ questions: result.questions }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
     console.error('Error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: 'An unexpected error occurred during analysis.' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

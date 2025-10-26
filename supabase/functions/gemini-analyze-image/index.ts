@@ -62,30 +62,26 @@ serve(async (req) => {
         contents: [{
           parts: [
             {
-            text: `Analyze this image of a ${deviceName || 'device'} for any type of damage or issues and provide your response in ${getLanguageName(language)}. Check for:
-- Physical damage (cracks, dents, broken parts, scratches)
-- Dust, dirt, corrosion, or buildup
-- Signs of overheating (burn marks, melted areas, discoloration)
-- Loose or disconnected wires/connectors
-- Missing components or screws
-- Misalignment of parts
-- Any other visible problems specific to ${deviceName || 'this type of device'}
+            text: `Analyze this image of a ${deviceName || 'component'} to identify the component and describe its common uses and applications. Provide your response in ${getLanguageName(language)}. Check for:
+- Component name and type
+- Primary function
+- Common applications or circuits it's used in
+- Any notable features or characteristics
 
 IMPORTANT: Keep the analysis SHORT and ACTIONABLE. Follow these rules:
-- Use bullet points for issues found
-- Maximum 5 key issues
-- Each issue under 15 words
-- Focus on most critical problems first
-- If complex, provide brief summary
+- Use bullet points for component details
+- Maximum 5 key details
+- Each detail under 20 words
+- Focus on identification and common uses
+- If complex, provide a brief summary
 - Respond entirely in ${getLanguageName(language)}
 
 Format:
-## Issues Found:
-• Issue 1: [description under 15 words in ${getLanguageName(language)}]
-• Issue 2: [description under 15 words in ${getLanguageName(language)}]
-• Issue 3: [description under 15 words in ${getLanguageName(language)}]
-
-## Likely Cause: [brief explanation in ${getLanguageName(language)}]`
+## Component Identification:
+• Name: [component name and type in ${getLanguageName(language)}]
+• Function: [primary function in ${getLanguageName(language)}]
+• Uses: [common applications in ${getLanguageName(language)}]
+• Features: [notable features in ${getLanguageName(language)}]`
             },
             {
               inline_data: {
@@ -101,11 +97,12 @@ Format:
     const data = await response.json();
     
     if (!response.ok) {
-      console.error('Gemini API error:', data);
-      throw new Error(data.error?.message || 'Failed to analyze image');
+      console.error('Gemini API error (non-2xx response):', data);
+      throw new Error(data.error?.message || 'Failed to analyze image with Gemini API');
     }
 
     const analysis = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No analysis available';
+    console.log('Gemini analysis result:', analysis);
 
     // Generate relevant follow-up questions based on the analysis
     const questionResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
@@ -116,14 +113,14 @@ Format:
       body: JSON.stringify({
         contents: [{
           parts: [{
-            text: `Based on this analysis of a ${deviceName || 'device'}: "${analysis}"
+            text: `Based on this component analysis of a ${deviceName || 'component'}: "${analysis}"
 
-Generate 3-5 specific, relevant questions that would help get more details about the problems identified with this ${deviceName || 'device'}. Questions should be:
-- Directly related to the issues found in the image
-- Specific to ${deviceName || 'this type of device'} and its common problems
-- Helpful for determining the exact cause or solution
+Generate 3-5 specific, relevant questions that would help get more details about the identified component and its uses. Questions should be:
+- Directly related to the component identified
+- Specific to this type of component and its common applications
+- Helpful for understanding its functionality or potential troubleshooting
 - Clear and easy to answer
-- Focus on symptoms, when the problem started, usage patterns
+- Focus on specifications, alternative uses, or common problems
 - Written entirely in ${getLanguageName(language)}
 
 Format as a simple JSON array of strings in ${getLanguageName(language)}.`
@@ -135,16 +132,26 @@ Format as a simple JSON array of strings in ${getLanguageName(language)}.`
     const questionData = await questionResponse.json();
     let questions = [];
     
-    try {
-      const questionText = questionData.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
-      questions = JSON.parse(questionText.replace(/```json\n?/g, '').replace(/```/g, ''));
-    } catch (e) {
-      console.error('Error parsing questions:', e);
+    if (!questionResponse.ok) {
+      console.error('Gemini API error (questions, non-2xx response):', questionData);
+      // Fallback to default questions if API fails
       questions = [
         "When did you first notice this problem?",
         "Does the device still work despite the visible issues?",
         "Have you tried any repairs or cleaning?"
       ];
+    } else {
+      try {
+        const questionText = questionData.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
+        questions = JSON.parse(questionText.replace(/```json\n?/g, '').replace(/```/g, ''));
+      } catch (e) {
+        console.error('Error parsing questions:', e);
+        questions = [
+          "When did you first notice this problem?",
+          "Does the device still work despite the visible issues?",
+          "Have you tried any repairs or cleaning?"
+        ];
+      }
     }
 
     return new Response(JSON.stringify({ 
@@ -155,7 +162,7 @@ Format as a simple JSON array of strings in ${getLanguageName(language)}.`
     });
 
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error in identify-components edge function:', error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -2,6 +2,8 @@ import { Home, ShoppingBag, Camera, Bot, Settings, ArrowUp, Users, History as Hi
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { showInterstitialAd } from '@/lib/utils';
 
 interface BottomNavigationProps {
   isCreateProjectModalOpen?: boolean;
@@ -13,6 +15,9 @@ const BottomNavigation = ({ isCreateProjectModalOpen = false }: BottomNavigation
   const [isVisible, setIsVisible] = useState(true);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const { isPremium } = useAuth(); // Get premium status
+  const [navClickCount, setNavClickCount] = useState(0); // State for navigation click count
+  const AD_DISPLAY_THRESHOLD = 3; // Show ad every 3 navigation clicks
 
   useEffect(() => {
     const handleScroll = () => {
@@ -73,7 +78,17 @@ const BottomNavigation = ({ isCreateProjectModalOpen = false }: BottomNavigation
                             key={item.path}
                             variant="ghost"
                             size="sm"
-                            onClick={() => navigate(item.path)}
+                            onClick={() => {
+                              navigate(item.path);
+                              if (!isPremium) {
+                                const newCount = navClickCount + 1;
+                                setNavClickCount(newCount);
+                                if (newCount >= AD_DISPLAY_THRESHOLD) {
+                                  showInterstitialAd(isPremium);
+                                  setNavClickCount(0); // Reset count after showing ad
+                                }
+                              }
+                            }}
                             className={`flex flex-col items-center gap-1 h-auto p-2 transition-all duration-200 hover:scale-105 w-12 ${
                               isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
                             }`}
@@ -99,7 +114,17 @@ const BottomNavigation = ({ isCreateProjectModalOpen = false }: BottomNavigation
                             key={item.path}
                             variant="ghost"
                             size="sm"
-                            onClick={() => navigate(item.path)}
+                            onClick={() => {
+                              navigate(item.path);
+                              if (!isPremium) {
+                                const newCount = navClickCount + 1;
+                                setNavClickCount(newCount);
+                                if (newCount >= AD_DISPLAY_THRESHOLD) {
+                                  showInterstitialAd(isPremium);
+                                  setNavClickCount(0); // Reset count after showing ad
+                                }
+                              }
+                            }}
                             className={`flex flex-col items-center gap-1 h-auto p-2 transition-all duration-200 hover:scale-105 w-12 ${
                               isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
                             }`}
@@ -116,7 +141,17 @@ const BottomNavigation = ({ isCreateProjectModalOpen = false }: BottomNavigation
                 {/* Floating Action Button (Scan) - Overlays the pill */}
                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 -mt-4">
                   <Button
-                    onClick={() => navigate('/scan')}
+                    onClick={() => {
+                      navigate('/scan');
+                      if (!isPremium) {
+                        const newCount = navClickCount + 1;
+                        setNavClickCount(newCount);
+                        if (newCount >= AD_DISPLAY_THRESHOLD) {
+                          showInterstitialAd(isPremium);
+                          setNavClickCount(0); // Reset count after showing ad
+                        }
+                      }
+                    }}
                     className="h-16 w-16 rounded-full bg-gradient-primary shadow-elevated hover:shadow-elevated hover:scale-105 transition-all duration-200 border-4 border-background"
                     size="icon"
                   >

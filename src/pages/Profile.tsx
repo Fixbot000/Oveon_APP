@@ -11,9 +11,9 @@ import { Upload, User, FileText, Wrench, Calendar, Sun, Moon, LogOut, HelpCircle
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import MobileHeader from "@/components/MobileHeader";
 import BottomNavigation from "@/components/BottomNavigation";
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from '@/hooks/useTheme';
 
 interface Profile {
   id: string;
@@ -22,6 +22,10 @@ interface Profile {
   ispremium?: boolean;
   premiumuienabled?: boolean;
   premium_expiry?: string;
+}
+
+interface ProfileProps {
+  isScrolled: boolean;
 }
 
 interface DiagnosticSession {
@@ -33,7 +37,7 @@ interface DiagnosticSession {
   ai_analysis?: any;
 }
 
-const Profile = () => {
+const Profile = ({ isScrolled }: ProfileProps) => {
   const { user, signOut } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [username, setUsername] = useState('');
@@ -41,26 +45,14 @@ const Profile = () => {
   const [updating, setUpdating] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [diagnosticSessions, setDiagnosticSessions] = useState<DiagnosticSession[]>([]);
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     if (user) {
       fetchProfile();
     }
   }, [user]);
-
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('theme');
-      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const initialDark = stored ? stored === 'dark' : false;
-      setIsDarkMode(initialDark);
-      document.documentElement.classList.toggle('dark', initialDark);
-    } catch (e) {
-      // noop
-    }
-  }, []);
 
   const fetchProfile = async () => {
     if (!user) return;
@@ -83,6 +75,9 @@ const Profile = () => {
       } else {
         setProfile(data as Profile); // Cast data to Profile
         setUsername(data.username);
+        if (data.font_family) {
+          document.documentElement.style.fontFamily = data.font_family;
+        }
       }
 
       // Fetch diagnostic sessions
@@ -185,7 +180,7 @@ const Profile = () => {
         .update({ avatar_url: publicUrl })
         .eq('id', user.id);
 
-      if (updateError) throw updateError;
+      if (updateError) throw error;
 
       setProfile(prev => prev ? { ...prev, avatar_url: publicUrl } : null);
       toast.success('Avatar updated successfully!');
@@ -194,16 +189,6 @@ const Profile = () => {
       toast.error('Failed to upload avatar');
     } finally {
       setUploading(false);
-    }
-  };
-
-  const handleToggleTheme = (checked: boolean) => {
-    setIsDarkMode(checked);
-    try {
-      document.documentElement.classList.toggle('dark', checked);
-      localStorage.setItem('theme', checked ? 'dark' : 'light');
-    } catch (e) {
-      // noop
     }
   };
 
@@ -232,7 +217,6 @@ const Profile = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background pb-20">
-        <MobileHeader onRefresh={fetchProfile} isPremium={profile?.ispremium || false} />
         <main className="px-4 py-6">
           <div className="animate-pulse space-y-4">
             <div className="h-32 bg-muted rounded-lg"></div>
@@ -247,7 +231,6 @@ const Profile = () => {
   if (!user) {
     return (
       <div className="min-h-screen bg-background pb-20">
-        <MobileHeader onRefresh={() => window.location.reload()} isPremium={profile?.ispremium || false} />
         <main className="px-4 py-6">
           <Card className="text-center py-8">
             <CardContent>
@@ -269,7 +252,6 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <MobileHeader onRefresh={fetchProfile} isPremium={profile?.ispremium || false} />
       <main className="px-4 py-6 space-y-6">
         <div className="space-y-6">
           <h1 className="text-3xl font-bold">Profile Settings</h1>
@@ -285,9 +267,9 @@ const Profile = () => {
             {/* Avatar Section */}
             <div className="flex flex-col items-center space-y-4">
               <Avatar className={`h-24 w-24 ring-2 cursor-pointer ${profile?.ispremium ? 'ring-amber-400' : 'ring-primary/20'}`}>
-                <AvatarImage src={`${profile?.avatar_url}?v=${new Date().getTime()}`} />
+                <AvatarImage src={profile?.avatar_url} />
                 <AvatarFallback className="text-2xl">
-                  {username.charAt(0).toUpperCase()}
+                  {(profile?.username || 'U').charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               
@@ -345,17 +327,17 @@ const Profile = () => {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  {isDarkMode ? (
+                  {theme === 'dark' ? (
                     <Moon className="h-5 w-5 text-muted-foreground" />
                   ) : (
                     <Sun className="h-5 w-5 text-muted-foreground" />
                   )}
                   <div>
                     <p className="font-medium">Appearance</p>
-                    <p className="text-sm text-muted-foreground">{isDarkMode ? 'Dark' : 'Light'} mode</p>
+                    <p className="text-sm text-muted-foreground">{theme === 'dark' ? 'Dark' : 'Light'} mode</p>
                   </div>
                 </div>
-                <Switch checked={isDarkMode} onCheckedChange={handleToggleTheme} />
+                <Switch checked={theme === 'dark'} onCheckedChange={toggleTheme} />
               </div>
 
               {profile?.ispremium && (

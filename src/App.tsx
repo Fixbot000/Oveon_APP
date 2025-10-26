@@ -23,13 +23,23 @@ import DiagnosisResult from "./pages/DiagnosisResult";
 import TermsPage from "./pages/TermsPage";
 import NotFound from "./pages/NotFound";
 import ProjectChat from "./pages/ProjectChat";
+import RepairBot from "./pages/RepairBot";
+import IdentifyKnowUpload from "./pages/IdentifyKnowUpload"; // Import the new page
+// import IdentificationResultPage from "./pages/IdentificationResultPage"; // Import the new result page
+import CircuitPage from "./pages/CircuitPage"; // Import CircuitPage
 import { useTheme } from "@/hooks/useTheme"; // Import useTheme hook
+import { useScrollPosition } from "@/hooks/use-scroll-position"; // Import useScrollPosition hook
+import MobileHeader from "@/components/MobileHeader"; // Import MobileHeader
+import { useLocation } from "react-router-dom";
+import { RefreshProvider } from '@/hooks/useRefresh';
 
 const queryClient = new QueryClient();
 
 const AppContent = () => {
   const { user } = useAuth();
   useTheme(); // Initialize theme handling
+  const { hasShrunk } = useScrollPosition(20); // Get scroll position
+  const location = useLocation();
 
   useEffect(() => {
     if (user?.user_metadata?.isPremium && user?.user_metadata?.premiumUiEnabled) {
@@ -43,39 +53,46 @@ const AppContent = () => {
     <>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <OnboardingTutorial />
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/chat" element={<Chat />} />
-          <Route path="/shop" element={<Shop />} />
-          <Route path="/scan" element={<AuthGuard><Scan /></AuthGuard>} />
-          <Route path="/community" element={<AuthGuard><Community /></AuthGuard>} />
-          <Route path="/discussion/:postId" element={<AuthGuard><Discussion /></AuthGuard>} />
-          <Route path="/history" element={<AuthGuard><History /></AuthGuard>} />
-          <Route path="/profile" element={<AuthGuard><Profile /></AuthGuard>} />
-          <Route path="/premium" element={<Premium />} />
-          <Route path="/plans" element={<AuthGuard><Plans /></AuthGuard>} />
-          <Route path="/help" element={<Help />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="/diagnosis-result" element={<DiagnosisResult />} />
-          <Route path="/project/:projectId/chat" element={<AuthGuard><ProjectChat /></AuthGuard>} />
-          <Route path="/terms-and-policies" element={<TermsPage />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <MobileHeader isScrolled={hasShrunk} isPremium={user?.user_metadata?.isPremium || false} />
+      <OnboardingTutorial />
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/chat" element={<Chat />} />
+        <Route path="/shop" element={<Shop />} />
+        <Route path="/scan" element={<AuthGuard><Scan /></AuthGuard>} />
+        <Route path="/community" element={<AuthGuard><Community /></AuthGuard>} />
+        <Route path="/discussion/:postId" element={<AuthGuard><Discussion /></AuthGuard>} />
+        <Route path="/history" element={<AuthGuard><History /></AuthGuard>} />
+        <Route path="/profile" element={<AuthGuard><Profile /></AuthGuard>} />
+        <Route path="/premium" element={<Premium />} />
+        <Route path="/plans" element={<AuthGuard><Plans /></AuthGuard>} />
+        <Route path="/help" element={<Help />} />
+        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+        <Route path="/diagnosis-result" element={<DiagnosisResult />} />
+        <Route path="/repair-bot" element={<AuthGuard><RepairBot /></AuthGuard>} />
+        <Route path="/project/:projectId/chat" element={<AuthGuard><ProjectChat /></AuthGuard>} />
+        <Route path="/identify-know-upload" element={<AuthGuard><IdentifyKnowUpload /></AuthGuard>} /> {/* New Route */}
+        {/* <Route path="/identification-result" element={<AuthGuard><IdentificationResultPage /></AuthGuard>} /> */} {/* New result page route */}
+        <Route path="/terms-and-policies" element={<TermsPage />} />
+        <Route path="/circuit" element={<AuthGuard><CircuitPage /></AuthGuard>} /> {/* New Route for CircuitPage */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
     </>
   );
 };
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
-    </TooltipProvider>
+    <AuthProvider>
+      <TooltipProvider>
+        <BrowserRouter>
+          <RefreshProvider>
+            <AppContent />
+          </RefreshProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 

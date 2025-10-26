@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Oveon</string>
+    <string name="title_activity_main">Oveon</string>
+    <string name="package_name">com.aswin.oveon</string>
+    <string name="custom_url_scheme">com.aswin.oveon</string>
+    <!-- AdMob App ID (replace with your actual AdMob App ID) -->
+    <string name="admob_app_id">ca-app-pub-6931186438015318~5534168056</string>
+    <!-- AdMob Interstitial Ad Unit ID (replace with your actual Interstitial Ad Unit ID) -->
+    <string name="admob_interstitial_ad_unit_id">ca-app-pub-6931186438015318/5591019475</string>
+</resources>

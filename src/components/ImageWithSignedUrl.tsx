@@ -53,10 +53,7 @@ export const ImageWithSignedUrl: React.FC<ImageWithSignedUrlProps> = ({
 
   if (loading) {
     return (
-      <div className={`bg-muted animate-pulse ${className}`}>
-        <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-          Loading...
-        </div>
+      <div className={`bg-white ${className}`}>
       </div>
     );
   }

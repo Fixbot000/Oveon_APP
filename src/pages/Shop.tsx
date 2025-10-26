@@ -1,9 +1,10 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import MobileHeader from '@/components/MobileHeader';
 import BottomNavigation from '@/components/BottomNavigation';
 import { Cpu, Zap, Battery, Wrench, Calculator, Cable } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth'; // Import useAuth
+import React, { useState, useEffect, useRef } from 'react';
+import { useRefresh } from '@/hooks/useRefresh'; // Import useRefresh hook
 
 const Shop = () => {
   const categories = [
@@ -37,10 +38,41 @@ const Shop = () => {
   ];
 
   const { isPremium } = useAuth(); // Destructure isPremium from useAuth
+  const [headerScrolled, setHeaderScrolled] = useState(false);
+  const lastScrollY = useRef(0);
+  const SCROLL_THRESHOLD_DOWN = 100; // Define a threshold for scrolling down
+  const SCROLL_THRESHOLD_UP = 50;   // Define a threshold for scrolling up
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY > lastScrollY.current && currentScrollY > SCROLL_THRESHOLD_DOWN) {
+        // Scrolling down past the threshold
+        setHeaderScrolled(true);
+      } else if (currentScrollY < lastScrollY.current && currentScrollY < SCROLL_THRESHOLD_UP) {
+        // Scrolling up past the threshold, or near the top
+        setHeaderScrolled(false);
+      }
+      lastScrollY.current = currentScrollY;
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  // Consume refresh context and log when triggered
+  const { refreshTrigger } = useRefresh();
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      console.log('Shop page detected global refresh.');
+      // Add any specific refresh logic for Shop page here if needed in the future
+    }
+  }, [refreshTrigger]);
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <MobileHeader onRefresh={() => window.location.reload()} isPremium={isPremium} />
       
       <main className="px-4 py-6 space-y-6">
         {/* Categories */}

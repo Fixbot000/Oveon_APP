@@ -1,20 +1,17 @@
 import React from 'react';
-import MobileHeader from "@/components/MobileHeader";
 import BottomNavigation from "@/components/BottomNavigation";
 import { useAuth } from '@/hooks/useAuth';
 
-const TermsAndPolicies: React.FC = () => {
+interface TermsAndPoliciesProps {
+  isScrolled: boolean;
+}
+
+const TermsAndPolicies: React.FC = ({ isScrolled }: TermsAndPoliciesProps) => {
   const { user } = useAuth();
   const isPremium = user?.user_metadata?.isPremium || false;
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <MobileHeader 
-        onRefresh={() => {}} 
-        isPremium={isPremium}
-        showBackButton={true}
-        backButtonTarget="/profile"
-      />
       <main className="px-4 py-6">
         <div className="container mx-auto p-4 max-w-2xl">
           <h1 className="text-3xl font-bold mb-4">Oveon Terms and Conditions</h1>
