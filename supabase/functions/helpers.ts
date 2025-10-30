@@ -53,3 +53,54 @@ export async function checkPremiumAndScans(userId: string, supabaseServiceRoleKe
 
   return { allowed: true };
 }
+
+export async function checkPremiumAndIdentify(userId: string, supabaseServiceRoleKey: string, supabaseUrl: string): Promise<{ allowed: boolean; error?: string }> {
+  const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+
+  const { data: userProfile, error: profileError } = await supabase
+    .from('profiles')
+    .select('ispremium, remainingidentify, lastidentifyreset')
+    .eq('id', userId)
+    .single();
+
+  if (profileError || !userProfile) {
+    console.error('Error fetching user profile for identify check:', profileError);
+    return { allowed: false, error: 'Failed to retrieve user profile for identify check.' };
+  }
+
+  let { ispremium, remainingidentify, lastidentifyreset } = userProfile;
+  
+  // Default values if fields don't exist yet
+  remainingidentify = remainingidentify ?? 2;
+  
+  if (ispremium) {
+    return { allowed: true }; // Premium users have unlimited identifies
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const lastResetDate = lastidentifyreset ? new Date(lastidentifyreset) : null;
+
+  if (!lastResetDate || lastResetDate.toDateString() < today.toDateString()) {
+    remainingidentify = 2; // Reset identifies daily to 2 for free users
+    lastidentifyreset = today.toISOString().split('T')[0]; // Store as YYYY-MM-DD
+
+    await supabase
+      .from('profiles')
+      .update({ remainingidentify, lastidentifyreset })
+      .eq('id', userId);
+  }
+
+  if (remainingidentify <= 0) {
+    return { allowed: false, error: 'Identify limit exceeded. Please upgrade to premium for unlimited identifies.' };
+  }
+
+  // Decrement identify count for free users
+  remainingidentify--;
+  await supabase
+    .from('profiles')
+    .update({ remainingidentify })
+    .eq('id', userId);
+
+  return { allowed: true };
+}

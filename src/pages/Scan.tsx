@@ -267,26 +267,16 @@ const Scan = () => {
                    
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <CircuitCard
-              title="CIRCUIT GENERATOR"
-              description="Generate circuits with just a single prompt"
-              onClick={handleNavigateToCircuitPage}
-              cardBgClass="bg-[#2ecc71]"
-              titleColorClass="text-black"
-              descriptionColorClass="text-black opacity-60"
-              button={
-                <Button
-                  variant="secondary"
-                  className="bg-white text-[#2ecc71] hover:bg-gray-100 rounded-full text-xs px-4 py-2 shadow-sm"
-                >
-                  VIEW MORE
-                </Button>
-              }
-              backgroundImage="/src/assets/circuit-analysis-tip.jpg" // Example background image path
-              abstractDesignImage={AbstractDesign} // Pass the abstract design SVG
-            />
-          </div>
+          {/* Circuit Generator card hidden as requested by user */}
+          {/* <CircuitCard
+            title="CIRCUIT GENERATOR"
+            description="Generate circuit diagrams from text descriptions"
+            onClick={handleNavigateToCircuitPage}
+            abstractDesignImage={AbstractDesign}
+            titleColorClass="text-white"
+            descriptionColorClass="text-gray-200"
+            cardBgClass="bg-gradient-to-br from-blue-600 to-blue-800"
+          /> */}
 
           <DiagnosticFlow selectedLanguage={selectedLanguage} canScan={canScan} onScanComplete={handleScanCompletion} 
           loadingComponent={(

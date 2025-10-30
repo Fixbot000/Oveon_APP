@@ -388,18 +388,7 @@ const Profile = ({ isScrolled }: ProfileProps) => {
                     </div>
                   </button>
                 )}
-                {!profile?.ispremium && (
-                  <button
-                    className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-muted text-left"
-                    onClick={() => navigate('/premium')}
-                  >
-                    <Star className="h-5 w-5 text-yellow-600" />
-                    <div className="flex-1">
-                      <span className="font-medium">Upgrade to Premium</span>
-                      <p className="text-sm text-muted-foreground">Get unlimited scans and premium features</p>
-                    </div>
-                  </button>
-                )}
+                {/* Upgrade to Premium option hidden as requested */}
                 <button
                   className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-muted text-left"
                   onClick={() => navigate('/terms-and-policies')}

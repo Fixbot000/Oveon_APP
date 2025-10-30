@@ -11,7 +11,7 @@ import { useAuth } from '@/hooks/useAuth'; // Import useAuth
 import { useRef, useEffect } from 'react'; // Import useRef and useEffect
 import PremiumUpsell from '@/components/PremiumUpsell'; // Import the new component
 import MobileHeader from '@/components/MobileHeader'; // Import MobileHeader
-import ScopeBanner from '@/components/ScopeBanner'; // Import ScopeBanner
+// import ScopeBanner from '@/components/ScopeBanner'; // ScopeBanner removed per request
 import { useRefresh } from '@/hooks/useRefresh'; // Import useRefresh hook
 
 interface Message {
@@ -262,9 +262,7 @@ const Chat = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <div className="px-4 mb-4 mt-6">
-        <ScopeBanner />
-      </div>
+      {/* ScopeBanner removed per request */}
       <main className="px-4 py-6 space-y-4 pb-32 bg-background">
           <div className="space-y-4">
             {messages.map((msg) => (

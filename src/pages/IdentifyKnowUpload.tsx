@@ -237,7 +237,8 @@ const IdentifyKnowUpload = () => {
               <p className="text-muted-foreground">Analyzing image...</p>
             </div>
           )}
-          <Card>
+          {/* Identify and Know card hidden as requested */}
+          {/* <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <UploadCloud className="h-5 w-5" />
@@ -340,7 +341,7 @@ const IdentifyKnowUpload = () => {
                 </Card>
               )}
             </CardContent>
-          </Card>
+          </Card> */}
         </div>
       </main>
       <BottomNavigation />
