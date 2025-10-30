@@ -31,7 +31,7 @@ export async function checkPremiumAndScans(userId: string, supabaseServiceRoleKe
   const lastResetDate = lastscanreset ? new Date(lastscanreset) : null;
 
   if (!lastResetDate || lastResetDate.toDateString() < today.toDateString()) {
-    remainingscans = 3; // Reset scans daily
+    remainingscans = 2; // Reset scans daily to 2 for free users
     lastscanreset = today.toISOString().split('T')[0]; // Store as YYYY-MM-DD
 
     await supabase
